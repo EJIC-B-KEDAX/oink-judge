@@ -1,5 +1,4 @@
-#ifndef OINK_JUDGE_BACKEND_AUTH_AUTH_DB_H
-#define OINK_JUDGE_BACKEND_AUTH_AUTH_DB_H
+#pragma once
 
 #include <sqlite3.h>
 
@@ -26,5 +25,3 @@ private:
 };
 
 } // namespace oink_judge::backend::auth
-
-#endif //OINK_JUDGE_BACKEND_AUTH_AUTH_DB_H

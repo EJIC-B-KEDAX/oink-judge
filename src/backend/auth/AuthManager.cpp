@@ -1,8 +1,15 @@
 #include "backend/auth/AuthManager.h"
+#include "config/Config.h"
 
 namespace oink_judge::backend::auth {
 
-AuthManager::AuthManager(const char *db_path) : _auth_db(db_path) {}
+AuthManager &AuthManager::instance() {
+    static AuthManager instance;
+    return instance;
+}
+
+AuthManager::AuthManager() : _auth_db((config::Config::instance().get_directory("db") + "/users.db").c_str()) {}
+
 AuthManager::~AuthManager() = default;
 
 bool AuthManager::register_user(const std::string &username, const std::string &password) {

@@ -1,0 +1,15 @@
+{
+    "ports": {
+        "auth": 9000,
+        "api": 9001
+    },
+    "directories": {
+        "templates": "../templates",
+        "static": "../static",
+        "logs": "../logs",
+        "db" : ".."
+    },
+    "bounds": {
+        "max_connections": 20
+    }
+}

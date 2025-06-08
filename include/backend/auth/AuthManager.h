@@ -1,5 +1,4 @@
-#ifndef OINK_JUDGE_BACKEND_AUTH_AUTH_MANAGER_H
-#define OINK_JUDGE_BACKEND_AUTH_AUTH_MANAGER_H
+#pragma once
 
 #include "backend/auth/AuthDB.h"
 #include "backend/auth/Session.h"
@@ -9,7 +8,7 @@ namespace oink_judge::backend::auth {
 
 class AuthManager {
 public:
-    AuthManager(const char *db_path);
+    static AuthManager &instance();
     ~AuthManager();
 
     AuthManager(const AuthManager &) = delete;
@@ -28,10 +27,10 @@ public:
     void invalidate_session(const std::string &session_id);
 
 private:
+    AuthManager();
+
     AuthDB _auth_db;
     std::unordered_map<std::string, Session> _sessions;
 };
 
 } // namespace oink_judge::backend::auth
-
-#endif //OINK_JUDGE_BACKEND_AUTH_AUTH_MANAGER_H

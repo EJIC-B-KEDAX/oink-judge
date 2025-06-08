@@ -6,7 +6,11 @@ namespace oink_judge::backend::auth {
 Session::Session(const std::string &username) : _username(username) {
     _max_inactivity_time = 3600; // 1 hour
     _last_activity = std::time(nullptr);
-    _session_id = std::to_string(std::time(nullptr)) + "-" + std::to_string(rand()) + "-" + _username;
+    if (username.empty()) {
+        _session_id = "";
+    } else {
+        _session_id = std::to_string(std::time(nullptr)) + "-" + std::to_string(rand()) + "-" + _username;
+    }
 }
 
 bool Session::is_valid() const {

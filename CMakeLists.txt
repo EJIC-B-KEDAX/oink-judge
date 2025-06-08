@@ -18,16 +18,16 @@ set(HEADERS
 )
 
 set(SOURCES
+        src/backend/auth/auth.cpp
         src/backend/auth/AuthDB.cpp
         src/backend/auth/AuthManager.cpp
         src/backend/auth/Session.cpp
 )
 
-add_executable(oink-judge
-        oink-judge.cpp
+add_executable(auth_server
         ${HEADERS}
         ${SOURCES}
 )
 
-target_include_directories(oink-judge PRIVATE ${SODIUM_INCLUDE_DIRS})
-target_link_libraries(oink-judge PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES})
+target_include_directories(auth_server PRIVATE ${SODIUM_INCLUDE_DIRS})
+target_link_libraries(auth_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES})

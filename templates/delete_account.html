@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Delete Account</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fafafa;
+      text-align: center;
+      padding: 50px;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      margin: 0 auto;
+      border-radius: 8px;
+      max-width: 400px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #e74c3c;
+    }
+    .error {
+      color: #e74c3c;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    button {
+      background-color: #e74c3c;
+      border: none;
+      color: white;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
+    input[type="checkbox"] {
+      margin-top: 20px;
+    }
+    label {
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Delete Account</h2>
+    <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('delete_account') }}">
+      <input type="checkbox" id="confirm" name="confirm" required>
+      <label for="confirm">I confirm that I want to delete my account</label><br>
+      <button type="submit">Delete Account</button>
+    </form>
+  </div>
+</body>
+</html>

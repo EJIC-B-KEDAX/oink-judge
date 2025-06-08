@@ -1,5 +1,4 @@
-#ifndef OINK_JUDGE_BACKEND_AUTH_SESSION_H
-#define OINK_JUDGE_BACKEND_AUTH_SESSION_H
+#pragma once
 
 #include <string>
 
@@ -7,7 +6,7 @@ namespace oink_judge::backend::auth {
 
 class Session {
 public:
-    Session(const std::string &username);
+    Session(const std::string &username = "");
 
     bool is_valid() const;
 
@@ -25,5 +24,3 @@ private:
 };
 
 } // namespace oink_judge::backend::auth
-
-#endif //OINK_JUDGE_BACKEND_AUTH_SESSION_H
