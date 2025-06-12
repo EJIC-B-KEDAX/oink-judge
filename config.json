@@ -7,7 +7,7 @@
         "templates": "../templates",
         "static": "../static",
         "logs": "../logs",
-        "db" : ".."
+        "db" : "../db"
     },
     "bounds": {
         "max_connections": 20

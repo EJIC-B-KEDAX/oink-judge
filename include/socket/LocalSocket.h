@@ -20,6 +20,8 @@ public:
     virtual ~LocalSocket();
 
     ClientSocket accept() const;
+
+    void close();
 private:
     int _socket_fd;
 

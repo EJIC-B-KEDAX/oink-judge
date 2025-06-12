@@ -15,6 +15,10 @@ set(HEADERS
         include/backend/auth/AuthDB.h
         include/backend/auth/AuthManager.h
         include/backend/auth/Session.h
+        include/backend/auth/HandleRequest.h
+        include/socket/ClientSocket.h
+        include/socket/LocalSocket.h
+        include/config/Config.h
 )
 
 set(SOURCES
@@ -22,6 +26,10 @@ set(SOURCES
         src/backend/auth/AuthDB.cpp
         src/backend/auth/AuthManager.cpp
         src/backend/auth/Session.cpp
+        src/backend/auth/HandleRequest.cpp
+        src/socket/ClientSocket.cpp
+        src/socket/LocalSocket.cpp
+        src/config/Config.cpp
 )
 
 add_executable(auth_server

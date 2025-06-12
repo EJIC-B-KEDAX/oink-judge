@@ -9,10 +9,14 @@ using json = nlohmann::json;
 
 bool need_to_exit = false;
 
+oink_judge::socket::LocalSocket sock(oink_judge::config::Config::instance().get_port("auth"));
+
 void handle_signal(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         std::cout << "Shutting down server..." << std::endl;
         need_to_exit = true;
+        sock.close();
+        exit(0);
     }
 }
 
@@ -20,10 +24,8 @@ int32_t main() {
     signal(SIGINT, handle_signal);   // Ctrl+C
     signal(SIGTERM, handle_signal);  // kill
 
-    oink_judge::socket::LocalSocket socket(oink_judge::config::Config::instance().get_port("auth"));
-
     while (!need_to_exit) {
-        oink_judge::socket::ClientSocket csocket = socket.accept();
+        oink_judge::socket::ClientSocket csocket = sock.accept();
 
         json request;
         try {

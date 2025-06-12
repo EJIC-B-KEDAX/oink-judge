@@ -1,5 +1,5 @@
-#include "ClientSocket.h"
-#include "LocalSocket.h"
+#include "socket/ClientSocket.h"
+#include "socket/LocalSocket.h"
 #include <unistd.h>
 #include <stdexcept>
 
