@@ -28,6 +28,12 @@ async def get_current_user(request: Request) -> str | None:
         return None
     return username
 
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    username: str = await get_current_user(request)
+
+    return templates.TemplateResponse("index.html", {"request": request, "user": username})
+
 @app.get("/login", response_class=HTMLResponse)
 async def show_login_page(request: Request):
     if await get_current_user(request) is not None:
