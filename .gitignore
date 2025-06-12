@@ -3,3 +3,4 @@ db/
 .vscode/
 problems/
 submissions/
+*__pycache__/
