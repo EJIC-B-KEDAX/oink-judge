@@ -10,6 +10,8 @@ const std::string CONFIG_FILE_PATH = "../config.json";
 
 class Config {
 public:
+    Config(const Config &) = delete;
+    Config &operator=(const Config &) = delete;
 
     static Config &instance();
 
@@ -21,8 +23,6 @@ public:
 
 private:
     Config();
-    Config(const Config &) = delete;
-    Config &operator=(const Config &) = delete;
 
     json _config_data;
 };

@@ -41,7 +41,6 @@ int32_t main() {
             csocket.send_json(response);
         } catch (const std::exception &e) {
             std::cerr << "Failed to send response: " << e.what() << std::endl;
-            continue;
         }
     }
 }

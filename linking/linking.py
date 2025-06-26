@@ -16,12 +16,10 @@ async def get_current_user(request: Request) -> str | None:
     session_id: str = request.cookies.get("session_id")
     if session_id is None:
         return None
-    
-    username = None
 
     try:
         username = requests_to_server.whose_session(session_id)
-    except Exception as e:
+    except Exception:
         return None
     
     if username == "":

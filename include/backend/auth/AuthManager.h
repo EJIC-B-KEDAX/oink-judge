@@ -1,6 +1,5 @@
 #pragma once
 
-#include "backend/auth/AuthDB.h"
 #include "backend/auth/Session.h"
 #include <unordered_map>
 
@@ -27,10 +26,9 @@ public:
     void invalidate_session(const std::string &session_id);
 
 private:
-    AuthManager();
+    AuthManager() = default;
 
-    AuthDB _auth_db;
-    std::unordered_map<std::string, Session> _sessions;
+    std::unordered_map<std::string, Session> _sessions; // TODO add it to database
 };
 
 } // namespace oink_judge::backend::auth
