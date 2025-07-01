@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 # $1 --- id of the box to run the solution in
 # $2 --- id of the box to check the output in
 # $3 --- problem id
@@ -8,7 +10,8 @@
 # Usage: prepare_for_testing.sh <box_id1> <box_id2> <problem_id> <submission_id> <language>
 # May be used to set up the environment before running solutions in isolated boxes
 
-#!/usr/bin/env bash
+echo prepare_for_testing
+
 if [ "$1" = "" ] || [ "$2" = "" ] || [ "$3" = "" ] || [ "$4" = "" ] || [ "$5" = "" ]; then
     echo "Usage: $0 <box_id1> <box_id2> <problem_id> <submission_id> <language>"
     exit 255

@@ -1,9 +1,14 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Form, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 import json
+
+from ipykernel.pickleutil import buffer
+
 import config
 import requests_to_server
+import os
+import uuid
 
 
 config.init_config()
@@ -114,3 +119,38 @@ async def dashboard(request: Request):
     if username is None:
         return RedirectResponse(url="/login", status_code=302)
     return HTMLResponse(f"<h1>Welcome to the dashboard, {username}!</h1>")
+
+@app.get("/submit", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    username: str = await get_current_user(request)
+    if username is None:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse("submit.html", {"request": request})
+
+@app.post("/api/submit")
+async def submit_solution(request: Request,
+        problem_id: str = Form(...),
+        language: str = Form(...),
+        solution: UploadFile = Form(...)
+):
+    username: str = await get_current_user(request)
+    if username is None:
+        return RedirectResponse(url="/login", status_code=302)
+
+    submission_id = str(uuid.uuid4())
+
+    submission_dir = f"../submissions/{submission_id}"
+    os.makedirs(submission_dir, exist_ok=True)
+
+    source_path = os.path.join(submission_dir, "source.cpp")
+    with open(source_path, "wb") as f:
+        f.write(await solution.read())
+
+    source_path = os.path.join(submission_dir, "info.json")
+    with open(source_path, "w") as f:
+        f.write('{"username": "' + username + '"}')
+
+    requests_to_server.handle_submission(submission_id)
+    score = requests_to_server.get_score(username, problem_id)
+
+    return PlainTextResponse(str(score))

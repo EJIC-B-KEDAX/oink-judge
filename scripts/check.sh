@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 # $1 answer file
 # $2 box_id where the solution is run
 # $3 box_id where output may be checked
@@ -10,7 +12,8 @@
 # Run this script after running the solution in an isolated environment using run_in_isolate.sh
 # Before running this script, ensure that the isolate environment is set up correctly (or you ran prepare_for_testing.sh).
 
-#!/usr/bin/env bash
+echo check
+
 if [ "$1" = "" ] || [ "$2" = "" ] || [ "$3" = "" ]; then
     echo "Usage: $0 <answer_file> <box_id1> <box_id2> [<testset>] [<group>]"
     exit 255
@@ -24,26 +27,26 @@ mv "$ISOLATE_PATH/$2/box/output.txt" "$ISOLATE_PATH/$3/box/output.txt"
 
 if [ "$4" == "" ]; then
 
-isolate --run --box-id=$3 \
-    --stdout=checker_output.txt \
-    --stderr=err.txt \
-    -- ./checker input.txt output.txt answer.txt
+    isolate --run --box-id=$3 \
+        --stdout=checker_output.txt \
+        --stderr=err.txt \
+        -- ./checker input.txt output.txt answer.txt
 
-    mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
-    mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
+        mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
+        mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
 
     exit $?
 fi
 
 if [ "$5" == "" ]; then
 
-isolate --run --box-id=$3 \
-    --stdout=checker_output.txt \
-    --stderr=err.txt \
-    -- ./checker --testset $4 input.txt output.txt answer.txt
+    isolate --run --box-id=$3 \
+        --stdout=checker_output.txt \
+        --stderr=err.txt \
+        -- ./checker --testset $4 input.txt output.txt answer.txt
 
-    mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
-    mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
+        mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
+        mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
 
     exit $?
 fi
@@ -56,4 +59,4 @@ isolate --run --box-id=$3 \
     mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
     mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
 
-    exit $?
+exit $?

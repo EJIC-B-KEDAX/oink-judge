@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 # $1 --- time_limit in seconds
 # $2 --- memory_limit in kilobytes
 # $3 --- idle_timeout in seconds
@@ -10,7 +12,8 @@
 # After running, check.sh script may be used to verify the output (output generated in isolate environment)
 # Before running this script, ensure that the isolate environment is set up correctly (or you ran prepare_for_testing.sh).
 
-#!/usr/bin/env bash
+echo run_in_isolate
+
 if [ "$1" = "" ] || [ "$2" = "" ] || [ "$3" = "" ] || [ "$4" = "" ] || [ "$5" = "" ]; then
     echo "Usage: $0 <time_limit> <memory_limit> <idle_timeout> <input_file> <box_id>"
     exit 255

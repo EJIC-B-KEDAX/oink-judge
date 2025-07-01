@@ -1,6 +1,6 @@
 #include <iostream>
-#include "config/Config.h"
+#include <sqlite3.h>
 
 int32_t main() {
-    std::cout << oink_judge::config::Config::instance().get_port("auth") << std::endl;
+    std::cout << sqlite3_libversion() << std::endl;
 }

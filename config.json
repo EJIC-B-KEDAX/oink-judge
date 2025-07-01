@@ -1,13 +1,16 @@
 {
     "ports": {
         "auth": 9000,
-        "api": 9001
+        "management": 9002
     },
     "directories": {
         "templates": "../templates",
         "static": "../static",
         "logs": "../logs",
-        "db" : "../db"
+        "db" : "../db",
+        "problems": "../problems",
+        "submissions": "../submissions",
+        "scripts": "../scripts"
     },
     "bounds": {
         "max_connections": 20

@@ -5,7 +5,11 @@ import config
 def ask(service: str, data: dict) -> dict:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        sock.connect(("127.0.0.1", config.AUTH_PORT))
+        port = config.AUTH_PORT
+        if service == "management":
+            port = config.MANAGEMENT_PORT
+
+        sock.connect(("127.0.0.1", port))
         request_data = json.dumps(data).encode('utf-8')
 
         sock.sendall(len(request_data).to_bytes(4, 'big'))
@@ -37,3 +41,14 @@ def whose_session(session_id: str) -> str:
     if "error" in response:
         raise Exception(f"Error getting session owner: {response['error']}")
     return response["username"]
+
+def handle_submission(submission_id: str):
+    data = {"type": "test_submission", "submission_id": submission_id}
+    ask("management", data)
+    return
+
+def get_score(username: str, problem_id: str):
+    data = {"type": "get_score", "username": username, "problem_id": problem_id}
+    response = ask("management", data)
+    print(response)
+    return response["score"]

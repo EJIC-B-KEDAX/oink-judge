@@ -21,10 +21,21 @@ set(HEADERS
         include/config/Config.h
         include/database/DataBase.h
         include/database/Statement.h
+        include/backend/management/ProblemTable.h
+        include/backend/management/ProblemConfig.h
+        include/backend/testing/TestsetVerdict.h
+        include/backend/testing/Test.h
+        include/backend/testing/Verdict.h
+        include/backend/testing/Subtask.h
+        include/backend/testing/Testset.h
+        include/backend/testing/OutputTest.h
+        include/backend/testing/SubtaskVerdict.h
+        include/backend/testing/SimpleSubtask.h
+        include/backend/testing/SimpleTestset.h
+        include/backend/management/ICPCProblem.h
 )
 
 set(SOURCES
-        src/backend/auth/auth.cpp
         src/backend/auth/TableUsers.cpp
         src/backend/auth/AuthManager.cpp
         src/backend/auth/Session.cpp
@@ -35,12 +46,35 @@ set(SOURCES
         src/backend/management/Problem.cpp
         src/database/DataBase.cpp
         src/database/Statement.cpp
+        src/backend/management/ProblemTable.cpp
+        src/backend/testing/Test.cpp
+        src/backend/testing/OutputTest.cpp
+        src/backend/management/ProblemConfig.cpp
+        src/backend/testing/SimpleSubtask.cpp
+        src/backend/testing/SimpleTestset.cpp
+        src/backend/testing/Subtask.cpp
+        src/backend/testing/SubtaskVerdict.cpp
+        src/backend/testing/Testset.cpp
+        src/backend/testing/TestsetVerdict.cpp
+        src/backend/testing/Verdict.cpp
+        src/backend/management/ICPCProblem.cpp
 )
 
 add_executable(auth_server
         ${HEADERS}
         ${SOURCES}
+        src/backend/auth/auth.cpp
+)
+
+add_executable(management_server
+        ${HEADERS}
+        ${SOURCES}
+        src/backend/management/management_test.cpp
 )
 
 target_include_directories(auth_server PRIVATE ${SODIUM_INCLUDE_DIRS})
-target_link_libraries(auth_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES})
+target_link_libraries(auth_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES} pugixml)
+
+
+target_include_directories(management_server PRIVATE ${SODIUM_INCLUDE_DIRS})
+target_link_libraries(management_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES} pugixml)

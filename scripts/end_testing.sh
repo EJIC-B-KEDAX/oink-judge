@@ -1,3 +1,5 @@
+#!/usr/bin/bash
+
 # $1 --- id of the box to run the solution in
 # $2 --- id of the box to check the output in
 
@@ -5,7 +7,7 @@
 # Usage: end_testing.sh <box_id1> <box_id2>
 # Cleans up the isolated boxes after testing is complete
 
-#!/usr/bin/env bash
+echo end_testing
 
 if [ "$1" = "" ] || [ "$2" = "" ]; then
     echo "Usage: $0 <box_id1> <box_id2>"
