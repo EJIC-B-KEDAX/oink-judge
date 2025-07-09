@@ -20,6 +20,7 @@ set(HEADERS
         include/socket/LocalSocket.h
         include/config/Config.h
         include/database/DataBase.h
+        include/database/DataBase.inl
         include/database/Statement.h
         include/backend/management/ProblemTable.h
         include/backend/management/ProblemConfig.h
@@ -33,6 +34,7 @@ set(HEADERS
         include/backend/testing/SimpleSubtask.h
         include/backend/testing/SimpleTestset.h
         include/backend/management/ICPCProblem.h
+        include/backend/management/Submission.h
 )
 
 set(SOURCES
@@ -58,6 +60,7 @@ set(SOURCES
         src/backend/testing/TestsetVerdict.cpp
         src/backend/testing/Verdict.cpp
         src/backend/management/ICPCProblem.cpp
+        src/backend/management/Submission.cpp
 )
 
 add_executable(auth_server

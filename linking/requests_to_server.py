@@ -1,13 +1,11 @@
 import json
 import socket
-import config
+from config import config
 
 def ask(service: str, data: dict) -> dict:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        port = config.AUTH_PORT
-        if service == "management":
-            port = config.MANAGEMENT_PORT
+        port = config.get_port(service)
 
         sock.connect(("127.0.0.1", port))
         request_data = json.dumps(data).encode('utf-8')

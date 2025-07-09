@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <csignal>
 #include "backend/management/ICPCProblem.h"
+#include "backend/management/Submission.h"
 #include "config/Config.h"
 
 using json = nlohmann::json;
@@ -25,7 +26,8 @@ int32_t main() {
     signal(SIGINT, handle_signal);   // Ctrl+C
     signal(SIGTERM, handle_signal);  // kill
 
-    oink_judge::backend::management::ICPCProblem problem("4");
+    oink_judge::backend::management::ICPCProblem problem4("4");
+    oink_judge::backend::management::ICPCProblem problem1("1");
 
     while (!need_to_exit) {
         oink_judge::socket::ClientSocket csocket = sock.accept();
@@ -42,11 +44,25 @@ int32_t main() {
 
         if (request["type"] == "get_score") {
             std::string username = request["username"];
+            std::string problem_id = request["problem_id"];
 
-            response["score"] = problem.get_participant_score(username);
+            if (problem_id == "4") {
+                response["score"] = problem4.get_participant_score(username);
+            }
+            if (problem_id == "1") {
+                response["score"] = problem1.get_participant_score(username);
+            }
         } else if (request["type"] == "test_submission") {
             std::string submission_id = request["submission_id"];
-            problem.handle_submission(submission_id);
+
+            oink_judge::backend::management::SubmissionInfo submission_info = oink_judge::backend::management::load_submission_info(submission_id);
+
+            if (submission_info.problem_id == "4") {
+                problem4.handle_submission(submission_id);
+            }
+            if (submission_info.problem_id == "1") {
+                problem1.handle_submission(submission_id);
+            }
 
             response["oink"] = "oink";
         }

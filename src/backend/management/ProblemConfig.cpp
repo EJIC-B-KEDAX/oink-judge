@@ -69,7 +69,7 @@ std::string ProblemConfig::get_id() const {
 }
 
 std::string ProblemConfig::get_short_name() const {
-    return _problem_xml.child("problem").attribute("short_name").as_string();
+    return _problem_xml.child("problem").attribute("short-name").as_string();
 }
 
 const std::vector<Testset*> &ProblemConfig::get_testsets() const {

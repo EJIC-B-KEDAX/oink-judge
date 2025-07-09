@@ -33,7 +33,7 @@ bool ProblemTable::check_table_actuality() {
 
     for (int i = 3; i < columns.size(); i++) {
         Statement statement;
-        std::string sql = "ALTER TABLE " + get_table_name() + " DROP COLUMN " + columns[i] + ";";
+        std::string sql = "ALTER TABLE \"" + get_table_name() + "\" DROP COLUMN " + columns[i] + ";";
 
         DataBase::instance().prepare_statement(statement, sql);
 
@@ -42,7 +42,7 @@ bool ProblemTable::check_table_actuality() {
 
     for (int i = 3; i < right_columns.size(); i++) {
         Statement statement;
-        std::string sql = "ALTER TABLE " + get_table_name() + " ADD COLUMN " + right_columns[i] + " REAL DEFAULT 0;";
+        std::string sql = "ALTER TABLE \"" + get_table_name() + "\" ADD COLUMN " + right_columns[i] + " REAL DEFAULT 0;";
 
         DataBase::instance().prepare_statement(statement, sql);
 
@@ -59,7 +59,7 @@ std::string ProblemTable::get_table_name() const {
 std::vector<std::string> ProblemTable::get_columns() const {
     Statement statement;
 
-    std::string sql = "PRAGMA table_info(" + get_table_name() + ");";
+    std::string sql = "PRAGMA table_info(\"" + get_table_name() + "\");";
 
     DataBase::instance().prepare_statement(statement, sql);
 
@@ -77,7 +77,7 @@ void ProblemTable::set_total_score(const std::string &username, double total_sco
 
     Statement statement;
 
-    std::string sql = "UPDATE " + get_table_name() + " SET total_score = " + std::to_string(total_score) + " WHERE username = ?";
+    std::string sql = "UPDATE \"" + get_table_name() + "\" SET total_score = " + std::to_string(total_score) + " WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -89,7 +89,7 @@ void ProblemTable::set_tested_on_revision(const std::string &username, int revis
 
     Statement statement;
 
-    std::string sql = "UPDATE " + get_table_name() + " SET tested_on_revision = " + std::to_string(revision) + " WHERE username = ?";
+    std::string sql = "UPDATE \"" + get_table_name() + "\" SET tested_on_revision = " + std::to_string(revision) + " WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -101,7 +101,7 @@ void ProblemTable::set_score_on_testset(const std::string &username, const Tests
 
     Statement statement;
 
-    std::string sql = "UPDATE " + get_table_name() + " SET score_on_" + testset.get_testset_id() + " = " + std::to_string(score) + " WHERE username = ?";
+    std::string sql = "UPDATE \"" + get_table_name() + "\" SET score_on_" + testset.get_testset_id() + " = " + std::to_string(score) + " WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -113,7 +113,7 @@ void ProblemTable::set_score_on_subtask(const std::string &username, const Tests
 
     Statement statement;
 
-    std::string sql = "UPDATE " + get_table_name() + " SET score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + " = " + std::to_string(score) + " WHERE username = ?";
+    std::string sql = "UPDATE \"" + get_table_name() + "\" SET score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + " = " + std::to_string(score) + " WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -125,7 +125,7 @@ void ProblemTable::set_score_on_test(const std::string &username, const Testset 
 
     Statement statement;
 
-    std::string sql = "UPDATE " + get_table_name() + " SET score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + "_" + test.get_test_id() + " = " + std::to_string(score) + " WHERE username = ?";
+    std::string sql = "UPDATE \"" + get_table_name() + "\" SET score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + "_" + test.get_test_id() + " = " + std::to_string(score) + " WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -137,7 +137,7 @@ void ProblemTable::add_new_user(const std::string &username) {
 
     Statement statement;
 
-    std::string sql = "INSERT INTO " + get_table_name() + " (username) VALUES (?)";
+    std::string sql = "INSERT INTO \"" + get_table_name() + "\" (username) VALUES (?)";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -147,7 +147,7 @@ void ProblemTable::add_new_user(const std::string &username) {
 double ProblemTable::get_total_score(const std::string &username) const {
     Statement statement;
 
-    std::string sql = "SELECT total_score FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT total_score FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -161,7 +161,7 @@ double ProblemTable::get_total_score(const std::string &username) const {
 int ProblemTable::get_tested_on_revision(const std::string &username) const {
     Statement statement;
 
-    std::string sql = "SELECT tested_on_revision FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT tested_on_revision FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -175,7 +175,7 @@ int ProblemTable::get_tested_on_revision(const std::string &username) const {
 double ProblemTable::get_score_on_testset(const std::string &username, const Testset &testset) const {
     Statement statement;
 
-    std::string sql = "SELECT score_on_" + testset.get_testset_id() + " FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT score_on_" + testset.get_testset_id() + " FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -189,7 +189,7 @@ double ProblemTable::get_score_on_testset(const std::string &username, const Tes
 double ProblemTable::get_score_on_subtask(const std::string &username, const Testset &testset, const Subtask &subtask) const {
     Statement statement;
 
-    std::string sql = "SELECT score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + " FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + " FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -203,7 +203,7 @@ double ProblemTable::get_score_on_subtask(const std::string &username, const Tes
 double ProblemTable::get_score_on_test(const std::string &username, const Testset &testset, const Subtask &subtask, const Test &test) const {
     Statement statement;
 
-    std::string sql = "SELECT score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + "_" + test.get_test_id() + " FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT score_on_" + testset.get_testset_id() + "_" + subtask.get_subtask_id() + "_" + test.get_test_id() + " FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -217,7 +217,7 @@ double ProblemTable::get_score_on_test(const std::string &username, const Testse
 bool ProblemTable::does_user_have_submission(const std::string &username) const {
     Statement statement;
 
-    std::string sql = "SELECT 1 FROM " + get_table_name() + " WHERE username = ?";
+    std::string sql = "SELECT 1 FROM \"" + get_table_name() + "\" WHERE username = ?";
 
     DataBase::instance().prepare_statement(statement, sql, username);
 
@@ -257,7 +257,7 @@ void ProblemTable::touch_table() {
     std::vector<std::string> columns = get_right_columns();
 
     Statement statement;
-    std::string create_sql = "CREATE TABLE IF NOT EXISTS " + get_table_name() + " (\n";
+    std::string create_sql = "CREATE TABLE IF NOT EXISTS \"" + get_table_name() + "\" (\n";
     bool need_comma = false;
     for (auto &column : columns) {
         if (need_comma) {

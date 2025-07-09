@@ -1,21 +1,16 @@
+import time
+import re
 from fastapi import FastAPI, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
-import json
-
-from ipykernel.pickleutil import buffer
-
-import config
+from submission import *
+from config import config
 import requests_to_server
 import os
 import uuid
 
-
-config.init_config()
-
-
 app = FastAPI()
-templates = Jinja2Templates(directory=config.TEMPLATES_DIR)
+templates = Jinja2Templates(directory=config.get_directory("templates"))
 
 async def get_current_user(request: Request) -> str | None:
     session_id: str = request.cookies.get("session_id")
@@ -63,6 +58,9 @@ async def show_register_page(request: Request):
 
 @app.post("/register", response_class=HTMLResponse, name="register")
 async def handle_register(request: Request, username: str = Form(...), password: str = Form(...)):
+    if not re.fullmatch(r"[a-zA-Z0-9.\-_?!()]{3,100}", username):
+        return templates.TemplateResponse("register.html", {"request": request, "error": "invalid characters in username, check pattern is [a-zA-Z0-9.-_?!()]{3,100}"})
+
     auth_response = requests_to_server.ask("auth", {"request": "register", "username": username, "password": password})
 
     if "error" in auth_response:
@@ -146,9 +144,7 @@ async def submit_solution(request: Request,
     with open(source_path, "wb") as f:
         f.write(await solution.read())
 
-    source_path = os.path.join(submission_dir, "info.json")
-    with open(source_path, "w") as f:
-        f.write('{"username": "' + username + '"}')
+    store_submission_info(submission_id, SubmissionInfo(username, language, problem_id, int(time.time())))
 
     requests_to_server.handle_submission(submission_id)
     score = requests_to_server.get_score(username, problem_id)
