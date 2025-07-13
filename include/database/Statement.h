@@ -12,11 +12,14 @@ public:
 
     void bind_text(const std::string &value, int place);
     void bind_int(int value, int place);
+    void bind_int64(int64_t value, int place);
 
     sqlite3_stmt **get_stmt();
 
     int step();
     std::string column_text(int column) const;
+    int column_int(int column) const;
+    int64_t column_int64(int column) const;
 
 private:
     sqlite3_stmt *_stmt;

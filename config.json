@@ -13,6 +13,7 @@
         "scripts": "../scripts"
     },
     "bounds": {
-        "max_connections": 20
+        "max_connections": 20,
+        "valid_session_time": 3600
     }
 }

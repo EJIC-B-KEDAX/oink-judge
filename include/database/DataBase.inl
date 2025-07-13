@@ -15,6 +15,10 @@ namespace {
         stmt.bind_int(arg, now_argument_place++);
     }
 
+    void bind_parameters(Statement &stmt, time_t arg) {
+        stmt.bind_int64(arg, now_argument_place++);
+    }
+
     template <typename... Args>
     void bind_parameters(Statement &stmt, const std::string &arg1, const Args&... args) {
         stmt.bind_text(arg1, now_argument_place++);

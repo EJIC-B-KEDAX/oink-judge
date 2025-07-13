@@ -6,7 +6,9 @@ namespace oink_judge::backend::auth {
 
 class Session {
 public:
-    Session(const std::string &username = "");
+    Session(const std::string &username);
+
+    void generate_session();
 
     bool is_valid() const;
 
@@ -14,13 +16,16 @@ public:
 
     const std::string& get_username() const;
 
-    void invalidate();
+    time_t get_expire_at() const;
+
+protected:
+    virtual std::string generate_session_id();
+    virtual time_t generate_expired_at();
 
 private:
     std::string _session_id;
     std::string _username;
-    mutable time_t _last_activity;
-    time_t _max_inactivity_time;
+    time_t _expire_at;
 };
 
 } // namespace oink_judge::backend::auth

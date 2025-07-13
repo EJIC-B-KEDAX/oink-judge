@@ -6,8 +6,8 @@
 namespace oink_judge::socket {
 
 LocalSocket::LocalSocket(int port, in_addr_t address) {
-    // MAX_CONNECTIONS = config::Config::instance().get_bound("max_connections");
-    MAX_CONNECTIONS = 20;
+    MAX_CONNECTIONS = config::Config::instance().get_bound("max_connections");
+    // MAX_CONNECTIONS = 20;
 
     _socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (_socket_fd < 0) {
@@ -19,7 +19,7 @@ LocalSocket::LocalSocket(int port, in_addr_t address) {
     server_address.sin_addr.s_addr = address;
     server_address.sin_port = htons(port);
 
-    if (bind(_socket_fd, (sockaddr*)&server_address, sizeof(server_address)) < 0) {
+    if (bind(_socket_fd, reinterpret_cast<sockaddr *>(&server_address), sizeof(server_address)) < 0) {
         ::close(_socket_fd);
         throw std::runtime_error("Bind failed");
     }

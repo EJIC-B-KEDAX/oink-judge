@@ -1,6 +1,7 @@
 #include "backend/auth/AuthManager.h"
 #include "config/Config.h"
 #include "backend/auth/TableUsers.h"
+#include "backend/auth/TableSessions.h"
 
 namespace oink_judge::backend::auth {
 
@@ -30,43 +31,23 @@ bool AuthManager::update_password(const std::string &username, const std::string
 std::string AuthManager::authenticate(const std::string &username, const std::string &password) {
     if (TableUsers::instance().authenticate(username, password)) {
         Session session(username);
-        _sessions[session.get_session_id()] = session;
+        session.generate_session();
+        TableSessions::instance().add_session(session);
         return session.get_session_id();
     }
     return "";
 }
 
 std::string AuthManager::whose_session(const std::string &session_id) {
-    auto it = _sessions.find(session_id);
-    if (it != _sessions.end() && it->second.get_session_id() == session_id) {
-        std::string username = it->second.get_username();
-        if (!user_exists(username)) {
-            it->second.invalidate();
-            _sessions.erase(it);
-        }
-        return it->second.get_username();
-    }
-    if (it != _sessions.end()) {
-        it->second.invalidate();
-        _sessions.erase(it);
-    }
-    return "";
+    return TableSessions::instance().whose_session(session_id);
 }
 
 bool AuthManager::is_session_valid(const std::string &session_id) {
-    auto it = _sessions.find(session_id);
-    if (it != _sessions.end() && it->second.is_valid()) {
-        return true;
-    }
-    return false;
+    return !TableSessions::instance().whose_session(session_id).empty();
 }
 
 void AuthManager::invalidate_session(const std::string &session_id) {
-    auto it = _sessions.find(session_id);
-    if (it != _sessions.end()) {
-        it->second.invalidate();
-        _sessions.erase(it);
-    }
+    TableSessions::instance().remove_session(session_id);
 }
 
 } // namespace oink_judge::backend::auth

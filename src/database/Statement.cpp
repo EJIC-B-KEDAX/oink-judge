@@ -20,6 +20,10 @@ void Statement::bind_int(int value, int place) {
     sqlite3_bind_int(_stmt, place, value);
 }
 
+void Statement::bind_int64(int64_t value, int place) {
+    sqlite3_bind_int64(_stmt, place, value);
+}
+
 sqlite3_stmt **Statement::get_stmt() {
     return &_stmt;
 }
@@ -30,6 +34,14 @@ int Statement::step() {
 
 std::string Statement::column_text(int column) const {
     return reinterpret_cast<const char *>(sqlite3_column_text(_stmt, column));
+}
+
+int Statement::column_int(int column) const {
+    return sqlite3_column_int(_stmt, column);
+}
+
+int64_t Statement::column_int64(int column) const {
+    return sqlite3_column_int64(_stmt, column);
 }
 
 } // namespace oink_judge::database

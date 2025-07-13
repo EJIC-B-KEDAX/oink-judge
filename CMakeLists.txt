@@ -35,6 +35,7 @@ set(HEADERS
         include/backend/testing/SimpleTestset.h
         include/backend/management/ICPCProblem.h
         include/backend/management/Submission.h
+        include/backend/auth/TableSessions.h
 )
 
 set(SOURCES
@@ -61,6 +62,7 @@ set(SOURCES
         src/backend/testing/Verdict.cpp
         src/backend/management/ICPCProblem.cpp
         src/backend/management/Submission.cpp
+        src/backend/auth/TableSessions.cpp
 )
 
 add_executable(auth_server

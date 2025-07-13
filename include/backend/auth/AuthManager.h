@@ -27,8 +27,6 @@ public:
 
 private:
     AuthManager() = default;
-
-    std::unordered_map<std::string, Session> _sessions; // TODO add it to database
 };
 
 } // namespace oink_judge::backend::auth

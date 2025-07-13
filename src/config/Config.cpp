@@ -1,5 +1,6 @@
 #include "config/Config.h"
 #include <fstream>
+#include <iostream>
 
 namespace oink_judge::config {
 
@@ -13,25 +14,25 @@ Config &Config::instance() {
 int Config::get_port(const std::string &key) const {
     if (_config_data["ports"].contains(key) && _config_data["ports"][key].is_number_integer()) {
         return _config_data["ports"][key].get<int>();
-    } else {
-        throw std::runtime_error("Key not found or not an integer: " + key);
     }
+
+    throw std::runtime_error("Key not found or not an integer: " + key);
 }
 
 std::string Config::get_directory(const std::string &key) const {
     if (_config_data["directories"].contains(key) && _config_data["directories"][key].is_string()) {
         return _config_data["directories"][key].get<std::string>();
-    } else {
-        throw std::runtime_error("Key not found or not a string: " + key);
     }
+
+    throw std::runtime_error("Key not found or not a string: " + key);
 }
 
 json Config::get_bound(const std::string &key) const {
-    if (_config_data["bounds"].contains(key) && _config_data["bounds"][key].is_object()) {
+    if (_config_data["bounds"].contains(key)) {
         return _config_data["bounds"][key];
-    } else {
-        throw std::runtime_error("Key not found or not an object: " + key);
     }
+
+    throw std::runtime_error("Key not found: " + key);
 }
 
 Config::Config() {
