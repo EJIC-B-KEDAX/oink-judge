@@ -57,9 +57,12 @@ async def show_register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
 @app.post("/register", response_class=HTMLResponse, name="register")
-async def handle_register(request: Request, username: str = Form(...), password: str = Form(...)):
+async def handle_register(request: Request, username: str = Form(...), password: str = Form(...), confirm_password: str = Form(...)):
     if not re.fullmatch(r"[a-zA-Z0-9.\-_?!()]{3,100}", username):
         return templates.TemplateResponse("register.html", {"request": request, "error": "invalid characters in username, check pattern is [a-zA-Z0-9.-_?!()]{3,100}"})
+
+    if confirm_password != password:
+        return templates.TemplateResponse("register.html", {"request": request, "error": "passwords do not match"})
 
     auth_response = requests_to_server.ask("auth", {"request": "register", "username": username, "password": password})
 
