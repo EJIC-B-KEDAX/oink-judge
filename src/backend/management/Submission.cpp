@@ -9,7 +9,7 @@ using json = nlohmann::json;
 using Config = config::Config;
 
 SubmissionInfo load_submission_info(const std::string &submission_id) {
-    std::string submission_dir = Config::instance().get_directory("submissions");
+    std::string submission_dir = Config::config()["directories"]["submissions"];
 
     json info;
 
@@ -30,7 +30,7 @@ SubmissionInfo load_submission_info(const std::string &submission_id) {
 }
 
 void store_submission_info(const std::string &submission_id, const SubmissionInfo &submission_info) {
-    std::string submission_dir = Config::instance().get_directory("submissions");
+    std::string submission_dir = Config::config()["directories"]["submissions"];
 
     json info;
     info["participant"] = submission_info.participant;

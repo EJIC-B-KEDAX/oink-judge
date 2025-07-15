@@ -15,6 +15,7 @@ public:
     bool check_table_actuality();
 
     [[nodiscard]] std::string get_table_name() const;
+    [[nodiscard]] std::string get_raw_table_name() const;
     [[nodiscard]] std::vector<std::string> get_columns() const;
 
     void set_total_score(const std::string &username, double total_score);

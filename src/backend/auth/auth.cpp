@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 bool need_to_exit = false;
 
-oink_judge::socket::LocalSocket sock(oink_judge::config::Config::instance().get_port("auth"));
+oink_judge::socket::LocalSocket sock(oink_judge::config::Config::config()["ports"]["auth"]);
 
 void handle_signal(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {

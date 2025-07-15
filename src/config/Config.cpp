@@ -6,39 +6,26 @@ namespace oink_judge::config {
 
 using json = nlohmann::json;
 
-Config &Config::instance() {
-    static Config instance;
-    return instance;
+Config &Config::config() {
+    static Config config(CONFIG_FILE_PATH);
+    return config;
 }
 
-int Config::get_port(const std::string &key) const {
-    if (_config_data["ports"].contains(key) && _config_data["ports"][key].is_number_integer()) {
-        return _config_data["ports"][key].get<int>();
-    }
-
-    throw std::runtime_error("Key not found or not an integer: " + key);
+Config &Config::credentials() {
+    static Config credentials(CREDENTIAL_FILE_PATH);
+    return credentials;
 }
 
-std::string Config::get_directory(const std::string &key) const {
-    if (_config_data["directories"].contains(key) && _config_data["directories"][key].is_string()) {
-        return _config_data["directories"][key].get<std::string>();
-    }
-
-    throw std::runtime_error("Key not found or not a string: " + key);
+const json &Config::operator[](const std::string &key) const {
+    return _config_data.at(key);
 }
 
-json Config::get_bound(const std::string &key) const {
-    if (_config_data["bounds"].contains(key)) {
-        return _config_data["bounds"][key];
-    }
 
-    throw std::runtime_error("Key not found: " + key);
-}
 
-Config::Config() {
-    std::ifstream config_file(CONFIG_FILE_PATH);
+Config::Config(const std::string &config_file_path) {
+    std::ifstream config_file(config_file_path);
     if (!config_file.is_open()) {
-        throw std::runtime_error("Could not open config file: " + CONFIG_FILE_PATH);
+        throw std::runtime_error("Could not open config file: " + config_file_path);
     }
     config_file >> _config_data;
 }

@@ -2,12 +2,13 @@ cmake_minimum_required(VERSION 3.28)
 project(oink-judge)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(include)
 
 find_package(SQLite3 REQUIRED)
 find_package(PkgConfig REQUIRED)
+pkg_check_modules(PQXX REQUIRED libpqxx)
 pkg_check_modules(SODIUM REQUIRED libsodium)
 
 
@@ -21,7 +22,6 @@ set(HEADERS
         include/config/Config.h
         include/database/DataBase.h
         include/database/DataBase.inl
-        include/database/Statement.h
         include/backend/management/ProblemTable.h
         include/backend/management/ProblemConfig.h
         include/backend/testing/TestsetVerdict.h
@@ -48,7 +48,6 @@ set(SOURCES
         src/config/Config.cpp
         src/backend/management/Problem.cpp
         src/database/DataBase.cpp
-        src/database/Statement.cpp
         src/backend/management/ProblemTable.cpp
         src/backend/testing/Test.cpp
         src/backend/testing/OutputTest.cpp
@@ -78,8 +77,8 @@ add_executable(management_server
 )
 
 target_include_directories(auth_server PRIVATE ${SODIUM_INCLUDE_DIRS})
-target_link_libraries(auth_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES} pugixml)
+target_link_libraries(auth_server PRIVATE sodium ${SODIUM_LIBRARIES} pugixml pqxx pq)
 
 
 target_include_directories(management_server PRIVATE ${SODIUM_INCLUDE_DIRS})
-target_link_libraries(management_server PRIVATE sodium SQLite::SQLite3 ${SODIUM_LIBRARIES} pugixml)
+target_link_libraries(management_server PRIVATE sodium ${SODIUM_LIBRARIES} pugixml pqxx pq)

@@ -34,7 +34,7 @@ bool Session::is_valid() const {
     return current_time <= _expire_at;
 }
 
-const std::string& Session::get_session_id() const {
+std::string Session::get_session_id() const {
     if (!is_valid()) {
         return "";
     }
@@ -71,7 +71,7 @@ std::string Session::generate_session_id() {
 }
 
 time_t Session::generate_expired_at() {
-    return std::time(nullptr) + static_cast<time_t>(Config::instance().get_bound("valid_session_time"));
+    return std::time(nullptr) + static_cast<time_t>(Config::config()["bounds"]["valid_session_time"]);
 }
 
 } // namespace oink_judge::backend::auth

@@ -6,7 +6,7 @@
 namespace oink_judge::socket {
 
 LocalSocket::LocalSocket(int port, in_addr_t address) {
-    MAX_CONNECTIONS = config::Config::instance().get_bound("max_connections");
+    MAX_CONNECTIONS = config::Config::config()["bounds"]["max_connections"];
     // MAX_CONNECTIONS = 20;
 
     _socket_fd = ::socket(AF_INET, SOCK_STREAM, 0);

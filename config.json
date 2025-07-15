@@ -1,13 +1,13 @@
 {
     "ports": {
         "auth": 9000,
-        "management": 9002
+        "management": 9002,
+        "database": "5432"
     },
     "directories": {
         "templates": "../templates",
         "static": "../static",
         "logs": "../logs",
-        "db" : "../db",
         "problems": "../problems",
         "submissions": "../submissions",
         "scripts": "../scripts"
@@ -15,5 +15,10 @@
     "bounds": {
         "max_connections": 20,
         "valid_session_time": 3600
+    },
+    "database": {
+        "host": "127.0.0.1",
+        "name": "oink_judge_db",
+        "username": "postgresql"
     }
 }

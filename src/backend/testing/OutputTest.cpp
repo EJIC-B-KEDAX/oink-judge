@@ -17,7 +17,7 @@ std::string OutputTest::get_answer_path() const {
 }
 
 Verdict OutputTest::run(const Testset &testset, const Subtask &subtask, const std::string &box_id_to_run, const std::string &box_id_to_check) const {
-    std::string scripts_path = Config::instance().get_directory("scripts");
+    std::string scripts_path = Config::config()["directories"]["scripts"];
 
     int rc = std::system((scripts_path + "/run_in_isolate.sh " + std::to_string(testset.get_time_limit()) + " " + std::to_string(static_cast<int>(testset.get_memory_limit())) +
         " " + std::to_string(testset.get_idle_limit()) + " " + _input_path + " " + box_id_to_run).c_str());

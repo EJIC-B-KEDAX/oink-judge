@@ -14,7 +14,7 @@ using SimpleSubtask = testing::SimpleSubtask;
 using OutputTest = testing::OutputTest;
 
 ProblemConfig::ProblemConfig(const std::string &id) : _id(id) {
-    std::string path_to_problems = Config::instance().get_directory("problems");
+    std::string path_to_problems = Config::config()["directories"]["problems"];
     std::string path_to_config = path_to_problems + "/" + _id + "/problem.xml";
     if (!_problem_xml.load_file(path_to_config.c_str())) {
         throw std::runtime_error("Failed to load problem xml file " + path_to_config);

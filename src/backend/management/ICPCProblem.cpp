@@ -12,8 +12,8 @@ using json = nlohmann::json;
 ICPCProblem::ICPCProblem(const std::string &id) : Problem(id) {}
 
 void ICPCProblem::handle_submission(const std::string &submission_id) {
-    std::string scripts_dir = Config::instance().get_directory("scripts");
-    std::string submission_dir = Config::instance().get_directory("submissions");
+    std::string scripts_dir = Config::config()["directories"]["scripts"];
+    std::string submission_dir = Config::config()["directories"]["submissions"];
 
     SubmissionInfo submission_info = load_submission_info(submission_id);
 

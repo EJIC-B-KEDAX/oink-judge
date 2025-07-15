@@ -4,44 +4,38 @@
 
 namespace oink_judge::database {
 
-namespace {
-    int now_argument_place;
+template <typename... Args>
+pqxx::result DataBase::execute(const std::string &sql_template_name, const Args&... args) {
+    pqxx::work txn(_conn);
+    pqxx::result res = txn.exec_prepared(sql_template_name, args...);
+    txn.commit();
 
-    void bind_parameters(Statement &stmt, const std::string &arg) {
-        stmt.bind_text(arg, now_argument_place++);
-    }
-
-    void bind_parameters(Statement &stmt, int arg) {
-        stmt.bind_int(arg, now_argument_place++);
-    }
-
-    void bind_parameters(Statement &stmt, time_t arg) {
-        stmt.bind_int64(arg, now_argument_place++);
-    }
-
-    template <typename... Args>
-    void bind_parameters(Statement &stmt, const std::string &arg1, const Args&... args) {
-        stmt.bind_text(arg1, now_argument_place++);
-        bind_parameters(stmt, args...);
-    }
-
-    template <typename... Args>
-    void bind_parameters(Statement &stmt, int arg1, const Args&... args) {
-        stmt.bind_int(arg1, now_argument_place++);
-        bind_parameters(stmt, args...);
-    }
-} // namespace
-
+    return res;
+}
 
 template <typename... Args>
-void DataBase::prepare_statement(Statement &statement, const std::string &sql_template, const Args&... args) const {
-    int rc = sqlite3_prepare_v2(_db, sql_template.c_str(), -1, statement.get_stmt(), nullptr);
-    if (rc != SQLITE_OK) {
-        throw std::runtime_error("Failed to prepare statement: " + std::string(sqlite3_errmsg(_db)));
-    }
+pqxx::result DataBase::execute_sql(const std::string &sql, const Args&... args) {
+    pqxx::work txn(_conn);
+    pqxx::result res = txn.exec_params(sql, args...);
+    txn.commit();
 
-    now_argument_place = 1;
-    bind_parameters(statement, args...);
+    return res;
+}
+
+template <typename... Args>
+pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, const Args&... args) {
+    pqxx::nontransaction txn(_conn);
+    pqxx::result res = txn.exec_prepared(sql_template_name, args...);
+
+    return res;
+}
+
+template <typename... Args>
+pqxx::result DataBase::execute_sql_read_only(const std::string &sql, const Args&... args) {
+    pqxx::nontransaction txn(_conn);
+    pqxx::result res = txn.exec_params(sql, args...);
+
+    return res;
 }
 
 } // namespace oink_judge::database

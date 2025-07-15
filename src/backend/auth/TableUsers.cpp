@@ -7,7 +7,6 @@
 
 namespace oink_judge::backend::auth {
 
-using Statement = database::Statement;
 using DataBase = database::DataBase;
 
 namespace {
@@ -22,7 +21,12 @@ namespace {
             password_hash[i] = static_cast<char>(password_hash_tmp[i]);
         }
         password_hash[crypto_generichash_BYTES] = '\0';
-        return password_hash;
+
+        std::ostringstream result;
+        for (unsigned char byte : password_hash) {
+            result << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        }
+        return result.str();
     }
 } // namespace
 
@@ -33,31 +37,47 @@ TableUsers &TableUsers::instance() {
 
 
 TableUsers::TableUsers() {
-    std::string create_sql = "CREATE TABLE IF NOT EXISTS users ("
-                             "username TEXT PRIMARY KEY,"
-                             "password TEXT);";
+    const std::string create_sql = "CREATE TABLE IF NOT EXISTS users ("
+                                       "username TEXT PRIMARY KEY,"
+                                       "password TEXT);";
 
-    Statement stmt;
-    DataBase::instance().prepare_statement(stmt, create_sql);
+    DataBase::instance().execute_sql(create_sql);
 
-    stmt.step();
+    const std::string select_password_sql = "SELECT password FROM users WHERE username = $1";
+
+    const std::string insert_user_sql = "INSERT INTO users (username, password) VALUES ($1, $2)";
+
+    const std::string delete_user_sql = "DELETE FROM users WHERE username = $1";
+
+    const std::string update_user_sql = "UPDATE users SET password = $2 WHERE username = $1";
+
+    DataBase::instance().prepare_statement("users__select_password", select_password_sql);
+    DataBase::instance().prepare_statement("users__insert_user", insert_user_sql);
+    DataBase::instance().prepare_statement("users__delete_user", delete_user_sql);
+    DataBase::instance().prepare_statement("users__update_user_password", update_user_sql);
 }
 
 bool TableUsers::authenticate(const std::string &username, const std::string &password) {
     std::string password_hash = hash_password(password);
 
-    Statement stmt;
-    std::string sql = "SELECT password FROM users WHERE username = ?";
+    try {
+        pqxx::result res = DataBase::instance().execute_read_only("users__select_password", username);
 
-    DataBase::instance().prepare_statement(stmt, sql, username);
+        if (res.empty()) return false;
 
-    bool authenticated = false;
-    if (stmt.step() == SQLITE_ROW) {
-        std::string stored_password_hash = stmt.column_text(0);
-        authenticated = !stored_password_hash.empty() && stored_password_hash == password_hash;
+        if (res.size() > 1) {
+            throw std::runtime_error("User must have exactly one password");
+        }
+
+        auto stored_password_hash = res[0]["password"].as<std::string>();
+
+        if (stored_password_hash == password_hash) return true;
+
+        return false;
+    } catch (const pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        return false;
     }
-
-    return authenticated;
 }
 
 bool TableUsers::register_user(const std::string &username, const std::string &password) {
@@ -67,21 +87,25 @@ bool TableUsers::register_user(const std::string &username, const std::string &p
 
     std::string password_hash = hash_password(password);
 
-    Statement stmt;
-    std::string sql = "INSERT INTO users (username, password) VALUES (?, ?)";
+    try {
+        DataBase::instance().execute("users__insert_user", username, password_hash);
 
-    DataBase::instance().prepare_statement(stmt, sql, username, password_hash);
-
-    return stmt.step() == SQLITE_DONE;
+        return true;
+    } catch (const pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 bool TableUsers::user_exists(const std::string &username) {
-    Statement stmt;
-    std::string sql = "SELECT 1 FROM users WHERE username = ?";
+    try {
+        pqxx::result res = DataBase::instance().execute_read_only("users__select_password", username);
 
-    DataBase::instance().prepare_statement(stmt, sql, username);
-
-    return stmt.step() == SQLITE_ROW;
+        return !res.empty();
+    } catch (const pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 bool TableUsers::delete_user(const std::string &username) {
@@ -89,12 +113,14 @@ bool TableUsers::delete_user(const std::string &username) {
         return false; // User does not exist
     }
 
-    Statement stmt;
-    std::string sql = "DELETE FROM users WHERE username = ?";
+    try {
+        DataBase::instance().execute("users__delete_user", username);
 
-    DataBase::instance().prepare_statement(stmt, sql, username);
-
-    return stmt.step() == SQLITE_DONE;
+        return true;
+    } catch (const pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 bool TableUsers::update_password(const std::string &username, const std::string &new_password) {
@@ -104,12 +130,14 @@ bool TableUsers::update_password(const std::string &username, const std::string 
 
     std::string password_hash = hash_password(new_password);
 
-    Statement stmt;
-    std::string sql = "UPDATE users SET password = ? WHERE username = ?";
+    try {
+        DataBase::instance().execute("users__update_user_password", username, password_hash);
 
-    DataBase::instance().prepare_statement(stmt, sql, password_hash, username);
-
-    return stmt.step() == SQLITE_DONE;
+        return true;
+    } catch (const pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 } // namespace oink_judge::backend::auth

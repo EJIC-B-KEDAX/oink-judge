@@ -12,7 +12,7 @@ public:
 
     bool is_valid() const;
 
-    const std::string& get_session_id() const;
+    std::string get_session_id() const;
 
     const std::string& get_username() const;
 

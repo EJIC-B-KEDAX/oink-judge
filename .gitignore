@@ -6,3 +6,4 @@ db/
 problems/
 submissions/
 *__pycache__/
+credentials.json

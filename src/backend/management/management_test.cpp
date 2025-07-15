@@ -6,12 +6,13 @@
 #include "backend/management/ICPCProblem.h"
 #include "backend/management/Submission.h"
 #include "config/Config.h"
+#include "database/DataBase.h"
 
 using json = nlohmann::json;
 
 bool need_to_exit = false;
 
-oink_judge::socket::LocalSocket sock(oink_judge::config::Config::instance().get_port("management"));
+oink_judge::socket::LocalSocket sock(oink_judge::config::Config::config()["ports"]["management"]);
 
 void handle_signal(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
@@ -28,6 +29,7 @@ int32_t main() {
 
     oink_judge::backend::management::ICPCProblem problem4("4");
     oink_judge::backend::management::ICPCProblem problem1("1");
+
 
     while (!need_to_exit) {
         oink_judge::socket::ClientSocket csocket = sock.accept();

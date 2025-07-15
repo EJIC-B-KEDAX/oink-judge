@@ -23,7 +23,7 @@ public:
     std::string whose_session(const std::string& session_id) const;
 private:
     TableSessions();
-    bool _is_expired(time_t expire_at) const;
+    static bool _is_expired(time_t expire_at);
 };
 
 } // namespace oink_judge::backend::auth
