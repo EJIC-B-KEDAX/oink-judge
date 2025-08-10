@@ -6,21 +6,15 @@ namespace oink_judge::config {
 
 using json = nlohmann::json;
 
-Config &Config::config() {
+const json &Config::config() {
     static Config config(CONFIG_FILE_PATH);
-    return config;
+    return config._config_data;
 }
 
-Config &Config::credentials() {
+const json &Config::credentials() {
     static Config credentials(CREDENTIAL_FILE_PATH);
-    return credentials;
+    return credentials._config_data;
 }
-
-const json &Config::operator[](const std::string &key) const {
-    return _config_data.at(key);
-}
-
-
 
 Config::Config(const std::string &config_file_path) {
     std::ifstream config_file(config_file_path);

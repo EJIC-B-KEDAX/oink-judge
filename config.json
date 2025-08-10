@@ -2,7 +2,7 @@
     "ports": {
         "auth": 9000,
         "management": 9002,
-        "database": "5432"
+        "database": 5432
     },
     "directories": {
         "templates": "../templates",

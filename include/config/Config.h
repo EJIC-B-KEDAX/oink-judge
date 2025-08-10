@@ -14,10 +14,8 @@ public:
     Config(const Config &) = delete;
     Config &operator=(const Config &) = delete;
 
-    static Config &config();
-    static Config &credentials();
-
-    const json &operator[](const std::string &key) const;
+    static const json &config();
+    static const json &credentials();
 
 private:
     Config(const std::string &config_file_path);
