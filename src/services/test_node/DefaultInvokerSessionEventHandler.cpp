@@ -1,6 +1,7 @@
 #include "services/test_node/DefaultInvokerSessionEventHandler.h"
 #include "services/test_node/TestStorage.h"
 #include "services/test_node/TableSubmissions.h"
+#include "services/data_sender/ContentStorage.h"
 #include "config/Config.h"
 #include <iostream>
 
@@ -37,9 +38,11 @@ void DefaultInvokerSessionEventHandler::receive_message(const std::string &messa
     json parsed_message = json::parse(message);
 
     if (parsed_message["request"] == "test_submission") {
+        std::cout << "Testing submission: " << parsed_message["submission_id"].get<std::string>() << std::endl;
         std::string problem_id = TableSubmissions::instance().problem_of_submission(parsed_message["submission_id"].get<std::string>());
-        std::shared_ptr<Test> test = TestStorage::instance().get_test(problem_id);
         std::cout << "Testing problem: " << problem_id << std::endl;
+        std::shared_ptr<Test> test = TestStorage::instance().get_test(problem_id);
+        data_sender::ContentStorage::instance().ensure_content_exists("submission", parsed_message["submission_id"].get<std::string>());
         std::vector<std::string> boxes;
         size_t boxed_required = test->boxes_required();
         for (int i = 0; i < boxed_required; ++i) {

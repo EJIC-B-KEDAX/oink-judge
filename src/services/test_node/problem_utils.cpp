@@ -1,11 +1,13 @@
 #include "services/test_node/problem_utils.h"
 #include "config/Config.h"
+#include <iostream>
 
 namespace oink_judge::services::test_node {
 
 using Config = config::Config;
 
 pugi::xml_node get_problem_config(const std::string &problem_id) {
+    std::cout << "Need problem config" << std::endl;
     pugi::xml_document problem_config;
     std::string problem_config_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/problem.xml";
     pugi::xml_parse_result result = problem_config.load_file(problem_config_path.c_str());

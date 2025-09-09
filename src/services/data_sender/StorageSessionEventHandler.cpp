@@ -33,6 +33,7 @@ void StorageSessionEventHandler::receive_message(const std::string &message) {
         content_type = header["content_type"];
         content_id = header[content_type + "_id"];
         status = WAIT_DATA;
+        get_session().lock()->receive_message();
     } else if (status == WAIT_DATA) {
         store_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip", message);
         unpack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",

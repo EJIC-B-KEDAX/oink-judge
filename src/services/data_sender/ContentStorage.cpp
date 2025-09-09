@@ -3,6 +3,7 @@
 #include "config/Config.h"
 #include "socket/connection_protocol.h"
 #include <filesystem>
+#include <iostream>
 
 namespace oink_judge::services::data_sender {
 
@@ -17,6 +18,8 @@ void ContentStorage::ensure_content_exists(const std::string &content_type, cons
     if (!_session) {
         throw std::runtime_error("Session is not initialized.");
     }
+
+    std::cout << "Checking existing " + content_type + " " + content_id << std::endl;
 
     if (std::filesystem::exists(Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id)) {
         return;

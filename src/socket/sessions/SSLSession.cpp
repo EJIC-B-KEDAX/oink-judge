@@ -139,7 +139,9 @@ void SSLSession::_send_next() {
     std::string message = std::move(_message_queue.front());
     auto message_ptr = std::make_shared<std::string>(message);
 
-    std::cout << "Sending message: " << *message_ptr << std::endl;
+    if (message_ptr->size() <= 200) {
+        std::cout << "Sending message: " << *message_ptr << std::endl;
+    }
 
     auto self = shared_from_this();
 
@@ -153,7 +155,9 @@ void SSLSession::_send_next() {
             boost::asio::async_write(_ssl_stream, boost::asio::buffer(*message_ptr),
                 [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
                 if (!ec) {
-                    std::cout << "Sent message: " << *message_ptr << std::endl;
+                    if (message_ptr->size() < 200) {
+                        std::cout << "Sent message: " << *message_ptr << std::endl;
+                    }
                     _message_queue.pop();
                     _send_next();
                 } else {

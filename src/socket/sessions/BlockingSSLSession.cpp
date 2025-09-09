@@ -1,6 +1,7 @@
 #include "socket/sessions/BlockingSSLSession.h"
 #include "socket/BoostSSLContext.h"
 #include "socket/byte_order.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -80,16 +81,22 @@ void BlockingSSLSession::send_message(const std::string &message) {
     size_t message_length_net = hton64(message.size());
 
     boost::asio::write(_ssl_stream, boost::asio::buffer(&message_length_net, sizeof(message_length_net)));
+    std::cout << "Sent length of message " << message.size() << std::endl;
     boost::asio::write(_ssl_stream, boost::asio::buffer(message));
+    std::cout << "Sent message " << message << std::endl;
 }
 
 void BlockingSSLSession::receive_message() {
+    std::cout << "Wait message" << std::endl;
     size_t message_length_net;
     boost::asio::read(_ssl_stream, boost::asio::buffer(&message_length_net, sizeof(message_length_net)));
     size_t message_length = ntoh64(message_length_net);
 
+    std::cout << "Received length of message " << message_length << std::endl;
+
     std::string message(message_length, '\0');
     boost::asio::read(_ssl_stream, boost::asio::buffer(message));
+    std::cout << "Received message " << message << std::endl;
     _event_handler->receive_message(message);
 }
 
