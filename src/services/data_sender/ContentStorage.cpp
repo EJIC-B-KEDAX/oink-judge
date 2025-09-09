@@ -40,7 +40,7 @@ ContentStorage::ContentStorage() {
         Config::config().at("hosts").at("data_sender").get<std::string>(),
         Config::config().at("ports").at("data_sender").get<short>(),
         Config::config().at("sessions").at("data_sender").get<std::string>(),
-        Config::config().at("start_mesages").at("data_sender").get<std::string>());
+        Config::config().at("start_messages").at("data_sender").get<std::string>());
 
     if (!_session) {
         throw std::runtime_error("Failed to connect to the data sender endpoint.");

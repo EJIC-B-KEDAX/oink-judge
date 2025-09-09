@@ -75,7 +75,7 @@ bool DataBase::is_statement_prepared(const std::string &sql_template_name) const
 DataBase::DataBase() : _conn(
     "host=" + static_cast<std::string>(Config::config()["database"]["host"]) +
     " port=" + std::to_string(static_cast<short>(Config::config()["ports"]["database"])) +
-    " dbname=" + static_cast<std::string>(Config::config()["database"]["name"]) +
+    " dbname=" + static_cast<std::string>(Config::config()["database"]["dbname"]) +
     " user=" + static_cast<std::string>(Config::config()["database"]["username"]) +
     " password=" + static_cast<std::string>(Config::credentials()["database"]["password"])) {}
 

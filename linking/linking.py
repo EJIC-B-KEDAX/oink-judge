@@ -8,9 +8,11 @@ from config import config
 import requests_to_server
 import os
 import uuid
+import my_database
 
 app = FastAPI()
 templates = Jinja2Templates(directory=config.get_directory("templates"))
+my_database.init_db()
 
 async def get_current_user(request: Request) -> str | None:
     session_id: str = request.cookies.get("session_id")
@@ -147,9 +149,14 @@ async def submit_solution(request: Request,
     with open(source_path, "wb") as f:
         f.write(await solution.read())
 
-    store_submission_info(submission_id, SubmissionInfo(username, language, problem_id, int(time.time())))
+    my_database.insert_submission(submission_id, username, problem_id, language, "TS", 0)
 
     requests_to_server.handle_submission(submission_id)
-    score = requests_to_server.get_score(username, problem_id)
+    verdict = "TS"
+    score = 0.0
+    while verdict == "TS":
+        time.sleep(1)
+        verdict, score = my_database.get_submission_result(submission_id)
+        print(verdict, score)
 
-    return PlainTextResponse(str(score))
+    return PlainTextResponse(str(score) + " " + verdict)

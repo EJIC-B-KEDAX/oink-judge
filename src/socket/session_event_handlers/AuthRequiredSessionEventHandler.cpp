@@ -1,5 +1,6 @@
 #include "socket/session_event_handlers/AuthRequiredSessionEventHandler.h"
 #include "config/Config.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -50,6 +51,7 @@ AuthRequiredSessionEventHandler::AuthRequiredSessionEventHandler(std::unique_ptr
     : _inner_event_handler(std::move(inner_event_handler)), _auth_token(std::move(auth_token)) {}
 
 void AuthRequiredSessionEventHandler::start(const std::string &start_message) {
+    std::cout << "Client connected, waiting for authorization..." << std::endl;
     _status = UNAUTHORIZED;
     _saved_start_message = start_message;
     get_session().lock()->receive_message();
@@ -59,6 +61,8 @@ void AuthRequiredSessionEventHandler::receive_message(const std::string &message
     if (_status == AUTHORIZED) {
         _inner_event_handler->receive_message(message);
     } else {
+        std::cout << "Received authorization token, checking..." << std::endl;
+        std::cout << "Expected: " << _auth_token << ", got: " << message << std::endl;
         if (message == _auth_token) {
             _status = AUTHORIZED;
             _inner_event_handler->start(_saved_start_message);
@@ -74,6 +78,7 @@ void AuthRequiredSessionEventHandler::close_session() {
 }
 
 void AuthRequiredSessionEventHandler::set_session(std::weak_ptr<Session> session) {
+    std::cout << "Setting session in AuthRequiredSessionEventHandler" << std::endl;
     _inner_event_handler->set_session(session);
 }
 

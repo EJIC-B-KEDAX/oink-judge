@@ -11,6 +11,7 @@ public:
     BlockingSSLSession(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler, boost::asio::ssl::stream_base::handshake_type _handshake_type);
     ~BlockingSSLSession() override;
 
+    void set_session_ptr();
     void start(const std::string &start_message) override;
     void send_message(const std::string &message) override;
     void receive_message() override;

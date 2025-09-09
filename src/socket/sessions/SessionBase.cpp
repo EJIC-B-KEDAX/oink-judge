@@ -12,9 +12,6 @@ SessionBase::~SessionBase() {
 
 SessionBase::SessionBase(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler)
     : _socket(std::move(socket)), _event_handler(std::move(event_handler)) {
-    if (_event_handler) {
-        _event_handler->set_session(shared_from_this());
-    }
 }
 
 SessionEventHandler &SessionBase::access_event_handler() {

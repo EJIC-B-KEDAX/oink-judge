@@ -7,7 +7,7 @@ namespace oink_judge::socket {
 
 using tcp = boost::asio::ip::tcp;
 
-class AsyncServer {
+class AsyncServer : public std::enable_shared_from_this<AsyncServer> {
 public:
     AsyncServer(short port, std::shared_ptr<ConnectionHandler> handler);
     virtual ~AsyncServer() = default;

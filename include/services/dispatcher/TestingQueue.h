@@ -2,7 +2,7 @@
 
 #include <string>
 #include <vector>
-#include "services/dispatcher/Invoker.h"
+#include "Invoker.h"
 
 namespace oink_judge::services::dispatcher {
 

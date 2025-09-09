@@ -7,7 +7,8 @@ namespace oink_judge::socket {
 
 class BoostSSLContext {
 public:
-    static boost::asio::ssl::context& instance();
+    static boost::asio::ssl::context& server();
+    static boost::asio::ssl::context& client();
 
     BoostSSLContext(const BoostSSLContext&) = delete;
     BoostSSLContext& operator=(const BoostSSLContext&) = delete;

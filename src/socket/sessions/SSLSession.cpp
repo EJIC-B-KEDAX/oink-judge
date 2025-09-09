@@ -1,6 +1,7 @@
 #include "socket/sessions/SSLSession.h"
 #include "socket/BoostSSLContext.h"
 #include "socket/byte_order.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -12,10 +13,14 @@ namespace {
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
         auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
 
-        return std::make_shared<SSLSession>(
+        auto ptr = std::make_shared<SSLSession>(
             std::move(socket),
             std::move(event_handler),
             boost::asio::ssl::stream_base::client);
+
+        ptr->set_session_ptr();
+
+        return ptr;
     });
 
     return true;
@@ -25,12 +30,17 @@ namespace {
     BasicSessionFactory::instance().register_type(
         SSLSession::REGISTERED_NAME_SERVER,
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
+        std::cout << "Creating SSL server session with params: " << params << std::endl;
         auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
 
-        return std::make_shared<SSLSession>(
+        auto ptr = std::make_shared<SSLSession>(
             std::move(socket),
             std::move(event_handler),
             boost::asio::ssl::stream_base::server);
+
+        ptr->set_session_ptr();
+
+        return ptr;
     });
 
     return true;
@@ -39,17 +49,19 @@ namespace {
 } // namespace
 
 SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler,  boost::asio::ssl::stream_base::handshake_type handshake_type)
-    : _ssl_stream(std::move(socket), BoostSSLContext::instance()), 
+    : _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::server) ? BoostSSLContext::server() : BoostSSLContext::client()), 
       _event_handler(std::move(event_handler)),
       _handshake_type(handshake_type) {
 
-    if (_event_handler) {
-        _event_handler->set_session(shared_from_this());
-    }
+    std::cout << "Created SSL session" << std::endl;
 }
 
 SSLSession::~SSLSession() {
     close();
+}
+
+void SSLSession::set_session_ptr() {
+    _event_handler->set_session(shared_from_this());
 }
 
 void SSLSession::start(const std::string &start_message) {
@@ -61,11 +73,16 @@ void SSLSession::start(const std::string &start_message) {
 
     _ssl_stream.set_verify_mode(boost::asio::ssl::verify_peer);
 
+    std::cout << "wait hanshake" << std::endl;
+
     _ssl_stream.async_handshake(_handshake_type,
         [self, this, start_message](const boost::system::error_code &error) {
+        std::cout << "Handshake" << std::endl;
+        std::cout << _handshake_type << std::endl;
         if (!error) {
             _event_handler->start(start_message);
         } else {
+            std::cout << "Error " << error.what() << std::endl;
             close();
         }
     });
@@ -80,20 +97,26 @@ void SSLSession::send_message(const std::string &message) {
 }
 
 void SSLSession::receive_message() {
+    std::cout << "Receiving message" << std::endl;
     auto self = shared_from_this();
 
-    size_t message_length_net;
-    boost::asio::async_read(_ssl_stream, boost::asio::buffer(&message_length_net, sizeof(message_length_net)),
-        [self, this, message_length_net](const boost::system::error_code &ec, std::size_t /*length*/) {
+    auto message_length_net_ptr = std::make_shared<std::array<char, sizeof(size_t)>>();
+    boost::asio::async_read(_ssl_stream, boost::asio::buffer(*message_length_net_ptr),
+        [self, this, message_length_net_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
         if (!ec) {
+            size_t message_length_net = 0;
+            std::memcpy(&message_length_net, message_length_net_ptr->data(), sizeof(message_length_net));
             size_t message_length = ntoh64(message_length_net);
-            std::string message(message_length, '\0');
+            std::cout << "Reading message of size " << message_length << std::endl;
+            auto message_ptr = std::make_shared<std::string>(message_length, '\0');
 
-            boost::asio::async_read(_ssl_stream, boost::asio::buffer(message),
-                [self, this, message](const boost::system::error_code &ec, std::size_t /*length*/) {
+            boost::asio::async_read(_ssl_stream, boost::asio::buffer(*message_ptr),
+                [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
                 if (!ec) {
-                    _event_handler->receive_message(message);
+                    std::cout << "Read message: " << *message_ptr << std::endl;
+                    _event_handler->receive_message(*message_ptr);
                 } else {
+                    std::cout << "Error reading message: " << ec.what() << std::endl;
                     close();
                 }
             });
@@ -114,19 +137,27 @@ void SSLSession::_send_next() {
     if (_message_queue.empty()) return;
 
     std::string message = std::move(_message_queue.front());
+    auto message_ptr = std::make_shared<std::string>(message);
+
+    std::cout << "Sending message: " << *message_ptr << std::endl;
 
     auto self = shared_from_this();
 
     size_t message_length = hton64(message.size());
-    boost::asio::async_write(_ssl_stream, boost::asio::buffer(&message_length, sizeof(message_length)),
-        [self, this, message](const boost::system::error_code &ec, std::size_t /*length*/) {
+    auto message_length_net_ptr = std::make_shared<std::array<char, sizeof(message_length)>>();
+    std::memcpy(message_length_net_ptr->data(), &message_length, sizeof(message_length));
+    boost::asio::async_write(_ssl_stream, boost::asio::buffer(*message_length_net_ptr),
+        [self, this, message_ptr, message_length_net_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
         if (!ec) {
-            boost::asio::async_write(_ssl_stream, boost::asio::buffer(message),
-                [self, this, message](const boost::system::error_code &ec, std::size_t /*length*/) {
+            std::cout << "Sent length of the message: " << message_ptr->size() << std::endl;
+            boost::asio::async_write(_ssl_stream, boost::asio::buffer(*message_ptr),
+                [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
                 if (!ec) {
+                    std::cout << "Sent message: " << *message_ptr << std::endl;
                     _message_queue.pop();
                     _send_next();
                 } else {
+                    std::cout << "Error sending message: " << ec.what() << std::endl;
                     close();
                 }
             });

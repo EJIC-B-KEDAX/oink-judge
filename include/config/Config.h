@@ -6,8 +6,8 @@ namespace oink_judge::config {
 
 using json = nlohmann::json;
 
-const std::string CONFIG_FILE_PATH = "../config.json";
-const std::string CREDENTIAL_FILE_PATH = "../credentials.json";
+const std::string CONFIG_FILE_PATH = CONFIG_DIR;
+const std::string CREDENTIAL_FILE_PATH = CREDENTIALS_DIR;
 
 class Config {
 public:

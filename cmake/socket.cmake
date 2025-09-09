@@ -1,0 +1,33 @@
+set(SOCKET_HEADERS
+    include/socket/session_event_handlers/AuthorizingSessionEventHandler.h
+    include/socket/session_event_handlers/AuthRequiredSessionEventHandler.h
+    include/socket/sessions/BasicSession.h
+    include/socket/sessions/BlockingSSLSession.h
+    include/socket/sessions/SessionBase.h
+    include/socket/sessions/SSLSession.h
+    include/socket/AsyncServer.h
+    include/socket/BoostIOContext.h
+    include/socket/BoostSSLContext.h
+    include/socket/byte_order.h
+    include/socket/connection_protocol.h
+    include/socket/ConnectionHandler.hpp
+    include/socket/ConnectionStorage.h
+    include/socket/Session.hpp
+    include/socket/SessionEventHandler.hpp
+    include/socket/SimpleConnectionHandler.h
+)
+set(SOCKET_SOURCES
+    src/socket/session_event_handlers/AuthorizingSessionEventHandler.cpp
+    src/socket/session_event_handlers/AuthRequiredSessionEventHandler.cpp
+    src/socket/sessions/BasicSession.cpp
+    src/socket/sessions/BlockingSSLSession.cpp
+    src/socket/sessions/SessionBase.cpp
+    src/socket/sessions/SSLSession.cpp
+    src/socket/AsyncServer.cpp
+    src/socket/BoostIOContext.cpp
+    src/socket/BoostSSLContext.cpp
+    src/socket/byte_order.cpp
+    src/socket/connection_protocol.cpp
+    src/socket/ConnectionStorage.cpp
+    src/socket/SimpleConnectionHandler.cpp
+)

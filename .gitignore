@@ -7,3 +7,5 @@ problems/
 submissions/
 *__pycache__/
 credentials.json
+config.json
+certs/

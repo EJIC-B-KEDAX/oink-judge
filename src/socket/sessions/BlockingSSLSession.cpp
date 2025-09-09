@@ -12,10 +12,14 @@ namespace {
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
         auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
 
-        return std::make_shared<BlockingSSLSession>(
+        auto ptr = std::make_shared<BlockingSSLSession>(
             std::move(socket),
             std::move(event_handler),
             boost::asio::ssl::stream_base::client);
+
+        ptr->set_session_ptr();
+
+        return ptr;
     });
 
     return true;
@@ -27,10 +31,14 @@ namespace {
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
         auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
 
-        return std::make_shared<BlockingSSLSession>(
+        auto ptr = std::make_shared<BlockingSSLSession>(
             std::move(socket),
             std::move(event_handler),
             boost::asio::ssl::stream_base::server);
+
+        ptr->set_session_ptr();
+
+        return ptr;
     });
 
     return true;
@@ -40,17 +48,17 @@ namespace {
 
 
 BlockingSSLSession::BlockingSSLSession(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler,  boost::asio::ssl::stream_base::handshake_type handshake_type)
-    : _ssl_stream(std::move(socket), BoostSSLContext::instance()), 
+    : _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::handshake_type::server) ? BoostSSLContext::server() : BoostSSLContext::client()), 
       _event_handler(std::move(event_handler)),
       _handshake_type(handshake_type) {
-
-    if (_event_handler) {
-        _event_handler->set_session(shared_from_this());
-    }
 }
 
 BlockingSSLSession::~BlockingSSLSession() {
     close();
+}
+
+void BlockingSSLSession::set_session_ptr() {
+    _event_handler->set_session(shared_from_this());
 }
 
 void BlockingSSLSession::start(const std::string &start_message) {
@@ -69,6 +77,9 @@ void BlockingSSLSession::send_message(const std::string &message) {
         throw std::runtime_error("SSL socket is not open.");
     }
 
+    size_t message_length_net = hton64(message.size());
+
+    boost::asio::write(_ssl_stream, boost::asio::buffer(&message_length_net, sizeof(message_length_net)));
     boost::asio::write(_ssl_stream, boost::asio::buffer(message));
 }
 

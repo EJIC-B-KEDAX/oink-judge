@@ -4,6 +4,7 @@
 #include "socket/Session.hpp"
 #include "socket/BoostIOContext.h"
 #include "socket/byte_order.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -17,25 +18,34 @@ void AsyncServer::start_accept() {
 }
 
 void AsyncServer::accept() {
-    _acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket) -> void {
+    auto self = shared_from_this();
+    _acceptor.async_accept([this, self](boost::system::error_code ec, tcp::socket socket) -> void {
+        std::cout << "Accepted new connection" << std::endl;
         if (!ec) {
-            size_t start_message_size_net;
+            auto start_message_size_net_ptr = std::make_shared<std::array<char, sizeof(size_t)>>();
             auto socket_ptr = std::make_shared<tcp::socket>(std::move(socket));
-            boost::asio::async_read(*socket_ptr, boost::asio::buffer(&start_message_size_net, sizeof start_message_size_net),
-                [this, start_message_size_net, socket_ptr](boost::system::error_code ec, std::size_t /*length*/) -> void {
+            boost::asio::async_read(*socket_ptr, boost::asio::buffer(*start_message_size_net_ptr),
+                [this, self, start_message_size_net_ptr, socket_ptr](boost::system::error_code ec, std::size_t /*length*/) -> void {
                 if (!ec) {
+                    size_t start_message_size_net = 0;
+                    std::memcpy(&start_message_size_net, start_message_size_net_ptr->data(), sizeof(start_message_size_net));
+                    std::cout << "Reading start message of size " << start_message_size_net << ' ' << ntoh64(start_message_size_net) << std::endl;
                     size_t start_message_size = ntoh64(start_message_size_net);
                     if (start_message_size == 0) {
                         _handler->new_connection(*socket_ptr, "");
                         return;
                     }
-                    std::string start_message(start_message_size, '\0');
+                    auto start_message = std::make_shared<std::string>(start_message_size, '\0');
 
-                    boost::asio::async_read(*socket_ptr, boost::asio::buffer(start_message),
-                        [this, start_message, socket_ptr](boost::system::error_code ec, std::size_t /*length*/) -> void {
+                    boost::asio::async_read(*socket_ptr, boost::asio::buffer(*start_message),
+                        [this, self, start_message, socket_ptr](boost::system::error_code ec, std::size_t /*length*/) -> void {
+
+                        std::cout << "Read start message: " << *start_message << std::endl;
+                        
                         if (!ec) {
-                            _handler->new_connection(*socket_ptr, start_message);
+                            _handler->new_connection(*socket_ptr, *start_message);
                         } else {
+                            std::cout << "Error reading start message: " << ec.what() << std::endl;
                             socket_ptr->close();
                         }
                     });

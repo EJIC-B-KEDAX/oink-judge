@@ -5,11 +5,11 @@
 using Config = oink_judge::config::Config;
 
 int main() {
-    oink_judge::socket::AsyncServer server(
+    auto server = std::make_shared<oink_judge::socket::AsyncServer>(
         Config::config().at("my_port"), 
         oink_judge::socket::BasicConnectionHandlerFactory::instance().create(
         Config::config().at("connection_handler_type")));
 
-    server.start_accept();
+    server->start_accept();
     oink_judge::socket::BoostIOContext::instance().run();
 }

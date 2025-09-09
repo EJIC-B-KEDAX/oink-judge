@@ -1,5 +1,6 @@
 #include <services/auth/HandleRequest.h>
 #include "services/auth/AuthManager.h"
+#include <iostream>
 
 namespace oink_judge::services::auth {
 
@@ -23,9 +24,13 @@ json handle_client(const json &data) {
 
 json handle_login_request(const json &data) {
 
+    std::cout << "Handling login request with data: " << data.dump() << std::endl;
+
     std::string username = data["username"]; 
     std::string password = data["password"];
     std::string session_id = AuthManager::instance().authenticate(username, password);
+
+    std::cout << "Authentication result for user '" << username << "': " << (session_id.empty() ? "failed " : "succeeded ") << session_id << std::endl;
 
     json response;
     if (!session_id.empty()) {

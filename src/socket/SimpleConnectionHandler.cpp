@@ -1,6 +1,7 @@
 #include "socket/SimpleConnectionHandler.h"
 #include "socket/Session.hpp"
 #include "config/Config.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -24,8 +25,11 @@ SimpleConnectionHandler::SimpleConnectionHandler() = default;
 
 void SimpleConnectionHandler::new_connection(tcp::socket &socket, const std::string &start_message) {
     json parsed_message = json::parse(start_message);
+    std::cout << "New connection of type " << parsed_message.at("connection_type").get<std::string>() << std::endl;
     auto session = socket::BasicSessionFactory::instance().create(Config::config().at("sessions").at(parsed_message.at("connection_type")).get<std::string>(),
         std::move(socket));
+
+    std::cout << "Starting session" << std::endl;
 
     session->start(start_message);
 }
