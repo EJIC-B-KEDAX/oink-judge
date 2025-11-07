@@ -21,6 +21,10 @@ void TestStorage::ensure_test_exists(const std::string &problem_id) {
     data_sender::ContentStorage::instance().ensure_content_exists("problem", problem_id);
 
     std::string builder_name = get_problem_builder_name(problem_id);
+    if (builder_name.empty()) {
+        _tests[problem_id] = nullptr;
+        return;
+    }
     auto builder = ProblemBuilderFactory::instance().create(builder_name, problem_id);
     auto test = builder->build();
 

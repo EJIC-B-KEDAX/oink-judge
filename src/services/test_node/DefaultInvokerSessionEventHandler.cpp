@@ -38,18 +38,28 @@ void DefaultInvokerSessionEventHandler::receive_message(const std::string &messa
     json parsed_message = json::parse(message);
 
     if (parsed_message["request"] == "test_submission") {
-        std::cout << "Testing submission: " << parsed_message["submission_id"].get<std::string>() << std::endl;
-        std::string problem_id = TableSubmissions::instance().problem_of_submission(parsed_message["submission_id"].get<std::string>());
+        std::string submission_id = parsed_message["submission_id"].get<std::string>();
+        std::cout << "Testing submission: " << submission_id << std::endl;
+        std::string problem_id = TableSubmissions::instance().problem_of_submission(submission_id);
         std::cout << "Testing problem: " << problem_id << std::endl;
         std::shared_ptr<Test> test = TestStorage::instance().get_test(problem_id);
-        data_sender::ContentStorage::instance().ensure_content_exists("submission", parsed_message["submission_id"].get<std::string>());
+        if (!test) {
+
+            TableSubmissions::instance().set_score(submission_id, 0.0);
+            TableSubmissions::instance().set_verdict_type(submission_id, "FAIL");
+            get_session().lock()->send_message("I am free");
+            get_session().lock()->receive_message();
+
+            return;
+        }
+        data_sender::ContentStorage::instance().ensure_content_exists("submission", submission_id);
         std::vector<std::string> boxes;
         size_t boxed_required = test->boxes_required();
         for (int i = 0; i < boxed_required; ++i) {
             boxes.push_back(std::to_string(i));
         }
         test->run(
-            parsed_message["submission_id"].get<std::string>(),
+            submission_id,
             boxes,
             parsed_message.value("additional_params", json::object())
         );

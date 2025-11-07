@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Submit solution</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            background: #eef;
+            border: 1px solid #99c;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<h1>Submit solution</h1>
+
+<form id="submit-form">
+    <label>
+        Programming language:
+        <select name="language" required>
+            <option value="cpp17">C++17</option>
+
+        </select>
+    </label>
+
+    <label>
+        Solution file:
+        <input type="file" name="solution" accept=".cpp,.txt" required>
+    </label>
+
+    <button type="submit">Send</button>
+</form>
+
+<div id="response"></div>
+
+<script>
+document.getElementById('submit-form').addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+
+    const responseBox = document.getElementById('response');
+    responseBox.textContent = 'Sending...';
+
+    try {
+        const res = await fetch('/problems/{{ problem.type }}/{{ problem.id }}/submit', {
+            method: 'POST',
+            body: formData
+        });
+
+        const isPlain = res.headers.get("X-Result-Plain") === "1";
+
+        if (isPlain) {
+            const text = await res.text();
+            responseBox.textContent = text;
+        } else {
+            window.location.href = res.url;
+        }
+
+    } catch (err) {
+        responseBox.textContent = 'Sending error: ' + err;
+    }
+});
+</script>
+</body>
+</html>

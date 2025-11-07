@@ -70,7 +70,7 @@ void TableSubmissions::set_score(const std::string &submission_id, double score)
 
 TableSubmissions::TableSubmissions() {
     const std::string create_sql = "CREATE TABLE IF NOT EXISTS submissions ("
-                                       "submission_id TEXT PRIMARY KEY,"
+                                       "id TEXT PRIMARY KEY,"
                                        "username TEXT,"
                                        "problem_id TEXT,"
                                        "language TEXT,"
@@ -79,14 +79,14 @@ TableSubmissions::TableSubmissions() {
 
     DataBase::instance().execute_sql(create_sql);
 
-    const std::string select_whose_sql = "SELECT username FROM submissions WHERE submission_id = $1";
-    const std::string select_problem_sql = "SELECT problem_id FROM submissions WHERE submission_id = $1";
-    const std::string select_language_sql = "SELECT language FROM submissions WHERE submission_id = $1";
-    const std::string select_verdict_type_sql = "SELECT verdict_type FROM submissions WHERE submission_id = $1";
-    const std::string select_score_sql = "SELECT score FROM submissions WHERE submission_id = $1";
+    const std::string select_whose_sql = "SELECT username FROM submissions WHERE id = $1";
+    const std::string select_problem_sql = "SELECT problem_id FROM submissions WHERE id = $1";
+    const std::string select_language_sql = "SELECT language FROM submissions WHERE id = $1";
+    const std::string select_verdict_type_sql = "SELECT verdict_type FROM submissions WHERE id = $1";
+    const std::string select_score_sql = "SELECT score FROM submissions WHERE id = $1";
 
-    const std::string update_verdict_type_sql = "UPDATE submissions SET verdict_type = $2 WHERE submission_id = $1";
-    const std::string update_score_sql = "UPDATE submissions SET score = $2 WHERE submission_id = $1";
+    const std::string update_verdict_type_sql = "UPDATE submissions SET verdict_type = $2 WHERE id = $1";
+    const std::string update_score_sql = "UPDATE submissions SET score = $2 WHERE id = $1";
 
     DataBase::instance().prepare_statement("submissions__select_whose", select_whose_sql);
     DataBase::instance().prepare_statement("submissions__select_problem", select_problem_sql);

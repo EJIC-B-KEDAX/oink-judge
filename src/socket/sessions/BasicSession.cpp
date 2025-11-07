@@ -58,10 +58,12 @@ void BasicSession::receive_message() {
                     std::cout << "Received message: " << *message_ptr << std::endl;
                     access_event_handler().receive_message(*message_ptr);
                 } else {
+                    std::cout << "Error receiving message: " << ec.message() << std::endl;
                     close();
                 }
             });
         } else {
+            std::cout << "Error receiving message length: " << ec.message() << std::endl;
             close();
         }
     });
@@ -69,6 +71,7 @@ void BasicSession::receive_message() {
 
 void BasicSession::close() {
     if (access_socket().is_open()) {
+        std::cout << "Closing socket." << std::endl;
         access_socket().close();
         access_event_handler().close_session();
     }

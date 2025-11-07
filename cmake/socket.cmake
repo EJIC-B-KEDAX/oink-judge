@@ -1,6 +1,8 @@
 set(SOCKET_HEADERS
     include/socket/session_event_handlers/AuthorizingSessionEventHandler.h
     include/socket/session_event_handlers/AuthRequiredSessionEventHandler.h
+    include/socket/session_event_handlers/PingingSessionEventHandler.h
+    include/socket/session_event_handlers/PongingSessionEventHandler.h
     include/socket/sessions/BasicSession.h
     include/socket/sessions/BlockingSSLSession.h
     include/socket/sessions/SessionBase.h
@@ -19,6 +21,8 @@ set(SOCKET_HEADERS
 set(SOCKET_SOURCES
     src/socket/session_event_handlers/AuthorizingSessionEventHandler.cpp
     src/socket/session_event_handlers/AuthRequiredSessionEventHandler.cpp
+    src/socket/session_event_handlers/PingingSessionEventHandler.cpp
+    src/socket/session_event_handlers/PongingSessionEventHandler.cpp
     src/socket/sessions/BasicSession.cpp
     src/socket/sessions/BlockingSSLSession.cpp
     src/socket/sessions/SessionBase.cpp

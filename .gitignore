@@ -2,8 +2,7 @@
 .vscode/
 venv/
 build/
-db/
-problems/
+/problems/
 submissions/
 *__pycache__/
 credentials.json

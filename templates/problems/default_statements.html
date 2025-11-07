@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background-color: #f9f9fb;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2d2f33;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .problem-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .problem-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-buttons a {
+            padding: 0.6rem 1.2rem;
+            background-color: #4a90e2;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .nav-buttons a:hover {
+            background-color: #357ab8;
+        }
+        .statement {
+            margin-top: 1.5rem;
+        }
+        .statement h2 {
+            font-size: 1.2rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="problem-header">
+            <div class="nav-buttons">
+                <a href="/problems/{{ problem.type }}/{{ problem.id }}/submit">Submit</a>
+                <a href="/problems/{{ problem.type }}/{{ problem.id }}/submissions">My Submissions</a>
+            </div>
+        </div>
+
+        <div class="statement">
+            {{ problem.html_statements | safe }}
+        </div>
+    </main>
+</body>
+</html>

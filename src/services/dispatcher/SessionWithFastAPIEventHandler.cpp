@@ -1,5 +1,6 @@
 #include "services/dispatcher/SessionWithFastAPIEventHandler.h"
 #include "services/data_sender/ContentStorage.h"
+#include "services/test_node/TableSubmissions.h"
 
 namespace oink_judge::services::dispatcher {
 
@@ -27,12 +28,12 @@ void SessionWithFastAPIEventHandler::start(const std::string &start_message) {
 
 void SessionWithFastAPIEventHandler::receive_message(const std::string &message) {
     auto json_message = nlohmann::json::parse(message);
-    std::string request_type = json_message["request_type"];
+    std::string request_type = json_message["request"];
 
     if (request_type == "handle_submission") {
         std::string submission_id = json_message["submission_id"];
-        // std::string problem_id = json_message["problem_id"]; // TODO: Get it from database
-        std::string problem_id = "4"; // Temporary hardcoded value
+        std::string problem_id = test_node::TableSubmissions::instance().problem_of_submission(submission_id);
+        std::string request_id = json_message["__id__"];
 
         if (_submission_managers.find(problem_id) == _submission_managers.end()) {
             ContentStorage::instance().ensure_content_exists("problem", problem_id);
@@ -45,6 +46,12 @@ void SessionWithFastAPIEventHandler::receive_message(const std::string &message)
         }
 
         _submission_managers[problem_id]->handle_submission(submission_id);
+        
+        nlohmann::json response = {
+            {"__id__", request_id},
+            {"status", "success"}
+        };
+        get_session().lock()->send_message(response.dump());
     }
 
     get_session().lock()->receive_message();

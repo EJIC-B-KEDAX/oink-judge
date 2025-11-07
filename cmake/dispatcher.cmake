@@ -5,6 +5,7 @@ set(DISPATCHER_HEADERS
     include/services/dispatcher/ProblemSubmissionManager.hpp
     include/services/dispatcher/SessionWithFastAPIEventHandler.h
     include/services/dispatcher/TestingQueue.h
+    include/services/test_node/TableSubmissions.h
 )
 set(DISPATCHER_SOURCES
     src/services/dispatcher/BasicProblemSubmissionManager.cpp
@@ -12,6 +13,7 @@ set(DISPATCHER_SOURCES
     src/services/dispatcher/Invoker.cpp
     src/services/dispatcher/SessionWithFastAPIEventHandler.cpp
     src/services/dispatcher/TestingQueue.cpp
+    src/services/test_node/TableSubmissions.cpp
 )
 
 add_executable(dispatcher_server

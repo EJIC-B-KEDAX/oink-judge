@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background-color: #f9f9fb;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2d2f33;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        main {
+            max-width: 1000px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .page-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        .nav-buttons a {
+            padding: 0.6rem 1.2rem;
+            background-color: #4a90e2;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .nav-buttons a:hover {
+            background-color: #357ab8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        th, td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f6f7;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #fafafa;
+        }
+
+        .verdict {
+            font-weight: 600;
+        }
+        .verdict.AC { color: #28a745; }
+        .verdict.WA { color: #dc3545; }
+        .verdict.RE { color: #dc3545; }
+        .verdict.PS { color: #ff9800; }
+        .verdict.TL { color: #007bff; }
+        .verdict.ML { color: #007bff; }
+        .verdict.CE { color: #6c757d; }
+        .verdict.TS { color: #6c757d; }
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="page-header">
+            <h1>My Submissions</h1>
+            <div class="nav-buttons">
+                <a href="/problems/{{ problem.type }}/{{ problem.id }}">Back to Problem</a>
+                <a href="/problems/{{ problem.type }}/{{ problem.id }}/submit">Submit New</a>
+            </div>
+        </div>
+
+        {% if submissions %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Time</th>
+                    <th>Language</th>
+                    <th>Verdict</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in submissions %}
+                <tr>
+                    <td>{{ s.id }}</td>
+                    <td>{{ s.send_time }}</td>
+                    <td>{{ s.language }}</td>
+                    <td class="verdict {{ s.verdict_type }}">{{ s.verdict_type }}</td>
+                    <td>{{ s.score }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="margin-top:1rem;">You haven’t made any submissions yet.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

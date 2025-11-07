@@ -19,7 +19,7 @@ json handle_client(const json &data) {
         return handle_logout_request(data);
     }
 
-    return json{{"status", "error"}, {"message", "Unknown request type" + std::string(data["request"])}};
+    return json{{"__id__", data.at("__id__")}, {"status", "error"}, {"message", "Unknown request type" + std::string(data["request"])}};
 }
 
 json handle_login_request(const json &data) {
@@ -33,6 +33,7 @@ json handle_login_request(const json &data) {
     std::cout << "Authentication result for user '" << username << "': " << (session_id.empty() ? "failed " : "succeeded ") << session_id << std::endl;
 
     json response;
+    response["__id__"] = data.at("__id__");
     if (!session_id.empty()) {
         response["status"] = "success";
         response["session_id"] = session_id;
@@ -49,6 +50,7 @@ json handle_whose_session_request(const json &data) {
     std::string username = AuthManager::instance().whose_session(session_id);
 
     json response;
+    response["__id__"] = data.at("__id__");
     if (!username.empty()) {
         response["status"] = "success";
         response["username"] = username;
@@ -66,6 +68,7 @@ json handle_register_request(const json &data) {
     bool success = AuthManager::instance().register_user(username, password);
 
     json response;
+    response["__id__"] = data.at("__id__");
     if (success) {
         response["status"] = "success";
     } else {
@@ -81,6 +84,7 @@ json handle_delete_user_request(const json &data) {
     bool success = AuthManager::instance().delete_user(username);
 
     json response;
+    response["__id__"] = data.at("__id__");
     if (success) {
         response["status"] = "success";
     } else {
@@ -97,6 +101,7 @@ json handle_update_password_request(const json &data) {
     bool success = AuthManager::instance().update_password(username, new_password);
 
     json response;
+    response["__id__"] = data.at("__id__");
     if (success) {
         response["status"] = "success";
     } else {
@@ -112,6 +117,7 @@ json handle_logout_request(const json &data) {
     AuthManager::instance().invalidate_session(session_id);
 
     json response;
+    response["__id__"] = data.at("__id__");
     response["status"] = "success";
     return response;
 }

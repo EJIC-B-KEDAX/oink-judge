@@ -31,7 +31,9 @@ void SessionWithFastAPIEventHandler::receive_message(const std::string &message)
     get_session().lock()->receive_message();
 }
 
-void SessionWithFastAPIEventHandler::close_session() {}
+void SessionWithFastAPIEventHandler::close_session() {
+    std::cout << "Closing session." << std::endl;
+}
 
 void SessionWithFastAPIEventHandler::set_session(std::weak_ptr<socket::Session> session) {
     _session = session;
