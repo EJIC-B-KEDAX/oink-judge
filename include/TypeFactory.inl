@@ -1,5 +1,5 @@
 #pragma once
-#include "TypeFactory.h"
+#include "TypeFactory.hpp"
 
 namespace oink_judge {
 

@@ -1,17 +1,17 @@
 set(DISPATCHER_HEADERS
     include/services/dispatcher/BasicProblemSubmissionManager.h
-    include/services/dispatcher/DefaultSessionWithInvokerEventHandler.h
     include/services/dispatcher/Invoker.h
     include/services/dispatcher/ProblemSubmissionManager.hpp
-    include/services/dispatcher/SessionWithFastAPIEventHandler.h
+    include/services/dispatcher/ProtocolWithFastAPI.h
+    include/services/dispatcher/ProtocolWithInvoker.h
     include/services/dispatcher/TestingQueue.h
     include/services/test_node/TableSubmissions.h
 )
 set(DISPATCHER_SOURCES
     src/services/dispatcher/BasicProblemSubmissionManager.cpp
-    src/services/dispatcher/DefaultSessionWithInvokerEventHandler.cpp
     src/services/dispatcher/Invoker.cpp
-    src/services/dispatcher/SessionWithFastAPIEventHandler.cpp
+    src/services/dispatcher/ProtocolWithFastAPI.cpp
+    src/services/dispatcher/ProtocolWithInvoker.cpp
     src/services/dispatcher/TestingQueue.cpp
     src/services/test_node/TableSubmissions.cpp
 )

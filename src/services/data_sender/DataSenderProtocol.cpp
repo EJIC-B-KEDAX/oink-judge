@@ -1,4 +1,4 @@
-#include "services/data_sender/DataSenderSessionEventHandler.h"
+#include "services/data_sender/DataSenderProtocol.h"
 #include "config/Config.h"
 #include "services/data_sender/zip_utils.h"
 
@@ -10,9 +10,9 @@ using Config = config::Config;
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    socket::BasicSessionEventHandlerFactory::instance().register_type(DataSenderSessionEventHandler::REGISTERED_NAME,
-        [](const std::string &params) -> std::unique_ptr<DataSenderSessionEventHandler> {
-        return std::make_unique<DataSenderSessionEventHandler>();
+    socket::ProtocolFactory::instance().register_type(DataSenderProtocol::REGISTERED_NAME,
+        [](const std::string &params) -> std::unique_ptr<DataSenderProtocol> {
+        return std::make_unique<DataSenderProtocol>();
     });
 
     return true;
@@ -20,13 +20,13 @@ namespace {
 
 } // namespace
 
-DataSenderSessionEventHandler::DataSenderSessionEventHandler() = default;
+DataSenderProtocol::DataSenderProtocol() = default;
 
-void DataSenderSessionEventHandler::start(const std::string &start_message) {
+void DataSenderProtocol::start(const std::string &start_message) {
     get_session()->receive_message();
 }
 
-void DataSenderSessionEventHandler::receive_message(const std::string &message) {
+void DataSenderProtocol::receive_message(const std::string &message) {
     json parsed_message = json::parse(message);
     if (parsed_message.at("action") == "get") {
         std::string content_type = parsed_message.at("content_type");
@@ -45,18 +45,18 @@ void DataSenderSessionEventHandler::receive_message(const std::string &message) 
     get_session()->receive_message();
 }
 
-void DataSenderSessionEventHandler::close_session() {}
+void DataSenderProtocol::close_session() {}
 
-void DataSenderSessionEventHandler::set_session(std::weak_ptr<socket::Session> session) {
+void DataSenderProtocol::set_session(std::weak_ptr<socket::Session> session) {
     _session = session;
 }
 
-std::shared_ptr<socket::Session> DataSenderSessionEventHandler::get_session() const {
+std::shared_ptr<socket::Session> DataSenderProtocol::get_session() const {
     return _session.lock();
 }
 
-void DataSenderSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
-    throw std::runtime_error("Request not supported for DataSenderSessionEventHandler");
+void DataSenderProtocol::request_internal(const std::string &message, const callback_t &callback) {
+    throw std::runtime_error("Request not supported for DataSenderProtocol");
 }
 
 } // namespace oink_judge::services::data_sender

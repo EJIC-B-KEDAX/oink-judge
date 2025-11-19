@@ -1,18 +1,18 @@
 set(AUTH_HEADERS
-    include/services/auth/TableUsers.h
-    include/services/auth/TableSessions.h
     include/services/auth/AuthManager.h
-    include/services/auth/Session.h
-    include/services/auth/SessionWithFastAPIEventHandler.h
     include/services/auth/HandleRequest.h
+    include/services/auth/ProtocolWithFastAPI.h
+    include/services/auth/Session.h
+    include/services/auth/TableSessions.h
+    include/services/auth/TableUsers.h
 )
 set(AUTH_SOURCES
-    src/services/auth/TableUsers.cpp
-    src/services/auth/TableSessions.cpp
     src/services/auth/AuthManager.cpp
-    src/services/auth/Session.cpp
-    src/services/auth/SessionWithFastAPIEventHandler.cpp
     src/services/auth/HandleRequest.cpp
+    src/services/auth/ProtocolWithFastAPI.cpp
+    src/services/auth/Session.cpp
+    src/services/auth/TableSessions.cpp
+    src/services/auth/TableUsers.cpp
 )
 
 add_executable(auth_server

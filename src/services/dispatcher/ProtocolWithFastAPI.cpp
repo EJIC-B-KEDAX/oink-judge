@@ -1,4 +1,4 @@
-#include "services/dispatcher/SessionWithFastAPIEventHandler.h"
+#include "services/dispatcher/ProtocolWithFastAPI.h"
 #include "services/data_sender/ContentStorage.h"
 #include "services/test_node/TableSubmissions.h"
 
@@ -9,10 +9,10 @@ using ContentStorage = data_sender::ContentStorage;
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    socket::BasicSessionEventHandlerFactory::instance().register_type(
-        SessionWithFastAPIEventHandler::REGISTERED_NAME,
-        [](const std::string &params) -> std::unique_ptr<socket::SessionEventHandler> {
-            return std::make_unique<SessionWithFastAPIEventHandler>();
+    socket::ProtocolFactory::instance().register_type(
+        ProtocolWithFastAPI::REGISTERED_NAME,
+        [](const std::string &params) -> std::unique_ptr<socket::Protocol> {
+            return std::make_unique<ProtocolWithFastAPI>();
         }
     );
     return true;
@@ -20,13 +20,13 @@ namespace {
 
 } // namespace
 
-SessionWithFastAPIEventHandler::SessionWithFastAPIEventHandler() = default;
+ProtocolWithFastAPI::ProtocolWithFastAPI() = default;
 
-void SessionWithFastAPIEventHandler::start(const std::string &start_message) {
+void ProtocolWithFastAPI::start(const std::string &start_message) {
     get_session()->receive_message();
 }
 
-void SessionWithFastAPIEventHandler::receive_message(const std::string &message) {
+void ProtocolWithFastAPI::receive_message(const std::string &message) {
     auto json_message = nlohmann::json::parse(message);
     std::string request_type = json_message["request"];
 
@@ -61,18 +61,18 @@ void SessionWithFastAPIEventHandler::receive_message(const std::string &message)
     get_session()->receive_message();
 }
 
-void SessionWithFastAPIEventHandler::close_session() {}
+void ProtocolWithFastAPI::close_session() {}
 
-void SessionWithFastAPIEventHandler::set_session(std::weak_ptr<socket::Session> session) {
+void ProtocolWithFastAPI::set_session(std::weak_ptr<socket::Session> session) {
     _session = session;
 }
 
-std::shared_ptr<socket::Session> SessionWithFastAPIEventHandler::get_session() const {
+std::shared_ptr<socket::Session> ProtocolWithFastAPI::get_session() const {
     return _session.lock();
 }
 
-void SessionWithFastAPIEventHandler::request_internal(const std::string &message, const callback_t &callback) {
-    throw std::runtime_error("Request not supported for SessionWithFastAPIEventHandler");
+void ProtocolWithFastAPI::request_internal(const std::string &message, const callback_t &callback) {
+    throw std::runtime_error("Request not supported for ProtocolWithFastAPI");
 }
 
 } // namespace oink_judge::services::dispatcher

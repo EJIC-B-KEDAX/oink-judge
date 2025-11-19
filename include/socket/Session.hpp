@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include "ParameterizedTypeFactory.h"
+#include "ParameterizedTypeFactory.hpp"
 
 namespace oink_judge::socket {
 
@@ -17,6 +17,6 @@ public:
     virtual void close() = 0;
 };
 
-using BasicSessionFactory = ParameterizedTypeFactory<std::shared_ptr<Session>, tcp::socket>;
+using SessionFactory = ParameterizedTypeFactory<std::shared_ptr<Session>, tcp::socket>;
 
 } // namespace oink_judge::socket

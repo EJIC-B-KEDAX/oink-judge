@@ -1,12 +1,11 @@
 #pragma once
+#include "socket/Protocol.hpp"
 
-#include "socket/SessionEventHandler.hpp"
+namespace oink_judge::services::test_node {
 
-namespace oink_judge::services::dispatcher {
-
-class DefaultSessionWithInvokerEventHandler : public socket::SessionEventHandler {
+class InvokerProtocol : public socket::Protocol {
 public:
-    DefaultSessionWithInvokerEventHandler();
+    InvokerProtocol();
 
     void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
@@ -15,13 +14,12 @@ public:
     void set_session(std::weak_ptr<socket::Session> session) override;
     std::shared_ptr<socket::Session> get_session() const override;
 
-    constexpr static auto REGISTERED_NAME = "DefaultSessionWithInvokerEventHandler";
+    constexpr static auto REGISTERED_NAME = "InvokerProtocol";
 
     void request_internal(const std::string &message, const callback_t &callback) override;
-    
+
 private:
-    std::string _invoker_id;
     std::weak_ptr<socket::Session> _session;
 };
 
-} // namespace oink_judge::services::dispatcher
+} // namespace oink_judge::services::test_node

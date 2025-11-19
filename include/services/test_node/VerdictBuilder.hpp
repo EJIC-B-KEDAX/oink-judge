@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DefaultVerdict.h"
-#include "ParameterizedTypeFactory.h"
+#include "ParameterizedTypeFactory.hpp"
 
 namespace oink_judge::services::test_node {
 

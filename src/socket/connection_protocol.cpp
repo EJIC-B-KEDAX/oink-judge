@@ -29,7 +29,7 @@ void async_connect_to_the_endpoint(const std::string &host, short port, const st
                     boost::asio::async_write(*socket, boost::asio::buffer(*request_ptr),
                         [socket, request_ptr, host, port, session_type](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
                         if (!ec) {
-                            BasicSessionFactory::instance().create(session_type, std::move(*socket))->start(*request_ptr);
+                            SessionFactory::instance().create(session_type, std::move(*socket))->start(*request_ptr);
                         } else {
                             socket->close();
                             async_schedule_connect_to_the_endpoint(host, port, session_type, *request_ptr);
@@ -71,7 +71,7 @@ std::shared_ptr<Session> connect_to_the_endpoint(const std::string &host, short 
         boost::asio::write(*socket, boost::asio::buffer(&message_length, sizeof(message_length)));
         boost::asio::write(*socket, boost::asio::buffer(request));
 
-        auto ptr = BasicSessionFactory::instance().create(session_type, std::move(*socket));
+        auto ptr = SessionFactory::instance().create(session_type, std::move(*socket));
         ptr->start(request);
 
         return ptr;

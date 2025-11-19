@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include "Verdict.hpp"
-#include "TypeFactory.h"
+#include "TypeFactory.hpp"
 
 namespace oink_judge::services::test_node {
 

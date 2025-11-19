@@ -1,8 +1,8 @@
 set(SOCKET_HEADERS
-    include/socket/session_event_handlers/AuthorizingSessionEventHandler.h
-    include/socket/session_event_handlers/AuthRequiredSessionEventHandler.h
-    include/socket/session_event_handlers/PingingSessionEventHandler.h
-    include/socket/session_event_handlers/PongingSessionEventHandler.h
+    include/socket/protocols/AuthorizingProtocol.h
+    include/socket/protocols/AuthRequiredProtocol.h
+    include/socket/protocols/PingingProtocol.h
+    include/socket/protocols/PongingProtocol.h
     include/socket/sessions/BasicSession.h
     include/socket/sessions/BlockingSSLSession.h
     include/socket/sessions/SessionBase.h
@@ -14,15 +14,15 @@ set(SOCKET_HEADERS
     include/socket/connection_protocol.h
     include/socket/ConnectionHandler.hpp
     include/socket/ConnectionStorage.h
+    include/socket/Protocol.hpp
     include/socket/Session.hpp
-    include/socket/SessionEventHandler.hpp
     include/socket/SimpleConnectionHandler.h
 )
 set(SOCKET_SOURCES
-    src/socket/session_event_handlers/AuthorizingSessionEventHandler.cpp
-    src/socket/session_event_handlers/AuthRequiredSessionEventHandler.cpp
-    src/socket/session_event_handlers/PingingSessionEventHandler.cpp
-    src/socket/session_event_handlers/PongingSessionEventHandler.cpp
+    src/socket/protocols/AuthorizingProtocol.cpp
+    src/socket/protocols/AuthRequiredProtocol.cpp
+    src/socket/protocols/PingingProtocol.cpp
+    src/socket/protocols/PongingProtocol.cpp
     src/socket/sessions/BasicSession.cpp
     src/socket/sessions/BlockingSSLSession.cpp
     src/socket/sessions/SessionBase.cpp
@@ -33,5 +33,6 @@ set(SOCKET_SOURCES
     src/socket/byte_order.cpp
     src/socket/connection_protocol.cpp
     src/socket/ConnectionStorage.cpp
+    include/socket/Protocol.inl
     src/socket/SimpleConnectionHandler.cpp
 )

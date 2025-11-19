@@ -1,11 +1,13 @@
 #pragma once
-#include "socket/SessionEventHandler.hpp"
 
-namespace oink_judge::services::test_node {
+#include "socket/Protocol.hpp"
+#include "ProblemSubmissionManager.hpp"
 
-class DefaultInvokerSessionEventHandler : public socket::SessionEventHandler {
+namespace oink_judge::services::dispatcher {
+
+class ProtocolWithFastAPI : public socket::Protocol {
 public:
-    DefaultInvokerSessionEventHandler();
+    ProtocolWithFastAPI();
 
     void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
@@ -14,12 +16,14 @@ public:
     void set_session(std::weak_ptr<socket::Session> session) override;
     std::shared_ptr<socket::Session> get_session() const override;
 
-    constexpr static auto REGISTERED_NAME = "DefaultInvokerSessionEventHandler";
+    constexpr static auto REGISTERED_NAME = "ProtocolWithFastAPI";
 
     void request_internal(const std::string &message, const callback_t &callback) override;
 
 private:
     std::weak_ptr<socket::Session> _session;
+
+    std::map<std::string, std::shared_ptr<ProblemSubmissionManager>> _submission_managers;
 };
 
-} // namespace oink_judge::services::test_node
+} // namespace oink_judge::services::dispatcher

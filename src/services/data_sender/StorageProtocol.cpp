@@ -1,4 +1,4 @@
-#include "services/data_sender/StorageSessionEventHandler.h"
+#include "services/data_sender/StorageProtocol.h"
 #include "config/Config.h"
 #include "services/data_sender/zip_utils.h"
 
@@ -10,9 +10,9 @@ using Config = config::Config;
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    socket::BasicSessionEventHandlerFactory::instance().register_type(StorageSessionEventHandler::REGISTERED_NAME,
-        [](const std::string &params) -> std::unique_ptr<StorageSessionEventHandler> {
-        return std::make_unique<StorageSessionEventHandler>();
+    socket::ProtocolFactory::instance().register_type(StorageProtocol::REGISTERED_NAME,
+        [](const std::string &params) -> std::unique_ptr<StorageProtocol> {
+        return std::make_unique<StorageProtocol>();
     });
 
     return true;
@@ -20,13 +20,13 @@ namespace {
 
 } // namespace
 
-StorageSessionEventHandler::StorageSessionEventHandler() = default;
+StorageProtocol::StorageProtocol() = default;
 
-void StorageSessionEventHandler::start(const std::string &start_message) {
+void StorageProtocol::start(const std::string &start_message) {
     status = WAIT_HEADER;
 }
 
-void StorageSessionEventHandler::receive_message(const std::string &message) {
+void StorageProtocol::receive_message(const std::string &message) {
     if (status == WAIT_HEADER) {
         json header = json::parse(message);
 
@@ -43,19 +43,19 @@ void StorageSessionEventHandler::receive_message(const std::string &message) {
     }
 }
 
-void StorageSessionEventHandler::close_session() {
+void StorageProtocol::close_session() {
     // reconnect to the server
 }
 
-void StorageSessionEventHandler::set_session(std::weak_ptr<socket::Session> session) {
+void StorageProtocol::set_session(std::weak_ptr<socket::Session> session) {
     _session = session;
 }
 
-std::shared_ptr<socket::Session> StorageSessionEventHandler::get_session() const {
+std::shared_ptr<socket::Session> StorageProtocol::get_session() const {
     return _session.lock();
 }
 
-void StorageSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+void StorageProtocol::request_internal(const std::string &message, const callback_t &callback) {
     // Not implemented
 }
 

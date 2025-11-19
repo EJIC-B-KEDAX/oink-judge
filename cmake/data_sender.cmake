@@ -1,13 +1,13 @@
 set(DATA_SENDER_HEADERS
     include/services/data_sender/ContentStorage.h
-    include/services/data_sender/DataSenderSessionEventHandler.h
-    include/services/data_sender/StorageSessionEventHandler.h
+    include/services/data_sender/DataSenderProtocol.h
+    include/services/data_sender/StorageProtocol.h
     include/services/data_sender/zip_utils.h
 )
 set(DATA_SENDER_SOURCES
     src/services/data_sender/ContentStorage.cpp
-    src/services/data_sender/DataSenderSessionEventHandler.cpp
-    src/services/data_sender/StorageSessionEventHandler.cpp
+    src/services/data_sender/DataSenderProtocol.cpp
+    src/services/data_sender/StorageProtocol.cpp
     src/services/data_sender/zip_utils.cpp
 )
 

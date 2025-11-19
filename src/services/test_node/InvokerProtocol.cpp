@@ -1,4 +1,4 @@
-#include "services/test_node/DefaultInvokerSessionEventHandler.h"
+#include "services/test_node/InvokerProtocol.h"
 #include "services/test_node/TestStorage.h"
 #include "services/test_node/TableSubmissions.h"
 #include "services/data_sender/ContentStorage.h"
@@ -14,9 +14,9 @@ using Config = config::Config;
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    socket::BasicSessionEventHandlerFactory::instance().register_type(DefaultInvokerSessionEventHandler::REGISTERED_NAME,
-        [](const std::string &params) -> std::unique_ptr<DefaultInvokerSessionEventHandler> {
-        return std::make_unique<DefaultInvokerSessionEventHandler>();
+    socket::ProtocolFactory::instance().register_type(InvokerProtocol::REGISTERED_NAME,
+        [](const std::string &params) -> std::unique_ptr<InvokerProtocol> {
+        return std::make_unique<InvokerProtocol>();
     });
 
     return true;
@@ -24,9 +24,9 @@ namespace {
 
 } // namespace
 
-DefaultInvokerSessionEventHandler::DefaultInvokerSessionEventHandler() = default;
+InvokerProtocol::InvokerProtocol() = default;
 
-void DefaultInvokerSessionEventHandler::start(const std::string &start_message) {
+void InvokerProtocol::start(const std::string &start_message) {
     std::cout << "Connected to the dispatcher" << std::endl;
     json set_id_request = {
         {"invoker_id", Config::config()["my_id"].get<std::string>()}
@@ -36,7 +36,7 @@ void DefaultInvokerSessionEventHandler::start(const std::string &start_message) 
     get_session()->receive_message();
 }
 
-void DefaultInvokerSessionEventHandler::receive_message(const std::string &message) {
+void InvokerProtocol::receive_message(const std::string &message) {
     json parsed_message = json::parse(message);
 
     if (parsed_message["request"] == "test_submission") {
@@ -75,7 +75,7 @@ void DefaultInvokerSessionEventHandler::receive_message(const std::string &messa
     get_session()->receive_message();
 }
 
-void DefaultInvokerSessionEventHandler::close_session() {
+void InvokerProtocol::close_session() {
     std::string host = Config::config().at("hosts").at("dispatcher").get<std::string>();
     short port = Config::config().at("ports").at("dispatcher").get<short>();
     std::string session_type = Config::config().at("sessions").at("dispatcher").get<std::string>();
@@ -83,16 +83,16 @@ void DefaultInvokerSessionEventHandler::close_session() {
         Config::config().at("start_messages").at("dispatcher").get<std::string>());
 }
 
-void DefaultInvokerSessionEventHandler::set_session(std::weak_ptr<socket::Session> session) {
+void InvokerProtocol::set_session(std::weak_ptr<socket::Session> session) {
     _session = session;
 }
 
-std::shared_ptr<socket::Session> DefaultInvokerSessionEventHandler::get_session() const {
+std::shared_ptr<socket::Session> InvokerProtocol::get_session() const {
     return _session.lock();
 }
 
-void DefaultInvokerSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
-    throw std::runtime_error("Request not supported for DefaultInvokerSessionEventHandler");
+void InvokerProtocol::request_internal(const std::string &message, const callback_t &callback) {
+    throw std::runtime_error("Request not supported for InvokerProtocol");
 }
 
 } // namespace oink_judge::services::test_node

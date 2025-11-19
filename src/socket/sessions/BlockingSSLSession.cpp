@@ -8,10 +8,10 @@ namespace oink_judge::socket {
 namespace {
 
 [[maybe_unused]] bool registered_client = []() -> bool {
-    BasicSessionFactory::instance().register_type(
+    SessionFactory::instance().register_type(
         BlockingSSLSession::REGISTERED_NAME_CLIENT,
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
-        auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
+        auto event_handler = ProtocolFactory::instance().create(params);
 
         auto ptr = std::make_shared<BlockingSSLSession>(
             std::move(socket),
@@ -27,10 +27,10 @@ namespace {
 }();
 
 [[maybe_unused]] bool registered_server = []() -> bool {
-    BasicSessionFactory::instance().register_type(
+    SessionFactory::instance().register_type(
         BlockingSSLSession::REGISTERED_NAME_SERVER,
         [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
-        auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
+        auto event_handler = ProtocolFactory::instance().create(params);
 
         auto ptr = std::make_shared<BlockingSSLSession>(
             std::move(socket),
@@ -48,9 +48,9 @@ namespace {
 } // namespace
 
 
-BlockingSSLSession::BlockingSSLSession(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler,  boost::asio::ssl::stream_base::handshake_type handshake_type)
+BlockingSSLSession::BlockingSSLSession(tcp::socket socket, std::unique_ptr<Protocol> event_handler,  boost::asio::ssl::stream_base::handshake_type handshake_type)
     : _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::handshake_type::server) ? BoostSSLContext::server() : BoostSSLContext::client()), 
-      _event_handler(std::move(event_handler)),
+      _protocol(std::move(event_handler)),
       _handshake_type(handshake_type) {
 }
 
@@ -59,7 +59,7 @@ BlockingSSLSession::~BlockingSSLSession() {
 }
 
 void BlockingSSLSession::set_session_ptr() {
-    _event_handler->set_session(shared_from_this());
+    _protocol->set_session(shared_from_this());
 }
 
 void BlockingSSLSession::start(const std::string &start_message) {
@@ -70,7 +70,7 @@ void BlockingSSLSession::start(const std::string &start_message) {
     auto self = shared_from_this();
 
     _ssl_stream.handshake(_handshake_type);
-    _event_handler->start(start_message);
+    _protocol->start(start_message);
 }
 
 void BlockingSSLSession::send_message(const std::string &message) {
@@ -97,13 +97,13 @@ void BlockingSSLSession::receive_message() {
     std::string message(message_length, '\0');
     boost::asio::read(_ssl_stream, boost::asio::buffer(message));
     std::cout << "Received message " << message << std::endl;
-    _event_handler->receive_message(message);
+    _protocol->receive_message(message);
 }
 
 void BlockingSSLSession::close() {
     if (_ssl_stream.lowest_layer().is_open()) {
         _ssl_stream.lowest_layer().close();
-        _event_handler->close_session();
+        _protocol->close_session();
     }
 }
 

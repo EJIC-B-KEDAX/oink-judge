@@ -7,8 +7,8 @@ namespace oink_judge::socket {
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    BasicSessionFactory::instance().register_type(BasicSession::REGISTERED_NAME, [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
-        auto event_handler = BasicSessionEventHandlerFactory::instance().create(params);
+    SessionFactory::instance().register_type(BasicSession::REGISTERED_NAME, [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
+        auto event_handler = ProtocolFactory::instance().create(params);
 
         auto ptr = std::make_shared<BasicSession>(std::move(socket), std::move(event_handler));
         ptr->set_session_ptr();
@@ -21,15 +21,15 @@ namespace {
 
 } // namespace
 
-BasicSession::BasicSession(tcp::socket socket, std::unique_ptr<SessionEventHandler> event_handler) :
+BasicSession::BasicSession(tcp::socket socket, std::unique_ptr<Protocol> event_handler) :
     SessionBase(std::move(socket), std::move(event_handler)) {}
 
 void BasicSession::set_session_ptr() {
-    access_event_handler().set_session(shared_from_this());
+    access_protocol().set_session(shared_from_this());
 }
 
 void BasicSession::start(const std::string &start_message) {
-    access_event_handler().start(start_message);
+    access_protocol().start(start_message);
 }
 
 void BasicSession::send_message(const std::string &message) {
@@ -56,7 +56,7 @@ void BasicSession::receive_message() {
                 [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
                 if (!ec) {
                     std::cout << "Received message: " << *message_ptr << std::endl;
-                    access_event_handler().receive_message(*message_ptr);
+                    access_protocol().receive_message(*message_ptr);
                 } else {
                     std::cout << "Error receiving message: " << ec.message() << std::endl;
                     close();
@@ -73,7 +73,7 @@ void BasicSession::close() {
     if (access_socket().is_open()) {
         std::cout << "Closing socket." << std::endl;
         access_socket().close();
-        access_event_handler().close_session();
+        access_protocol().close_session();
     }
 }
 

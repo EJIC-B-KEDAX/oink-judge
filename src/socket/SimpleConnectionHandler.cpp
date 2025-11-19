@@ -8,7 +8,7 @@ namespace oink_judge::socket {
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    BasicConnectionHandlerFactory::instance().register_type(SimpleConnectionHandler::REGISTERED_NAME,
+    ConnectionHandlerFactory::instance().register_type(SimpleConnectionHandler::REGISTERED_NAME,
         [](const std::string &params) -> std::shared_ptr<SimpleConnectionHandler> {
         return std::make_shared<SimpleConnectionHandler>();
     });
@@ -26,7 +26,7 @@ SimpleConnectionHandler::SimpleConnectionHandler() = default;
 void SimpleConnectionHandler::new_connection(tcp::socket &socket, const std::string &start_message) {
     json parsed_message = json::parse(start_message);
     std::cout << "New connection of type " << parsed_message.at("connection_type").get<std::string>() << std::endl;
-    auto session = socket::BasicSessionFactory::instance().create(Config::config().at("sessions").at(parsed_message.at("connection_type")).get<std::string>(),
+    auto session = socket::SessionFactory::instance().create(Config::config().at("sessions").at(parsed_message.at("connection_type")).get<std::string>(),
         std::move(socket));
 
     std::cout << "Starting session" << std::endl;

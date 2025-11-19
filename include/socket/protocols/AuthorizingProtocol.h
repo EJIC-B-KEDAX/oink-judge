@@ -1,12 +1,12 @@
 #pragma once
 
-#include "socket/SessionEventHandler.hpp"
+#include "socket/Protocol.hpp"
 
 namespace oink_judge::socket {
 
-class AuthRequiredSessionEventHandler : public SessionEventHandler {
+class AuthorizingProtocol : public Protocol {
 public:
-    AuthRequiredSessionEventHandler(std::unique_ptr<SessionEventHandler> inner_event_handler, std::string auth_token);
+    AuthorizingProtocol(std::unique_ptr<Protocol> inner_event_handler, std::string auth_token);
 
     void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
@@ -15,20 +15,13 @@ public:
     void set_session(std::weak_ptr<Session> session) override;
     std::shared_ptr<Session> get_session() const override;
 
-    constexpr static auto REGISTERED_NAME = "AuthRequired";
+    constexpr static auto REGISTERED_NAME = "Authorizing";
 
     void request_internal(const std::string &message, const callback_t &callback) override;
 
 private:
-    enum Status {
-        UNAUTHORIZED,
-        AUTHORIZED
-    };
-
-    Status _status = UNAUTHORIZED;
-    std::unique_ptr<SessionEventHandler> _inner_event_handler;
+    std::unique_ptr<Protocol> _inner_protocol;
     std::string _auth_token;
-    std::string _saved_start_message;
 };
 
 } // namespace oink_judge::socket

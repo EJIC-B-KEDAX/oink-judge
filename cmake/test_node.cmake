@@ -1,12 +1,12 @@
 set(TEST_NODE_HEADERS
     include/services/test_node/CompilationTest.h
-    include/services/test_node/DefaultInvokerSessionEventHandler.h
     include/services/test_node/DefaultProblemBuilder.h
     include/services/test_node/DefaultTest.h
     include/services/test_node/DefaultVerdict.h
     include/services/test_node/DefaultVerdictBuilder.h
     include/services/test_node/enable_get_test_by_name_impl.h
     include/services/test_node/enable_get_test_by_name.hpp
+    include/services/test_node/InvokerProtocol.h
     include/services/test_node/problem_utils.h
     include/services/test_node/ProblemBuilder.hpp
     include/services/test_node/ProblemTable.h
@@ -23,12 +23,12 @@ set(TEST_NODE_HEADERS
 )
 set(TEST_NODE_SOURCES
     src/services/test_node/CompilationTest.cpp
-    src/services/test_node/DefaultInvokerSessionEventHandler.cpp
     src/services/test_node/DefaultProblemBuilder.cpp
     src/services/test_node/DefaultTest.cpp
     src/services/test_node/DefaultVerdict.cpp
     src/services/test_node/DefaultVerdictBuilder.cpp
     src/services/test_node/enable_get_test_by_name_impl.cpp
+    src/services/test_node/InvokerProtocol.cpp
     src/services/test_node/problem_utils.cpp
     src/services/test_node/ProblemTable.cpp
     src/services/test_node/ProblemTablesStorage.cpp

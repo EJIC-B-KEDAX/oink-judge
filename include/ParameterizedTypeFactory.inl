@@ -1,5 +1,5 @@
 #pragma once
-#include "ParameterizedTypeFactory.h"
+#include "ParameterizedTypeFactory.hpp"
 
 namespace oink_judge {
 

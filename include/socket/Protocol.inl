@@ -1,10 +1,10 @@
 #pragma once
-#include "SessionEventHandler.hpp"
+#include "Protocol.hpp"
 
 namespace oink_judge::socket {
 
 template<typename F, typename... Args>
-void SessionEventHandler::request(const std::string &message, F&& callback) {
+void Protocol::request(const std::string &message, F&& callback) {
     static_assert(std::is_invocable_v<F, std::error_code, Args...>,
                       "Callback signature must be: void(std::error_code, Args...)");
 
@@ -30,7 +30,7 @@ void SessionEventHandler::request(const std::string &message, F&& callback) {
 }
 
 template<typename... Args>
-void SessionEventHandler::call_callback(const callback_t &callback, std::error_code ec, Args&&... args) {
+void Protocol::call_callback(const callback_t &callback, std::error_code ec, Args&&... args) {
     if constexpr (sizeof...(Args) == 0) {
         callback(ec, std::any{});
         return;

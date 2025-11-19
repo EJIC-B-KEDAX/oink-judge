@@ -1,12 +1,12 @@
 #pragma once
 
-#include "socket/SessionEventHandler.hpp"
+#include "socket/Protocol.hpp"
 
 namespace oink_judge::socket {
 
-class PongingSessionEventHandler : public SessionEventHandler {
+class PongingProtocol : public Protocol {
 public:
-    PongingSessionEventHandler(std::unique_ptr<SessionEventHandler> inner_event_handler);
+    PongingProtocol(std::unique_ptr<Protocol> inner_event_handler);
 
     void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
@@ -20,7 +20,7 @@ public:
     void request_internal(const std::string &message, const callback_t &callback) override;
 
 private:
-    std::unique_ptr<SessionEventHandler> _inner_event_handler;
+    std::unique_ptr<Protocol> _inner_protocol;
 };
 
 } // namespace oink_judge::socket

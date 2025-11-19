@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include "ParameterizedTypeFactory.h"
+#include "ParameterizedTypeFactory.hpp"
 
 namespace oink_judge::socket {
 
@@ -14,6 +14,6 @@ public:
     virtual void new_connection(tcp::socket &socket, const std::string &start_message) = 0;
 };
 
-using BasicConnectionHandlerFactory = ParameterizedTypeFactory<std::shared_ptr<ConnectionHandler>>;
+using ConnectionHandlerFactory = ParameterizedTypeFactory<std::shared_ptr<ConnectionHandler>>;
 
 } // namespace oink_judge::socket

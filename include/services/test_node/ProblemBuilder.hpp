@@ -1,7 +1,7 @@
 #pragma once 
 
 #include "Test.hpp"
-#include "TypeFactory.h"
+#include "TypeFactory.hpp"
 
 namespace oink_judge::services::test_node {
 

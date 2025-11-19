@@ -1,6 +1,6 @@
 set(FACTORY_HEADERS
-    include/TypeFactory.h
-    include/ParameterizedTypeFactory.h
+    include/TypeFactory.hpp
+    include/ParameterizedTypeFactory.hpp
 )
 set(FACTORY_SOURCES
     include/TypeFactory.inl

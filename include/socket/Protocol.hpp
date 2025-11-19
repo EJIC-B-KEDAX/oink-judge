@@ -1,16 +1,16 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include "ParameterizedTypeFactory.h"
+#include "ParameterizedTypeFactory.hpp"
 #include "Session.hpp"
 
 namespace oink_judge::socket {
 
-class SessionEventHandler {
+class Protocol {
 public:
     using callback_t = std::function<void(std::error_code, std::any)>;
     
-    virtual ~SessionEventHandler() = default;
+    virtual ~Protocol() = default;
 
     virtual void start(const std::string &start_message) = 0;
     virtual void receive_message(const std::string &message) = 0;
@@ -29,8 +29,8 @@ protected:
     static void call_callback(const callback_t &callback, std::error_code ec, Args&&... args);
 };
 
-using BasicSessionEventHandlerFactory = ParameterizedTypeFactory<std::unique_ptr<SessionEventHandler>>;
+using ProtocolFactory = ParameterizedTypeFactory<std::unique_ptr<Protocol>>;
 
 } // namespace oink_judge::socket
 
-#include "SessionEventHandler.inl"
+#include "Protocol.inl"
