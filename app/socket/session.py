@@ -1,46 +1,74 @@
 import ssl, asyncio
 
-class Session:
-    def __init__(self, host: str, port: int, event_handler, use_ssl=False, ssl_context=None):
-        self.host = host
-        self.port = port
-        self.use_ssl = use_ssl
-        self.ssl_context = ssl_context or (ssl.create_default_context() if use_ssl else None)
-        self.reader = None
-        self.writer = None
-        self.__event_handler = event_handler
+LENGTH_PREFIX_SIZE = 8
 
-    async def connect(self) -> None:
-        if self.use_ssl:
-            self.reader, self.writer = await asyncio.open_connection(
-                self.host, self.port, ssl=self.ssl_context
-            )
-        else:
-            self.reader, self.writer = await asyncio.open_connection(
-                self.host, self.port
-            )
+class Session(asyncio.Protocol):
+    def __init__(self, event_handler):
+        self.loop = asyncio.get_event_loop()
+        self.buffer = b""
+        self.transport = None
+        self.expected_len = None
+        self.event_handler = event_handler
+        self.event_handler.set_session(self)
+        self.__tls_upgrading = False
+        self.__pending = []
 
-    async def send(self, data: str) -> None:
-        if not self.writer:
-            raise ConnectionError("Not connected to the server.")
-        
-        self.writer.write(len(data).to_bytes(8, 'big'))
-        self.writer.write(data.encode())
-        
-        await self.writer.drain()
+    def connection_made(self, transport):
+        self.transport = transport
 
-    async def receive(self) -> None:
-        if not self.reader:
-            raise ConnectionError("Not connected to the server.")
-        
-        length_data = int.from_bytes(await self.reader.readexactly(8), 'big')
-        data = await self.reader.readexactly(length_data)
+    def send_message(self, msg: str):
+        if self.transport is None:
+            print(f"No transport available to send message:\n{msg}")
+            return
 
-        asyncio.create_task(self.__event_handler.receive_message(data.decode('utf-8')))
+        if self.__tls_upgrading:
+            self.__pending.append(msg)
+            return
 
-    async def close(self) -> None:
-        if self.writer:
-            self.writer.close()
-            await self.writer.wait_closed()
-            self.reader = None
-            self.writer = None
+        if self.transport:
+            msg_len = len(msg).to_bytes(LENGTH_PREFIX_SIZE, 'big')
+            self.transport.write(msg_len + msg.encode())
+    
+    def data_received(self, data: bytes):
+        self.buffer += data
+
+        while True:
+            if self.expected_len is None:
+                if len(self.buffer) < LENGTH_PREFIX_SIZE:
+                    break
+                self.expected_len = int.from_bytes(self.buffer[:LENGTH_PREFIX_SIZE], 'big')
+                self.buffer = self.buffer[LENGTH_PREFIX_SIZE:]
+
+            if len(self.buffer) >= self.expected_len:
+                msg = self.buffer[:self.expected_len].decode("utf-8")
+                asyncio.create_task(self.event_handler.receive_message(msg))
+                self.buffer = self.buffer[self.expected_len:]
+                self.expected_len = None
+            else:
+                break
+
+    def connection_lost(self, exc):
+        self.transport = None
+        self.event_handler.close()
+        print("Connection lost with exception: ", exc)
+
+    async def upgrade_to_ssl(self):
+        self.__tls_upgrading = True
+
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+        new_transport = await self.loop.start_tls(
+            self.transport,
+            self,
+            ssl_context,
+            server_side=False
+        )
+        self.transport = new_transport
+        print("Connection upgraded to SSL")
+
+        self.__tls_upgrading = False
+        for msg in self.__pending:
+            self.send_message(msg)
+        self.__pending.clear()

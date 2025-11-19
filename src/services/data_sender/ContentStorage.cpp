@@ -14,7 +14,7 @@ ContentStorage &ContentStorage::instance() {
     return instance;
 }
 
-void ContentStorage::ensure_content_exists(const std::string &content_type, const std::string &content_id) {
+void ContentStorage::ensure_content_exists(const std::string &content_type, const std::string &content_id, CallbackFunc callback) {
     if (!_session) {
         throw std::runtime_error("Session is not initialized.");
     }
@@ -22,12 +22,14 @@ void ContentStorage::ensure_content_exists(const std::string &content_type, cons
     std::cout << "Checking existing " + content_type + " " + content_id << std::endl;
 
     if (std::filesystem::exists(Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id)) {
+        callback(std::error_code(0, get_network_category()));
         return;
     }
 
     if (std::filesystem::exists(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip")) {
         unpack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",
             Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
+        callback(std::error_code(0, get_network_category()));
         return;
     }
 

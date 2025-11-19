@@ -23,7 +23,7 @@ namespace {
 DataSenderSessionEventHandler::DataSenderSessionEventHandler() = default;
 
 void DataSenderSessionEventHandler::start(const std::string &start_message) {
-    _session.lock()->receive_message();
+    get_session()->receive_message();
 }
 
 void DataSenderSessionEventHandler::receive_message(const std::string &message) {
@@ -37,12 +37,12 @@ void DataSenderSessionEventHandler::receive_message(const std::string &message) 
                 Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
         }
 
-        _session.lock()->send_message(
+        get_session()->send_message(
             "{\"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\"}");
-        _session.lock()->send_message(get_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip"));
+        get_session()->send_message(get_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip"));
     }
 
-    _session.lock()->receive_message();
+    get_session()->receive_message();
 }
 
 void DataSenderSessionEventHandler::close_session() {}
@@ -51,8 +51,12 @@ void DataSenderSessionEventHandler::set_session(std::weak_ptr<socket::Session> s
     _session = session;
 }
 
-std::weak_ptr<socket::Session> DataSenderSessionEventHandler::get_session() const {
-    return _session;
+std::shared_ptr<socket::Session> DataSenderSessionEventHandler::get_session() const {
+    return _session.lock();
+}
+
+void DataSenderSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+    throw std::runtime_error("Request not supported for DataSenderSessionEventHandler");
 }
 
 } // namespace oink_judge::services::data_sender

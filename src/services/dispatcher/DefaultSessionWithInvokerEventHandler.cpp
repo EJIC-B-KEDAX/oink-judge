@@ -23,7 +23,7 @@ using json = nlohmann::json;
 DefaultSessionWithInvokerEventHandler::DefaultSessionWithInvokerEventHandler() = default;
 
 void DefaultSessionWithInvokerEventHandler::start(const std::string &start_message) {
-    get_session().lock()->receive_message();
+    get_session()->receive_message();
 }
 
 void DefaultSessionWithInvokerEventHandler::receive_message(const std::string &message) {
@@ -32,14 +32,14 @@ void DefaultSessionWithInvokerEventHandler::receive_message(const std::string &m
         _invoker_id = response["invoker_id"];
         
         if (_invoker_id.empty()) {
-            _session.lock()->receive_message();
+            get_session()->receive_message();
             return;
         }
 
-        auto invoker = std::make_unique<Invoker>(_invoker_id, _session.lock());
+        auto invoker = std::make_unique<Invoker>(_invoker_id, get_session());
         TestingQueue::instance().connect_invoker(std::move(invoker));
 
-        _session.lock()->receive_message();
+        get_session()->receive_message();
     } else {
         if (message == "I am free") {
             TestingQueue::instance().free_invoker(_invoker_id);
@@ -60,8 +60,12 @@ void DefaultSessionWithInvokerEventHandler::set_session(std::weak_ptr<socket::Se
     _session = session;
 }
 
-std::weak_ptr<Session> DefaultSessionWithInvokerEventHandler::get_session() const {
-    return _session;
+std::shared_ptr<Session> DefaultSessionWithInvokerEventHandler::get_session() const {
+    return _session.lock();
+}
+
+void DefaultSessionWithInvokerEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+    throw std::runtime_error("Request not supported in DefaultSessionWithInvokerEventHandler");
 }
 
 } // namespace oink_judge::services::dispatcher

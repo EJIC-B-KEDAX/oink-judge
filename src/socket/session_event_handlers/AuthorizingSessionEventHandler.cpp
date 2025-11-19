@@ -50,7 +50,7 @@ AuthorizingSessionEventHandler::AuthorizingSessionEventHandler(std::unique_ptr<S
     : _inner_event_handler(std::move(inner_event_handler)), _auth_token(std::move(auth_token)) {}
 
 void AuthorizingSessionEventHandler::start(const std::string &start_message) {
-    get_session().lock()->send_message(_auth_token);
+    get_session()->send_message(_auth_token);
     _inner_event_handler->start(start_message);
 }
 
@@ -66,8 +66,12 @@ void AuthorizingSessionEventHandler::set_session(std::weak_ptr<Session> session)
     _inner_event_handler->set_session(session);
 }
 
-std::weak_ptr<Session> AuthorizingSessionEventHandler::get_session() const {
+std::shared_ptr<Session> AuthorizingSessionEventHandler::get_session() const {
     return _inner_event_handler->get_session();
+}
+
+void AuthorizingSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+    _inner_event_handler->request_internal(message, callback);
 }
 
 } // namespace oink_judge::socket

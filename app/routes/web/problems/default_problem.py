@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse,
 from fastapi.templating import Jinja2Templates
 from app.config.problem_config import get_problem_statements
 from app.services.auth.auth_utils import get_current_user
-from app.database.tables.submissions import add_submission, SubmissionInfo, load_submissions_by_user_and_problem
+from app.database.tables.submissions import add_submission, SubmissionInfo, load_submissions_by_user_and_problem, update_submission_verdict
 from app.database.database import get_db
 from app.services.dispatcher.dispatcher_api import handle_submission
 from datetime import datetime
@@ -96,7 +96,10 @@ async def problem_submit(problem_id: str, request: Request,
 
     await add_submission(db, submission_info)
 
-    await handle_submission(submission_id)
+    is_ok = await handle_submission(submission_id)
+
+    if not is_ok:
+        await update_submission_verdict(db, submission_id, "FAIL", 0.0)
 
     return RedirectResponse(url=f"/problems/{__type_name__}/{problem_id}/submissions", status_code=302)
     

@@ -62,11 +62,30 @@ async def load_submission_by_id(db, submission_id: str) -> SubmissionInfo | None
         send_time=submission.send_time
     )
 
+
+async def update_submission_verdict(db, submission_id: str, verdict_type: str, score: float) -> bool:
+    stmt = select(Submission).where(Submission.id == submission_id)
+    result = await db.execute(stmt)
+    submission = result.scalar_one_or_none()
+
+    if submission is None:
+        return False
+
+    submission.verdict_type = verdict_type
+    submission.score = score
+
+    db.add(submission)
+    await db.commit()
+    return True
+
+
+
 async def load_submissions_by_user_and_problem(db, username: str, problem_id: str) -> list[SubmissionInfo]:
     stmt = select(Submission).where(
         (Submission.username == username) &
         (Submission.problem_id == problem_id)
     ).order_by(Submission.send_time.desc())
+    
     result = await db.execute(stmt)
     submissions = result.scalars().all()
 

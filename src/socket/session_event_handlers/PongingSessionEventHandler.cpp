@@ -26,8 +26,8 @@ void PongingSessionEventHandler::start(const std::string &start_message) {
 
 void PongingSessionEventHandler::receive_message(const std::string &message) {
     if (message == "ping") {
-        get_session().lock()->send_message("pong");
-        get_session().lock()->receive_message();
+        get_session()->send_message("pong");
+        get_session()->receive_message();
         return;
     }
 
@@ -42,8 +42,12 @@ void PongingSessionEventHandler::set_session(std::weak_ptr<Session> session) {
     _inner_event_handler->set_session(session);
 }
 
-std::weak_ptr<Session> PongingSessionEventHandler::get_session() const {
+std::shared_ptr<Session> PongingSessionEventHandler::get_session() const {
     return _inner_event_handler->get_session();
+}
+
+void PongingSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+    _inner_event_handler->request_internal(message, callback);
 }
 
 } // namespace oink_judge::socket

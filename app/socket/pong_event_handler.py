@@ -1,26 +1,13 @@
-from app.socket.session import Session
-import asyncio
+from app.socket.event_handler import EventHandler
 
-class PongEventHandler:
-    def __init__(self, inner=None):
-        self.session = None
-        self.__inner = inner
-
-    def set_session(self, session: Session) -> None:
-        self.session = session
-        if self.__inner: self.__inner.set_session(session)
-
-    async def start(self, start_message: str) -> None:
-        if self.__inner: await self.__inner.start(start_message)
-
+class PongEventHandler(EventHandler):
     async def receive_message(self, message: str) -> None:
-        if (message.capitalize() == "pong"):
-            await self.session.send("pong")
-            asyncio.create_task(self.session.receive())
+        if self.is_closed():
+            print("Cannot receive message in PongEventHandler: session is closed.")
             return
-        if self.__inner: await self.__inner.receive_message(message)
-
-    async def send_request(self, request: dict) -> dict:
-        if self.__inner: return await self.__inner.send_request(request)
-
-        raise RuntimeError("Inner event handler is not set for PongEventHandler.")
+        
+        if (message == "ping"):
+            self.session.send_message("pong")
+            return
+        
+        if self._inner: await self._inner.receive_message(message)

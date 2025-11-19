@@ -1,6 +1,7 @@
 #include "socket/session_event_handlers/PingingSessionEventHandler.h"
 #include "socket/BoostIOContext.h"
 #include "config/Config.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -33,13 +34,15 @@ void PingingSessionEventHandler::start(const std::string &start_message) {
 void PingingSessionEventHandler::receive_message(const std::string &message) {
     if (message == "pong") {
         _pong_timer.cancel();
-        get_session().lock()->receive_message();
+        get_session()->receive_message();
         return;
     }
     _inner_event_handler->receive_message(message);
 }
 
 void PingingSessionEventHandler::close_session() {
+    _ping_timer.cancel();
+    _pong_timer.cancel();
     _inner_event_handler->close_session();
 }
 
@@ -47,12 +50,16 @@ void PingingSessionEventHandler::set_session(std::weak_ptr<Session> session) {
     _inner_event_handler->set_session(session);
 }
 
-std::weak_ptr<Session> PingingSessionEventHandler::get_session() const {
+std::shared_ptr<Session> PingingSessionEventHandler::get_session() const {
     return _inner_event_handler->get_session();
 }
 
+void PingingSessionEventHandler::request_internal(const std::string &message, const callback_t &callback) {
+    _inner_event_handler->request_internal(message, callback);
+}
+
 void PingingSessionEventHandler::ping_loop() {
-    auto session = get_session().lock();
+    auto session = get_session();
 
     _ping_timer.expires_after(std::chrono::milliseconds(static_cast<int64_t>(_ping_interval_seconds * 1000)));
     _ping_timer.async_wait([this, session](const boost::system::error_code &ec) {
@@ -67,14 +74,14 @@ void PingingSessionEventHandler::ping_loop() {
 }
 
 void PingingSessionEventHandler::wait_for_pong() {
-    auto session = get_session().lock();
+    auto session = get_session();
 
     _pong_timer.expires_after(std::chrono::milliseconds(static_cast<int64_t>(_pong_timeout_seconds * 1000)));
     _pong_timer.async_wait([this, session](const boost::system::error_code &ec) {
         if (ec) {
             return;
         }
-        
+
         session->close();
     });
 }
