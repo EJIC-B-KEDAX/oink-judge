@@ -1,6 +1,6 @@
 #include "services/test_node/ProblemTable.h"
 #include "database/DataBase.h"
-#include "services/test_node/problem_utils.h"
+#include "config/problem_config_utils.h"
 #include <cassert>
 #include <iostream>
 
@@ -185,7 +185,7 @@ std::vector<std::string> ProblemTable::get_right_columns() const {
                                         DataBase::instance().quote_name("total_score"),
                                         DataBase::instance().quote_name("tested_on_revision")};
 
-    std::vector<std::string> test_names = get_all_test_names(_id); 
+    std::vector<std::string> test_names = problem_config::get_all_test_names(_id); 
 
     for (const auto &test_name : test_names) {
         columns.push_back(DataBase::instance().quote_name("score_on_" + test_name));

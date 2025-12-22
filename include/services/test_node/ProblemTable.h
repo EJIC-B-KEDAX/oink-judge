@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include "services/test_node/Test.hpp"
 

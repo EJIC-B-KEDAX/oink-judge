@@ -13,14 +13,12 @@ public:
     virtual ~Protocol() = default;
 
     virtual void start(const std::string &start_message) = 0;
+    virtual void send_message(const std::string &message) = 0;
     virtual void receive_message(const std::string &message) = 0;
     virtual void close_session() = 0;
 
     virtual void set_session(std::weak_ptr<Session> session) = 0;
     virtual std::shared_ptr<Session> get_session() const = 0;
-
-    template<typename F, typename... Args>
-    void request(const std::string &message, F&& callback);
 
     virtual void request_internal(const std::string &message, const callback_t &callback) = 0;
 

@@ -32,16 +32,4 @@ void ProtocolWithFastAPI::receive_message(const std::string &message) {
 
 void ProtocolWithFastAPI::close_session() {}
 
-void ProtocolWithFastAPI::set_session(std::weak_ptr<socket::Session> session) {
-    _session = session;
-}
-
-std::shared_ptr<socket::Session> ProtocolWithFastAPI::get_session() const {
-    return _session.lock();
-}
-
-void ProtocolWithFastAPI::request_internal(const std::string &message, const callback_t &callback) {
-    // Not implemented
-}
-
 } // namespace oink_judge::services::auth

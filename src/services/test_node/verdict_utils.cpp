@@ -1,5 +1,5 @@
 #include "services/test_node/verdict_utils.h"
-#include "services/test_node/DefaultVerdict.h"
+#include "services/test_node/verdicts/DefaultVerdict.h"
 #include <fstream>
 
 namespace oink_judge::services::test_node {
@@ -56,31 +56,23 @@ std::shared_ptr<Verdict> load_verdict_from_meta(const std::string &test_name, co
 
     if (meta.status == "OK") {
         verdict->set_info({
-            {VerdictType::ACCEPTED,
-            "Accepted",
-            "AC"},
+            VerdictType::ACCEPTED,
             100,
             meta.time.value(),
             static_cast<double>(meta.max_rss.value())
         });
     } else {
         VerdictType type;
-        type.type = VerdictType::WRONG;
         if (meta.status == "TO") {
-            type.full_name = "Time limit exceeded";
-            type.short_name = "TL";
+            type = VerdictType::TIME_LIMIT_EXCEEDED;
         } else if (meta.status == "RE") {
-            type.full_name = "Runtime error";
-            type.short_name = "RE";
+            type = VerdictType::RUNTIME_ERROR;
         } else if (meta.status == "SG") {
-            type.full_name = "Memory limit exceeded";
-            type.short_name = "ML";
+            type = VerdictType::MEMORY_LIMIT_EXCEEDED;
         } else if (meta.status == "IL") {
-            type.full_name = "Idle limit exceeded";
-            type.short_name = "IL";
+            type = VerdictType::IDLE_LIMIT_EXCEEDED;
         } else {
-            type.full_name = "Security Violation";
-            type.short_name = "SV";
+            type = VerdictType::SECURITY_VIOLATION;
         }
         verdict->set_info({
             type,
@@ -106,21 +98,13 @@ std::shared_ptr<Verdict> load_verdict_from_checker_output(const std::string &tes
 
         while (std::getline(file, line)) {
             if (line[0] == 'o') {
-                type.type = VerdictType::ACCEPTED;
-                type.full_name = "Accepted";
-                type.short_name = "AC";
+                type = VerdictType::ACCEPTED;
             } else if (line[0] == 'w') {
-                type.type = VerdictType::WRONG;
-                type.full_name = "Wrong answer";
-                type.short_name = "WA";
+                type = VerdictType::WRONG_ANSWER;
             } else if (line[0] == 'p') {
-                type.type = VerdictType::WRONG;
-                type.full_name = "Presentation error";
-                type.short_name = "PE";
+                type = VerdictType::PRESENTATION_ERROR;
             } else {
-                type.type = VerdictType::FAILED;
-                type.full_name = "FAIL";
-                type.short_name = "FAIL";
+                type = VerdictType::FAILED;
             }
         }
         double score = 0;
@@ -137,6 +121,5 @@ std::shared_ptr<Verdict> load_verdict_from_checker_output(const std::string &tes
     
     return load_verdict_from_meta(test_name, path_to_meta);
 }
-
 
 } // namespace oink_judge::services::test_node

@@ -2,7 +2,6 @@
 
 #include <string>
 #include "socket/Session.hpp"
-#include "services/data_sender/data_sender_errors.h"
 
 namespace oink_judge::services::data_sender {
 
@@ -18,6 +17,7 @@ public:
     ContentStorage &operator=(const ContentStorage &) = delete;
 
     void ensure_content_exists(const std::string &content_type, const std::string &content_id, CallbackFunc callback);
+    void update_content_on_server(const std::string &content_type, const std::string &content_id);
 
 private:
     ContentStorage();

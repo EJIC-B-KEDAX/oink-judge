@@ -1,26 +1,16 @@
 #pragma once
 
-#include "socket/Protocol.hpp"
+#include "socket/protocols/ProtocolDecorator.h"
 
 namespace oink_judge::socket {
 
-class PongingProtocol : public Protocol {
+class PongingProtocol : public ProtocolDecorator {
 public:
-    PongingProtocol(std::unique_ptr<Protocol> inner_event_handler);
+    PongingProtocol(std::unique_ptr<Protocol> inner_protocol);
 
-    void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
-    void close_session() override;
-
-    void set_session(std::weak_ptr<Session> session) override;
-    std::shared_ptr<Session> get_session() const override;
 
     constexpr static auto REGISTERED_NAME = "Ponging";
-
-    void request_internal(const std::string &message, const callback_t &callback) override;
-
-private:
-    std::unique_ptr<Protocol> _inner_protocol;
 };
 
 } // namespace oink_judge::socket

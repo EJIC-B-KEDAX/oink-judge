@@ -38,5 +38,8 @@ target_link_libraries(data_sender_server PRIVATE ${LIBZIP_LIBRARIES})
 target_include_directories(data_sender_server PRIVATE /usr/local/include)
 target_link_libraries(data_sender_server PRIVATE pqxx pq)
 
+find_package(PugiXML REQUIRED)
+target_link_libraries(data_sender_server PRIVATE pugixml)
+
 find_package(OpenSSL REQUIRED)
 target_link_libraries(data_sender_server PRIVATE OpenSSL::SSL OpenSSL::Crypto)

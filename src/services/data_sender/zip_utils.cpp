@@ -160,4 +160,15 @@ void pack_zip(const std::string &zip_path, const std::string &source_path) {
     }
 }
 
+void remove_file_or_directory(const std::string &path) {
+    if (std::filesystem::exists(path)) {
+        std::filesystem::remove_all(path);
+    }
+}
+
+void clear_directory(const std::string &path) {
+    remove_file_or_directory(path);
+    std::filesystem::create_directories(path);
+}
+
 } // namespace oink_judge::services::data_sender

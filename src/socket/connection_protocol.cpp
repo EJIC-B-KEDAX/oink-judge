@@ -64,6 +64,9 @@ std::shared_ptr<Session> connect_to_the_endpoint(const std::string &host, short 
     tcp::resolver resolver(io_context);
     auto endpoints = resolver.resolve(host, std::to_string(port));
 
+    std::cout << "Connecting to " << host << ":" << port << std::endl;
+    std::cout << "Using session type: " << session_type << std::endl;
+
     try {
         boost::asio::connect(*socket, endpoints);
 

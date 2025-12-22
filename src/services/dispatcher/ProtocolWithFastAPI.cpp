@@ -1,10 +1,11 @@
 #include "services/dispatcher/ProtocolWithFastAPI.h"
 #include "services/data_sender/ContentStorage.h"
-#include "services/test_node/TableSubmissions.h"
+#include "database/TableSubmissions.h"
 
 namespace oink_judge::services::dispatcher {
 
 using ContentStorage = data_sender::ContentStorage;
+using TableSubmissions = database::TableSubmissions;
 
 namespace {
 
@@ -32,15 +33,16 @@ void ProtocolWithFastAPI::receive_message(const std::string &message) {
 
     if (request_type == "handle_submission") {
         std::string submission_id = json_message["submission_id"];
-        std::string problem_id = test_node::TableSubmissions::instance().problem_of_submission(submission_id);
+        std::string problem_id = TableSubmissions::instance().problem_of_submission(submission_id);
         std::string request_id = json_message["__id__"];
 
         if (_submission_managers.find(problem_id) == _submission_managers.end()) {
-            ContentStorage::instance().ensure_content_exists("problem", problem_id, [](std::error_code ec) {
-                if (ec) {
-                    throw std::runtime_error("Error ensuring problem content exists: " + ec.message());
-                }
-            });
+            // ContentStorage::instance().ensure_content_exists("problem", problem_id, [](std::error_code ec) {
+            //     if (ec) {
+            //         throw std::runtime_error("Error ensuring problem content exists: " + ec.message());
+            //     }
+            // });
+            
             _submission_managers[problem_id] = ProblemSubmissionManagerFactory::instance().create("BasicProblemSubmissionManager", problem_id);
             // TODO: Get submission manager type from problem config
 
@@ -62,17 +64,5 @@ void ProtocolWithFastAPI::receive_message(const std::string &message) {
 }
 
 void ProtocolWithFastAPI::close_session() {}
-
-void ProtocolWithFastAPI::set_session(std::weak_ptr<socket::Session> session) {
-    _session = session;
-}
-
-std::shared_ptr<socket::Session> ProtocolWithFastAPI::get_session() const {
-    return _session.lock();
-}
-
-void ProtocolWithFastAPI::request_internal(const std::string &message, const callback_t &callback) {
-    throw std::runtime_error("Request not supported for ProtocolWithFastAPI");
-}
 
 } // namespace oink_judge::services::dispatcher

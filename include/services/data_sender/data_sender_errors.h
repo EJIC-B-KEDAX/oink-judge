@@ -11,6 +11,8 @@ enum class network_error_code {
     RECEIVE_FAILED = 4,
 };
 
+// ДАЙ ДЕНЕГ
+
 class network_category : public std::error_category {
 public:
     const char* name() const noexcept override;

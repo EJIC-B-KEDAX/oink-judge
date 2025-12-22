@@ -1,42 +1,60 @@
 set(TEST_NODE_HEADERS
-    include/services/test_node/CompilationTest.h
-    include/services/test_node/DefaultProblemBuilder.h
-    include/services/test_node/DefaultTest.h
-    include/services/test_node/DefaultVerdict.h
-    include/services/test_node/DefaultVerdictBuilder.h
-    include/services/test_node/enable_get_test_by_name_impl.h
-    include/services/test_node/enable_get_test_by_name.hpp
+    include/services/test_node/problem_builders/DefaultProblemBuilder.h
+    include/services/test_node/problem_builders/enable_get_test_by_name_impl.h
+    include/services/test_node/problem_builders/enable_get_test_by_name.hpp
+
+    include/services/test_node/tests/CompilationTest.h
+    include/services/test_node/tests/SingleTest.h
+    include/services/test_node/tests/SyncResultTest.h
+    include/services/test_node/tests/Testset.h
+
+    include/services/test_node/verdict_aggregators/AggregateCurrent.h
+    include/services/test_node/verdict_aggregators/AggregateMax.h
+
+    include/services/test_node/verdict_builders/VerdictBuilderMin.h
+    include/services/test_node/verdict_builders/VerdictBuilderSum.h
+
+    include/services/test_node/verdicts/DefaultVerdict.h
+    include/services/test_node/verdicts/enable_get_problem_verdict.hpp
+    include/services/test_node/verdicts/VerdictBase.h
+
     include/services/test_node/InvokerProtocol.h
-    include/services/test_node/problem_utils.h
     include/services/test_node/ProblemBuilder.hpp
     include/services/test_node/ProblemTable.h
     include/services/test_node/ProblemTablesStorage.h
-    include/services/test_node/SyncResultTest.h
-    include/services/test_node/TableSubmissions.h
     include/services/test_node/Test.hpp
-    include/services/test_node/Testset.h
     include/services/test_node/TestStorage.h
     include/services/test_node/verdict_utils.h
     include/services/test_node/Verdict.hpp
+    include/services/test_node/VerdictAggregator.hpp
     include/services/test_node/VerdictBuilder.hpp
     include/services/test_node/VerdictType.hpp
 )
 set(TEST_NODE_SOURCES
-    src/services/test_node/CompilationTest.cpp
-    src/services/test_node/DefaultProblemBuilder.cpp
-    src/services/test_node/DefaultTest.cpp
-    src/services/test_node/DefaultVerdict.cpp
-    src/services/test_node/DefaultVerdictBuilder.cpp
-    src/services/test_node/enable_get_test_by_name_impl.cpp
+    src/services/test_node/problem_builders/DefaultProblemBuilder.cpp
+    src/services/test_node/problem_builders/enable_get_test_by_name_impl.cpp
+
+    src/services/test_node/tests/CompilationTest.cpp
+    src/services/test_node/tests/SingleTest.cpp
+    src/services/test_node/tests/SyncResultTest.cpp
+    src/services/test_node/tests/Testset.cpp
+
+    src/services/test_node/verdict_aggregators/AggregateCurrent.cpp
+    src/services/test_node/verdict_aggregators/AggregateMax.cpp
+
+    src/services/test_node/verdict_builders/VerdictBuilderMin.cpp
+    src/services/test_node/verdict_builders/VerdictBuilderSum.cpp
+
+    src/services/test_node/verdicts/DefaultVerdict.cpp
+    include/services/test_node/verdicts/enable_get_problem_verdict.inl
+    src/services/test_node/verdicts/VerdictBase.cpp
+
     src/services/test_node/InvokerProtocol.cpp
-    src/services/test_node/problem_utils.cpp
     src/services/test_node/ProblemTable.cpp
     src/services/test_node/ProblemTablesStorage.cpp
-    src/services/test_node/SyncResultTest.cpp
-    src/services/test_node/TableSubmissions.cpp
-    src/services/test_node/Testset.cpp
     src/services/test_node/TestStorage.cpp
     src/services/test_node/verdict_utils.cpp
+
 )
 
 add_executable(test_node

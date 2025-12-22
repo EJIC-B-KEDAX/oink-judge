@@ -42,5 +42,8 @@ target_link_libraries(auth_server PRIVATE ${SODIUM_LIBRARIES})
 target_include_directories(auth_server PRIVATE /usr/local/include)
 target_link_libraries(auth_server PRIVATE pqxx pq)
 
+find_package(PugiXML REQUIRED)
+target_link_libraries(auth_server PRIVATE pugixml)
+
 find_package(OpenSSL REQUIRED)
 target_link_libraries(auth_server PRIVATE OpenSSL::SSL OpenSSL::Crypto)

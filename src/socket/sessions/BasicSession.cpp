@@ -21,8 +21,8 @@ namespace {
 
 } // namespace
 
-BasicSession::BasicSession(tcp::socket socket, std::unique_ptr<Protocol> event_handler) :
-    SessionBase(std::move(socket), std::move(event_handler)) {}
+BasicSession::BasicSession(tcp::socket socket, std::unique_ptr<Protocol> protocol) :
+    SessionBase(std::move(protocol)), _socket(std::move(socket)) {}
 
 void BasicSession::set_session_ptr() {
     access_protocol().set_session(shared_from_this());
@@ -44,7 +44,7 @@ void BasicSession::receive_message() {
     auto self = shared_from_this();
 
     auto message_length_net_ptr = std::make_shared<std::array<char, sizeof(size_t)>>();
-    boost::asio::async_read(access_socket(), boost::asio::buffer(*message_length_net_ptr),
+    boost::asio::async_read(_socket, boost::asio::buffer(*message_length_net_ptr),
         [self, this, message_length_net_ptr](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
         if (!ec) {
             size_t message_length_net = 0;
@@ -52,7 +52,7 @@ void BasicSession::receive_message() {
             size_t message_length = ntoh64(message_length_net);
             auto message_ptr = std::make_shared<std::string>(message_length, '\0');
 
-            boost::asio::async_read(access_socket(), boost::asio::buffer(*message_ptr),
+            boost::asio::async_read(_socket, boost::asio::buffer(*message_ptr),
                 [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
                 if (!ec) {
                     std::cout << "Received message: " << *message_ptr << std::endl;
@@ -70,9 +70,9 @@ void BasicSession::receive_message() {
 }
 
 void BasicSession::close() {
-    if (access_socket().is_open()) {
+    if (_socket.is_open()) {
         std::cout << "Closing socket." << std::endl;
-        access_socket().close();
+        _socket.close();
         access_protocol().close_session();
     }
 }
@@ -88,10 +88,10 @@ void BasicSession::_send_next() {
     size_t message_length = hton64(message.size());
     auto message_length_net_ptr = std::make_shared<std::array<char, sizeof(message_length)>>();
     std::memcpy(message_length_net_ptr->data(), &message_length, sizeof(message_length));
-    boost::asio::async_write(access_socket(), boost::asio::buffer(*message_length_net_ptr),
+    boost::asio::async_write(_socket, boost::asio::buffer(*message_length_net_ptr),
         [self, this, message_ptr, message_length_net_ptr](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
         if (!ec) {
-            boost::asio::async_write(access_socket(), boost::asio::buffer(*message_ptr),
+            boost::asio::async_write(_socket, boost::asio::buffer(*message_ptr),
                 [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) -> void {
                 if (!ec) {
                     _message_queue.pop();

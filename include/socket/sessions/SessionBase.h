@@ -7,15 +7,14 @@ namespace oink_judge::socket {
 
 class SessionBase : public Session, public std::enable_shared_from_this<Session> {
 public:
-    ~SessionBase() override;
+    void request_internal(const std::string &message, const callback_t &callback) override;
+
 protected:
-    SessionBase(tcp::socket socket, std::unique_ptr<Protocol> event_handler);
+    SessionBase(std::unique_ptr<Protocol> protocol);
 
     Protocol &access_protocol();
-    tcp::socket &access_socket();
 
 private:
-    tcp::socket _socket;
     std::unique_ptr<Protocol> _protocol;
 };
 

@@ -3,6 +3,9 @@ set(SOCKET_HEADERS
     include/socket/protocols/AuthRequiredProtocol.h
     include/socket/protocols/PingingProtocol.h
     include/socket/protocols/PongingProtocol.h
+    include/socket/protocols/ProtocolBase.h
+    include/socket/protocols/ProtocolDecorator.h
+    include/socket/protocols/ProtocolWithRequests.h
     include/socket/sessions/BasicSession.h
     include/socket/sessions/BlockingSSLSession.h
     include/socket/sessions/SessionBase.h
@@ -23,6 +26,9 @@ set(SOCKET_SOURCES
     src/socket/protocols/AuthRequiredProtocol.cpp
     src/socket/protocols/PingingProtocol.cpp
     src/socket/protocols/PongingProtocol.cpp
+    src/socket/protocols/ProtocolBase.cpp
+    src/socket/protocols/ProtocolDecorator.cpp
+    src/socket/protocols/ProtocolWithRequests.cpp
     src/socket/sessions/BasicSession.cpp
     src/socket/sessions/BlockingSSLSession.cpp
     src/socket/sessions/SessionBase.cpp
@@ -34,5 +40,6 @@ set(SOCKET_SOURCES
     src/socket/connection_protocol.cpp
     src/socket/ConnectionStorage.cpp
     include/socket/Protocol.inl
+    include/socket/Session.inl
     src/socket/SimpleConnectionHandler.cpp
 )

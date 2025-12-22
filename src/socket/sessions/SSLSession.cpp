@@ -48,20 +48,17 @@ namespace {
 
 } // namespace
 
-SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> event_handler,  boost::asio::ssl::stream_base::handshake_type handshake_type)
-    : _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::server) ? BoostSSLContext::server() : BoostSSLContext::client()), 
-      _protocol(std::move(event_handler)),
-      _handshake_type(handshake_type) {
-
-    std::cout << "Created SSL session" << std::endl;
-}
+SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,  boost::asio::ssl::stream_base::handshake_type handshake_type)
+    : SessionBase(std::move(protocol)),
+      _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::server) ? BoostSSLContext::server() : BoostSSLContext::client()),
+      _handshake_type(handshake_type) {}
 
 SSLSession::~SSLSession() {
     close();
 }
 
 void SSLSession::set_session_ptr() {
-    _protocol->set_session(shared_from_this());
+    access_protocol().set_session(shared_from_this());
 }
 
 void SSLSession::start(const std::string &start_message) {
@@ -80,7 +77,7 @@ void SSLSession::start(const std::string &start_message) {
         std::cout << "Handshake" << std::endl;
         std::cout << _handshake_type << std::endl;
         if (!error) {
-            _protocol->start(start_message);
+            access_protocol().start(start_message);
         } else {
             std::cout << "Error " << error.what() << std::endl;
             close();
@@ -114,7 +111,7 @@ void SSLSession::receive_message() {
                 [self, this, message_ptr](const boost::system::error_code &ec, std::size_t /*length*/) {
                 if (!ec) {
                     std::cout << "Read message: " << *message_ptr << std::endl;
-                    _protocol->receive_message(*message_ptr);
+                    access_protocol().receive_message(*message_ptr);
                 } else {
                     std::cout << "Error reading message: " << ec.what() << std::endl;
                     close();
@@ -129,7 +126,7 @@ void SSLSession::receive_message() {
 void SSLSession::close() {
     if (_ssl_stream.lowest_layer().is_open()) {
         _ssl_stream.lowest_layer().close();
-        _protocol->close_session();
+        access_protocol().close_session();
     }
 }
 

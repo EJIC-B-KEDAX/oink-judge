@@ -5,7 +5,6 @@ set(DISPATCHER_HEADERS
     include/services/dispatcher/ProtocolWithFastAPI.h
     include/services/dispatcher/ProtocolWithInvoker.h
     include/services/dispatcher/TestingQueue.h
-    include/services/test_node/TableSubmissions.h
 )
 set(DISPATCHER_SOURCES
     src/services/dispatcher/BasicProblemSubmissionManager.cpp
@@ -13,7 +12,6 @@ set(DISPATCHER_SOURCES
     src/services/dispatcher/ProtocolWithFastAPI.cpp
     src/services/dispatcher/ProtocolWithInvoker.cpp
     src/services/dispatcher/TestingQueue.cpp
-    src/services/test_node/TableSubmissions.cpp
 )
 
 add_executable(dispatcher_server
@@ -44,6 +42,9 @@ target_link_libraries(dispatcher_server PRIVATE ${LIBZIP_LIBRARIES})
 
 target_include_directories(dispatcher_server PRIVATE /usr/local/include)
 target_link_libraries(dispatcher_server PRIVATE pqxx pq)
+
+find_package(PugiXML REQUIRED)
+target_link_libraries(dispatcher_server PRIVATE pugixml)
 
 find_package(OpenSSL REQUIRED)
 target_link_libraries(dispatcher_server PRIVATE OpenSSL::SSL OpenSSL::Crypto)

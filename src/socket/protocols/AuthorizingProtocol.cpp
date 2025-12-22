@@ -1,5 +1,6 @@
 #include "socket/protocols/AuthorizingProtocol.h"
 #include "config/Config.h"
+#include <iostream>
 
 namespace oink_judge::socket {
 
@@ -47,31 +48,24 @@ namespace {
 } // namespace
 
 AuthorizingProtocol::AuthorizingProtocol(std::unique_ptr<Protocol> inner_protocol, std::string auth_token)
-    : _inner_protocol(std::move(inner_protocol)), _auth_token(std::move(auth_token)) {}
+    : ProtocolDecorator(std::move(inner_protocol)), _auth_token(std::move(auth_token)), _authorized(false) {}
 
 void AuthorizingProtocol::start(const std::string &start_message) {
-    get_session()->send_message(_auth_token);
-    _inner_protocol->start(start_message);
-}
-
-void AuthorizingProtocol::receive_message(const std::string &message) {
-    _inner_protocol->receive_message(message);
-}
-
-void AuthorizingProtocol::close_session() {
-    _inner_protocol->close_session();
-}
-
-void AuthorizingProtocol::set_session(std::weak_ptr<Session> session) {
-    _inner_protocol->set_session(session);
-}
-
-std::shared_ptr<Session> AuthorizingProtocol::get_session() const {
-    return _inner_protocol->get_session();
+    send_message(_auth_token);
+    ProtocolDecorator::start(start_message);
+    for (const auto &[message, callback] : _pending_requests) {
+        ProtocolDecorator::request_internal(message, callback);
+    }
+    _pending_requests.clear();
+    _authorized = true;
 }
 
 void AuthorizingProtocol::request_internal(const std::string &message, const callback_t &callback) {
-    _inner_protocol->request_internal(message, callback);
+    if (_authorized) {
+        ProtocolDecorator::request_internal(message, callback);
+    } else {
+        _pending_requests.emplace_back(message, callback);
+    }
 }
 
 } // namespace oink_judge::socket

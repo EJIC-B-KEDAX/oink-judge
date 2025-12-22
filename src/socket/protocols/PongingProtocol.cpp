@@ -18,36 +18,17 @@ namespace {
 } // namespace
 
 PongingProtocol::PongingProtocol(std::unique_ptr<Protocol> inner_protocol)
-    : _inner_protocol(std::move(inner_protocol)) {}
+    : ProtocolDecorator(std::move(inner_protocol)) {}
 
-void PongingProtocol::start(const std::string &start_message) {
-    _inner_protocol->start(start_message);
-}
 
 void PongingProtocol::receive_message(const std::string &message) {
     if (message == "ping") {
-        get_session()->send_message("pong");
+        send_message("pong");
         get_session()->receive_message();
         return;
     }
 
-    _inner_protocol->receive_message(message);
-}
-
-void PongingProtocol::close_session() {
-    _inner_protocol->close_session();
-}
-
-void PongingProtocol::set_session(std::weak_ptr<Session> session) {
-    _inner_protocol->set_session(session);
-}
-
-std::shared_ptr<Session> PongingProtocol::get_session() const {
-    return _inner_protocol->get_session();
-}
-
-void PongingProtocol::request_internal(const std::string &message, const callback_t &callback) {
-    _inner_protocol->request_internal(message, callback);
+    ProtocolDecorator::receive_message(message);
 }
 
 } // namespace oink_judge::socket

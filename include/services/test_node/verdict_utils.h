@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Verdict.hpp"
 
 namespace oink_judge::services::test_node {

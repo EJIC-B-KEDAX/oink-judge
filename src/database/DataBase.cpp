@@ -40,7 +40,8 @@ void DataBase::unprepare_statement(const std::string &sql_template_name) {
 
 pqxx::result DataBase::execute(const std::string &sql_template_name) {
     pqxx::work txn(_conn);
-    pqxx::result res = txn.exec_prepared(sql_template_name);
+
+    pqxx::result res = txn.exec(pqxx::prepped(sql_template_name));
     txn.commit();
 
     return res;
@@ -56,7 +57,7 @@ pqxx::result DataBase::execute_sql(const std::string &sql) {
 
 pqxx::result DataBase::execute_read_only(const std::string &sql_template_name) {
     pqxx::nontransaction txn(_conn);
-    pqxx::result res = txn.exec_prepared(sql_template_name);
+    pqxx::result res = txn.exec(pqxx::prepped(sql_template_name));
 
     return res;
 }

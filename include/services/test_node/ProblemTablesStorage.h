@@ -1,5 +1,4 @@
 #pragma once
-
 #include "ProblemTable.h"
 
 namespace oink_judge::services::test_node {

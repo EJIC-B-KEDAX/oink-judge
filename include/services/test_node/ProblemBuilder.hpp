@@ -1,5 +1,4 @@
 #pragma once 
-
 #include "Test.hpp"
 #include "TypeFactory.hpp"
 

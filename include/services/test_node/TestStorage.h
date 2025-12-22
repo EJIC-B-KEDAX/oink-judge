@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Test.hpp"
 
 namespace oink_judge::services::test_node {
@@ -11,10 +10,10 @@ public:
     TestStorage(const TestStorage &) = delete;
     TestStorage &operator=(const TestStorage &) = delete;
 
-    std::shared_ptr<Test> get_test(const std::string &problem_id);
+    void get_test(const std::string &problem_id, std::function<void(std::error_code, std::shared_ptr<Test>)> callback);
 
 private:
-    void ensure_test_exists(const std::string &problem_id);
+    void ensure_test_exists(const std::string &problem_id, std::function<void(std::error_code)> callback);
 
     TestStorage();
 

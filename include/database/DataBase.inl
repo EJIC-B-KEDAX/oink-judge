@@ -7,7 +7,11 @@ namespace oink_judge::database {
 template <typename... Args>
 pqxx::result DataBase::execute(const std::string &sql_template_name, const Args&... args) {
     pqxx::work txn(_conn);
-    pqxx::result res = txn.exec_prepared(sql_template_name, args...);
+
+    pqxx::params params;
+    (params.append(args), ...);
+
+    pqxx::result res = txn.exec(pqxx::prepped(sql_template_name), params);
     txn.commit();
 
     return res;
@@ -16,7 +20,11 @@ pqxx::result DataBase::execute(const std::string &sql_template_name, const Args&
 template <typename... Args>
 pqxx::result DataBase::execute_sql(const std::string &sql, const Args&... args) {
     pqxx::work txn(_conn);
-    pqxx::result res = txn.exec_params(sql, args...);
+
+    pqxx::params params;
+    (params.append(args), ...);
+
+    pqxx::result res = txn.exec(sql, params);
     txn.commit();
 
     return res;
@@ -25,7 +33,11 @@ pqxx::result DataBase::execute_sql(const std::string &sql, const Args&... args) 
 template <typename... Args>
 pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, const Args&... args) {
     pqxx::nontransaction txn(_conn);
-    pqxx::result res = txn.exec_prepared(sql_template_name, args...);
+    
+    pqxx::params params;
+    (params.append(args), ...);
+
+    pqxx::result res = txn.exec(pqxx::prepped(sql_template_name), params);
 
     return res;
 }
@@ -33,7 +45,11 @@ pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, c
 template <typename... Args>
 pqxx::result DataBase::execute_sql_read_only(const std::string &sql, const Args&... args) {
     pqxx::nontransaction txn(_conn);
-    pqxx::result res = txn.exec_params(sql, args...);
+
+    pqxx::params params;
+    (params.append(args), ...);
+
+    pqxx::result res = txn.exec(sql, params);
 
     return res;
 }

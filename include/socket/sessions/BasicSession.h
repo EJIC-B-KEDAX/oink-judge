@@ -7,7 +7,7 @@ namespace oink_judge::socket {
 
 class BasicSession : public SessionBase {
 public:
-    BasicSession(tcp::socket socket, std::unique_ptr<Protocol> event_handler);
+    BasicSession(tcp::socket socket, std::unique_ptr<Protocol> protocol);
 
     void set_session_ptr();
     void start(const std::string &start_message) override;
@@ -19,6 +19,7 @@ public:
 private:
     void _send_next();
 
+    tcp::socket _socket;
     std::queue<std::string> _message_queue;
 };
 

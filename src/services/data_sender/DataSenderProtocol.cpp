@@ -6,7 +6,6 @@ namespace oink_judge::services::data_sender {
 
 using json = nlohmann::json;
 using Config = config::Config;
-
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
@@ -20,43 +19,46 @@ namespace {
 
 } // namespace
 
-DataSenderProtocol::DataSenderProtocol() = default;
+DataSenderProtocol::DataSenderProtocol() : _status(WAIT_REQUEST), _content_type(""), _content_id("") {}
 
 void DataSenderProtocol::start(const std::string &start_message) {
     get_session()->receive_message();
 }
 
 void DataSenderProtocol::receive_message(const std::string &message) {
-    json parsed_message = json::parse(message);
-    if (parsed_message.at("action") == "get") {
-        std::string content_type = parsed_message.at("content_type");
-        std::string content_id = parsed_message.at(content_type + "_id");
+    if (_status == WAIT_REQUEST) {
+        json parsed_message = json::parse(message);
+        if (parsed_message.at("action") == "get") {
+            std::string content_type = parsed_message.at("content_type");
+            std::string content_id = parsed_message.at(content_type + "_id");
+            uint64_t request_id = parsed_message.at("__id__");
 
-        if (!std::filesystem::exists(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip")) {
-            pack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",
-                Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
+            if (!std::filesystem::exists(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip")) {
+                pack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",
+                    Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
+            }
+
+            send_message("{\"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\", \"__id__\": " + std::to_string(request_id) + "}");
+            send_message(get_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip"));
+        } else if (parsed_message.at("action") == "update") {
+            json header = json::parse(message);
+
+            _content_type = header["content_type"];
+            _content_id = header[_content_type + "_id"];
+            _status = WAIT_DATA;
         }
+    } else if (_status == WAIT_DATA) {
+        clear_directory(Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
+        store_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip", message);
+        unpack_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip",
+            Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
 
-        get_session()->send_message(
-            "{\"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\"}");
-        get_session()->send_message(get_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip"));
+        _status = WAIT_REQUEST;
     }
 
     get_session()->receive_message();
 }
 
 void DataSenderProtocol::close_session() {}
-
-void DataSenderProtocol::set_session(std::weak_ptr<socket::Session> session) {
-    _session = session;
-}
-
-std::shared_ptr<socket::Session> DataSenderProtocol::get_session() const {
-    return _session.lock();
-}
-
-void DataSenderProtocol::request_internal(const std::string &message, const callback_t &callback) {
-    throw std::runtime_error("Request not supported for DataSenderProtocol");
-}
 
 } // namespace oink_judge::services::data_sender

@@ -2,17 +2,11 @@
 
 namespace oink_judge::socket {
 
-
-SessionBase::~SessionBase() {
-    if (_socket.is_open()) {
-        _socket.close();
-        _protocol->close_session();
-    }
+void SessionBase::request_internal(const std::string &message, const callback_t &callback) {
+    access_protocol().request_internal(message, callback);
 }
 
-SessionBase::SessionBase(tcp::socket socket, std::unique_ptr<Protocol> event_handler)
-    : _socket(std::move(socket)), _protocol(std::move(event_handler)) {
-}
+SessionBase::SessionBase(std::unique_ptr<Protocol> protocol) : _protocol(std::move(protocol)) {}
 
 Protocol &SessionBase::access_protocol() {
     if (!_protocol) {
@@ -20,10 +14,6 @@ Protocol &SessionBase::access_protocol() {
     }
 
     return *_protocol;
-}
-
-tcp::socket &SessionBase::access_socket() {
-    return _socket;
 }
 
 } // namespace oink_judge::socket

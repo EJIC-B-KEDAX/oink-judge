@@ -48,7 +48,7 @@ namespace {
 } // namespace
 
 AuthRequiredProtocol::AuthRequiredProtocol(std::unique_ptr<Protocol> inner_protocol, std::string auth_token)
-    : _inner_protocol(std::move(inner_protocol)), _auth_token(std::move(auth_token)) {}
+    : ProtocolDecorator(std::move(inner_protocol)), _auth_token(std::move(auth_token)) {}
 
 void AuthRequiredProtocol::start(const std::string &start_message) {
     std::cout << "Client connected, waiting for authorization..." << std::endl;
@@ -59,13 +59,13 @@ void AuthRequiredProtocol::start(const std::string &start_message) {
 
 void AuthRequiredProtocol::receive_message(const std::string &message) {
     if (_status == AUTHORIZED) {
-        _inner_protocol->receive_message(message);
+        ProtocolDecorator::receive_message(message);
     } else {
         std::cout << "Received authorization token, checking..." << std::endl;
         std::cout << "Expected: " << _auth_token << ", got: " << message << std::endl;
         if (message == _auth_token) {
             _status = AUTHORIZED;
-            _inner_protocol->start(_saved_start_message);
+            ProtocolDecorator::start(_saved_start_message);
             _saved_start_message.clear();
         } else {
             close_session();
@@ -73,21 +73,9 @@ void AuthRequiredProtocol::receive_message(const std::string &message) {
     }
 }
 
-void AuthRequiredProtocol::close_session() {
-    _inner_protocol->close_session();
-}
-
-void AuthRequiredProtocol::set_session(std::weak_ptr<Session> session) {
-    _inner_protocol->set_session(session);
-}
-
-std::shared_ptr<Session> AuthRequiredProtocol::get_session() const {
-    return _inner_protocol->get_session();
-}
-
 void AuthRequiredProtocol::request_internal(const std::string &message, const callback_t &callback) {
     if (_status == AUTHORIZED) {
-        _inner_protocol->request_internal(message, callback);
+        ProtocolDecorator::request_internal(message, callback);
     } else {
         call_callback(callback, std::make_error_code(std::errc::permission_denied)); // Not authorized, maybe it needs a better error code
     }

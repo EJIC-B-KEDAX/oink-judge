@@ -1,19 +1,15 @@
 #pragma once
 
-#include "socket/Protocol.hpp"
+#include "socket/protocols/ProtocolDecorator.h"
 
 namespace oink_judge::socket {
 
-class AuthRequiredProtocol : public Protocol {
+class AuthRequiredProtocol : public ProtocolDecorator {
 public:
-    AuthRequiredProtocol(std::unique_ptr<Protocol> inner_event_handler, std::string auth_token);
+    AuthRequiredProtocol(std::unique_ptr<Protocol> inner_protocol, std::string auth_token);
 
     void start(const std::string &start_message) override;
     void receive_message(const std::string &message) override;
-    void close_session() override;
-
-    void set_session(std::weak_ptr<Session> session) override;
-    std::shared_ptr<Session> get_session() const override;
 
     constexpr static auto REGISTERED_NAME = "AuthRequired";
 
@@ -26,7 +22,6 @@ private:
     };
 
     Status _status = UNAUTHORIZED;
-    std::unique_ptr<Protocol> _inner_protocol;
     std::string _auth_token;
     std::string _saved_start_message;
 };
