@@ -67,7 +67,7 @@ document.getElementById('submit-form').addEventListener('submit', async function
     responseBox.textContent = 'Sending...';
 
     try {
-        const res = await fetch('/problems/{{ problem.type }}/{{ problem.id }}/submit', {
+        const res = await fetch('/problems/{{ problem.id }}/submit', {
             method: 'POST',
             body: formData
         });
