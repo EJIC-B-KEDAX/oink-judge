@@ -112,7 +112,11 @@
             <tbody>
                 {% for s in submissions %}
                 <tr>
-                    <td>{{ s.id }}</td>
+                    <td>
+                        <a href="/submissions/{{ s.id }}" class="submission-link">
+                            {{ s.id }}
+                        </a>
+                    </td>
                     <td>{{ s.send_time }}</td>
                     <td>{{ s.language }}</td>
                     <td class="verdict {{ s.verdict_type }}">{{ s.verdict_type }}</td>

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, UploadFile, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from app.config.problem_config import get_problem_statements
-from app.services.auth.auth_utils import get_current_user
+from app.services.auth.auth_utils import get_current_user, require_current_user
 from app.database.tables.submissions import add_submission, SubmissionInfo, load_submissions_by_user_and_problem, update_submission_verdict
 from app.database.database import get_db
 from app.services.dispatcher.dispatcher_api import handle_submission
@@ -31,7 +31,9 @@ class OpenProblem:
             statements = get_problem_statements(self.id, "english", "text/html")
 
             if statements is None:
-                statements = "<p>Problem statements are not available.</p>"
+                statements = get_problem_statements(self.id, "russian", "text/html")
+                if statements is None:
+                    statements = "<p>Problem statements are not available.</p>"
 
             problem_info = ProblemInfo(
                 problem_id=self.id,
@@ -47,8 +49,16 @@ class OpenProblem:
 
         @self.router.get("/problem-statement.css", response_class=HTMLResponse)
         async def problem_statement_css():
-            css_path = os.path.join("problems", self.id, "statements", ".html", "english", "problem-statement.css")
-            return FileResponse(css_path, media_type="text/css")
+            css_path = os.path.join("problems", self.id, "statements", ".html")
+            english_path = os.path.join(css_path, "english", "problem-statement.css")
+            russian_path = os.path.join(css_path, "russian", "problem-statement.css")
+            if os.path.exists(english_path):
+                return FileResponse(english_path, media_type="text/css")
+            elif os.path.exists(russian_path):
+                return FileResponse(russian_path, media_type="text/css")
+            else:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail="CSS file not found")
 
 
 
@@ -69,11 +79,8 @@ class OpenProblem:
         async def problem_submit(request: Request,
                 language: str = Form(...),
                 solution: UploadFile = Form(...),
+                username: str = Depends(require_current_user),
                 db = Depends(get_db)):
-
-            username: str = await get_current_user(request)
-            if username is None:
-                return RedirectResponse(url="/login", status_code=302)
 
             submission_id = str(uuid.uuid4())
 
@@ -106,11 +113,7 @@ class OpenProblem:
 
 
         @self.router.get("/submissions", response_class=HTMLResponse)
-        async def problem_submissions(request: Request, db = Depends(get_db)):
-            username: str = await get_current_user(request)
-            if username is None:
-                return RedirectResponse(url="/login", status_code=302)
-
+        async def problem_submissions(request: Request, username: str = Depends(require_current_user), db = Depends(get_db)):
             submissions = await load_submissions_by_user_and_problem(db, username, self.id)
             problem_info = ProblemInfo(
                 problem_id=self.id

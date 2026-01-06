@@ -1,15 +1,20 @@
 #include "socket/BoostSSLContext.h"
+#include "config/Config.h"
 #include <stdexcept>
 #include <iostream>
 
 namespace oink_judge::socket {
 
+using Config = config::Config;
+
 boost::asio::ssl::context& BoostSSLContext::server() {
     static boost::asio::ssl::context server_context(boost::asio::ssl::context::tlsv12_server);
     static bool initialized = false;
-    
+
+
     if (!initialized) {
-        _setup_ssl_context(server_context, "../certs/server.crt", "../certs/server.key", "../certs/dh2048.pem");
+        std::string certs_dir = Config::config().at("directories").at("certs").get<std::string>();
+        _setup_ssl_context(server_context, certs_dir + "/server.crt", certs_dir + "/server.key", certs_dir + "/dh2048.pem");
         initialized = true;
         std::cout << "Server SSL context initialized" << std::endl;
     }
@@ -22,7 +27,8 @@ boost::asio::ssl::context& BoostSSLContext::client() {
     static bool initialized = false;
     
     if (!initialized) {
-        client_context.load_verify_file("../certs/ca.pem");
+        std::string certs_dir = Config::config().at("directories").at("certs").get<std::string>();
+        client_context.load_verify_file(certs_dir + "/ca.pem");
         client_context.set_verify_mode(boost::asio::ssl::verify_peer);
 
         initialized = true;

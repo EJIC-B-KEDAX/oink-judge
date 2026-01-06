@@ -1,11 +1,12 @@
 .idea/
 .vscode/
-venv/
-build/
+/venv/
+/build/
+/logs/
 /problems/
-submissions/
+/submissions/
 *__pycache__/
 credentials.json
 config.json
-certs/
-test_node_venv/
+/certs/
+/test_node_venv/

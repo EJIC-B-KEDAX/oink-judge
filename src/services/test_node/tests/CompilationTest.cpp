@@ -45,10 +45,37 @@ std::shared_ptr<Verdict> CompilationTest::run(const std::string &submission_id, 
         throw std::runtime_error("Not enough boxes provided");
     }
 
-    int rc = std::system((Config::config().at("directories").at("scripts").get<std::string>() + "/prepare_for_testing.sh " + boxes[0] + " " + boxes[1] + 
-        " " + _problem_id + " " + submission_id + " " + TableSubmissions::instance().language_of_submission(submission_id)).c_str());
+    std::string scripts_dir = Config::config().at("directories").at("scripts").get<std::string>();
+    std::string submissions_dir = Config::config().at("directories").at("submissions").get<std::string>();
+    std::string problems_dir = Config::config().at("directories").at("problems").get<std::string>();
 
-    if (rc != 0) {
+    std::string language = TableSubmissions::instance().language_of_submission(submission_id);
+
+    std::string compilation_script = scripts_dir + "/compilation/" + language + ".sh";
+    std::string output_executale_name = "/var/local/lib/isolate/" + boxes[0] + "/box/solution";
+    std::string error_file_name = submissions_dir + "/" + submission_id + "/compilation_error.txt";
+    std::string source_file_name = submissions_dir + "/" + submission_id + "/source.cpp";
+
+
+    int rc_prepare = std::system((Config::config().at("directories").at("scripts").get<std::string>() + "/prepare_for_testing.sh " + boxes[0] + " " + boxes[1] + 
+        " " + _problem_id).c_str());
+
+    if (rc_prepare != 0) {
+        auto verdict = std::make_shared<DefaultVerdict>(_name);
+        DefaultVerdict::VerdictInfo info;
+        info.type = VerdictType::FAILED;
+        info.score = 0.0;
+        info.time_used = 0.0;
+        info.memory_used = 0.0;
+        info.real_time_used = 0.0;
+        verdict->set_info(info);
+
+        return verdict;
+    }
+
+    int rc_compilation = std::system((compilation_script + " " + output_executale_name + " " + error_file_name + " " + source_file_name).c_str());
+
+    if (rc_compilation != 0) {
         auto verdict = std::make_shared<DefaultVerdict>(_name);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::COMPILATION_ERROR;
@@ -61,7 +88,39 @@ std::shared_ptr<Verdict> CompilationTest::run(const std::string &submission_id, 
         return verdict;
     }
 
-    return _test->run(submission_id, boxes, additional_params);
+    int rc_copy_checker = std::system(("cp " + problems_dir + "/" + _problem_id + "/checker /var/local/lib/isolate/" + boxes[1] + "/box/checker").c_str());
+
+    if (rc_copy_checker != 0) {
+        auto verdict = std::make_shared<DefaultVerdict>(_name);
+        DefaultVerdict::VerdictInfo info;
+        info.type = VerdictType::FAILED;
+        info.score = 0.0;
+        info.time_used = 0.0;
+        info.memory_used = 0.0;
+        info.real_time_used = 0.0;
+        verdict->set_info(info);
+
+        return verdict;
+    }
+
+    std::shared_ptr<Verdict> result = _test->run(submission_id, boxes, additional_params);
+
+    int rc_clear = std::system((Config::config().at("directories").at("scripts").get<std::string>() + "/end_testing.sh " + boxes[0] + " " + boxes[1]).c_str());
+
+    if (rc_clear != 0) {
+        auto verdict = std::make_shared<DefaultVerdict>(_name);
+        DefaultVerdict::VerdictInfo info;
+        info.type = VerdictType::FAILED;
+        info.score = 0.0;
+        info.time_used = 0.0;
+        info.memory_used = 0.0;
+        info.real_time_used = 0.0;
+        verdict->set_info(info);
+
+        return verdict;
+    }
+
+    return result;
 }
 
 std::shared_ptr<Verdict> CompilationTest::skip(const std::string &submission_id) {

@@ -1,12 +1,12 @@
 from fastapi import FastAPI
-from app.routes.web import auth, main
+from app.routes.web import auth, main, submissions
 from app.routes.web.problems import open_problem
 from app.config.config import Config
 import os
 
-
 app = FastAPI()
 
+app.include_router(submissions.router)
 app.include_router(auth.router)
 app.include_router(main.router)
 

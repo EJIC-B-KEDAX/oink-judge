@@ -39,7 +39,10 @@ void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_p
     std::string problem_id = get_problem_id_from_path(path_to_package);
     pugi::xml_node problem_config = oink_judge::problem_config::get_problem_config(problem_id);
 
+    problem_config.append_attribute("type").set_value("open_problem");
+
     problem_config.append_child("problem_builder").append_attribute("type").set_value("DefaultProblemBuilder");
+    problem_config.append_child("submission_manager").append_attribute("type").set_value("BasicProblemSubmissionManager");
 
     pugi::xml_node tests_node = problem_config.append_child("tests");
     pugi::xml_node judging_node = problem_config.child("judging");

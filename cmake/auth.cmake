@@ -30,9 +30,6 @@ add_executable(auth_server
         src/services/simple_server_starter.cpp
 )
 
-target_compile_definitions(auth_server PRIVATE CONFIG_DIR="../configs/auth/config.json"
-                                         CREDENTIALS_DIR="../configs/auth/credentials.json")
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SODIUM REQUIRED libsodium)

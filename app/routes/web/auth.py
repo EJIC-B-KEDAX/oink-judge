@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Request, Form
+from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from app.services.auth.auth_utils import get_current_user
+from app.services.auth.auth_utils import get_current_user, require_current_user
 from app.services.auth.auth_api import *
 import re
 
@@ -11,8 +11,8 @@ templates = Jinja2Templates(directory="templates/auth")
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def show_login_page(request: Request):
-    if await get_current_user(request) is not None:
+async def show_login_page(request: Request, username: str = Depends(get_current_user)):
+    if username is not None:
         return RedirectResponse(url="/dashboard", status_code=302)
 
     return templates.TemplateResponse("login.html", {"request": request})
@@ -32,8 +32,8 @@ async def handle_logout(request: Request):
 
 
 @router.get("/register", response_class=HTMLResponse)
-async def show_register_page(request: Request):
-    if await get_current_user(request) is not None:
+async def show_register_page(request: Request, username: str = Depends(get_current_user)):
+    if await username is not None:
         return RedirectResponse(url="/dashboard", status_code=302)
 
     return templates.TemplateResponse("register.html", {"request": request})
@@ -58,21 +58,13 @@ async def handle_register(request: Request, username: str = Form(...), password:
 
 
 @router.get("/delete_account", response_class=HTMLResponse)
-async def show_delete_account_page(request: Request):
-    username: str = await get_current_user(request)
-    if username is None:
-        return RedirectResponse(url="/login", status_code=302)
-
+async def show_delete_account_page(request: Request, username: str = Depends(require_current_user)):
     return templates.TemplateResponse("delete_account.html", {"request": request, "username": username})
 
 
 
 @router.post("/delete_account", response_class=HTMLResponse, name="delete_account")
-async def handle_delete_account(request: Request):
-    username: str = await get_current_user(request)
-    if username is None:
-        return RedirectResponse(url="/login", status_code=302)
-
+async def handle_delete_account(request: Request, username: str = Depends(require_current_user)):
     auth_response = delete_account(username)
 
     if auth_response == True:

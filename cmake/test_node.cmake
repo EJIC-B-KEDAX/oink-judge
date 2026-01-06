@@ -74,9 +74,6 @@ add_executable(test_node
         src/services/test_node/test_node_starter.cpp
 )
 
-target_compile_definitions(test_node PRIVATE CONFIG_DIR="../configs/test_node/config.json"
-                                         CREDENTIALS_DIR="../configs/test_node/credentials.json")
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(LIBZIP REQUIRED libzip)

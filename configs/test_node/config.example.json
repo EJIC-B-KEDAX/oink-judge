@@ -1,0 +1,37 @@
+{
+    "my_id": "my_id",
+    "ports": {
+        "database": 5432,
+        "data_sender": 9102,
+        "dispatcher": 9101
+    },
+    "hosts": {
+        "data_sender": "127.0.0.1",
+        "dispatcher": "127.0.0.1"
+    },
+    "database": {
+        "host": "127.0.0.1",
+        "username": "my_username",
+        "dbname": "my_dbname"
+    },
+    "directories": {
+        "submissions": "submissions",
+        "submissions_zip": "submissions/.zips",
+        "problems": "problems",
+        "problems_zip": "problems/.zips",
+        "scripts": "scripts",
+        "certs": "certs"
+    },
+    "sessions": {
+        "dispatcher": "SSLSessionClient(Authorizing({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Pinging(InvokerProtocol)\"}))",
+        "data_sender": "SSLSessionClient(Authorizing({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Pinging(StorageProtocol)\"}))"
+    },
+    "start_messages": {
+        "data_sender": "{\"connection_type\": \"content_storage\"}",
+        "dispatcher": "{\"connection_type\": \"test_node\"}"
+    },
+    "bounds": {
+        "ping_interval": 5,
+        "pong_timeout": 3
+    }
+}

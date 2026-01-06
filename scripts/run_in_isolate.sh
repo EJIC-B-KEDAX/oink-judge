@@ -30,7 +30,7 @@ isolate --run --box-id=$5 \
     --time=$1 \
     --mem=$2 \
     --wall-time=$3 \
-    --meta=meta.txt \
+    --meta=logs/meta.txt \
     ./solution
 
 exit $?

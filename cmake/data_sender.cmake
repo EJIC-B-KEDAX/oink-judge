@@ -26,9 +26,6 @@ add_executable(data_sender_server
         src/services/simple_server_starter.cpp
 )
 
-target_compile_definitions(data_sender_server PRIVATE CONFIG_DIR="../configs/data_sender/config.json"
-                                         CREDENTIALS_DIR="../configs/data_sender/credentials.json")
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(LIBZIP REQUIRED libzip)

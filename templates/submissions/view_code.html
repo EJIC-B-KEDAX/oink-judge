@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Submission {{ submission_id }}</title>
+
+    <!-- highlight.js -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: monospace;
+            padding: 20px;
+        }
+
+        pre {
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #333;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #2d2d2d;
+        }
+
+        .verdict-OK { color: #4caf50; }
+        .verdict-AC { color: #4caf50; }
+        .verdict-WA { color: #f44336; }
+        .verdict-TL { color: #f44336; }
+        .verdict-ML { color: #f44336; }
+        .verdict-RE { color: #f44336; }
+        .verdict-SK { color: #9e9e9e; }
+    </style>
+</head>
+<body>
+
+<h2>Submission #{{ submission_id }}</h2>
+
+<h3>Source code</h3>
+<pre><code class="language-cpp">{{ code }}</code></pre>
+
+{% if protocol %}
+    <h3>Result of judging</h3>
+
+    <p>
+        <b>Verdict:</b>
+        <span class="verdict-{{ protocol.verdict.short_name }}">
+            {{ protocol.verdict.full_name }} ({{ protocol.verdict.short_name }})
+        </span>
+        <br>
+        <b>Time:</b> {{ protocol.time_used }} sec<br>
+        <b>Memory:</b> {{ protocol.memory_used }} KB
+    </p>
+
+    <h4>Tests</h4>
+    <table>
+        <tr>
+            <th>Test</th>
+            <th>Verdict</th>
+            <th>Time used</th>
+            <th>Memory used</th>
+            <th>Score</th>
+        </tr>
+
+        {% for test_id, test in tests %}
+        <tr>
+            <td>{{ test_id }}</td>
+            <td class="verdict-{{ test.verdict.short_name }}">
+                {{ test.verdict.short_name }}
+            </td>
+            <td>{{ test.time_used }}</td>
+            <td>{{ test.memory_used }}</td>
+            <td>{{ test.score }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p><i>Protocol not found</i></p>
+{% endif %}
+
+<script>
+    hljs.highlightAll();
+</script>
+
+</body>
+</html>

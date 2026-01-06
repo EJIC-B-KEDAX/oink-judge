@@ -32,8 +32,8 @@ if [ "$4" == "" ]; then
         --stderr=err.txt \
         -- ./checker input.txt output.txt answer.txt
 
-        mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
-        mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
+        mv "$ISOLATE_PATH/$3/box/err.txt" logs/checker_err.txt
+        mv "$ISOLATE_PATH/$3/box/checker_output.txt" logs/checker_output.txt
 
     exit $?
 fi
@@ -45,8 +45,8 @@ if [ "$5" == "" ]; then
         --stderr=err.txt \
         -- ./checker --testset $4 input.txt output.txt answer.txt
 
-        mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
-        mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
+        mv "$ISOLATE_PATH/$3/box/err.txt" logs/checker_err.txt
+        mv "$ISOLATE_PATH/$3/box/checker_output.txt" logs/checker_output.txt
 
     exit $?
 fi
@@ -56,7 +56,7 @@ isolate --run --box-id=$3 \
     --stderr=err.txt \
     -- ./checker --testset $4 --group $5 input.txt output.txt answer.txt
 
-    mv "$ISOLATE_PATH/$3/box/err.txt" checker_err.txt
-    mv "$ISOLATE_PATH/$3/box/checker_output.txt" checker_output.txt
+    mv "$ISOLATE_PATH/$3/box/err.txt" logs/checker_err.txt
+    mv "$ISOLATE_PATH/$3/box/checker_output.txt" logs/checker_output.txt
 
 exit $?

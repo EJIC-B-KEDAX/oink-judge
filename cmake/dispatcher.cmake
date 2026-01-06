@@ -31,9 +31,6 @@ add_executable(dispatcher_server
         src/services/simple_server_starter.cpp
 )
 
-target_compile_definitions(dispatcher_server PRIVATE CONFIG_DIR="../configs/dispatcher/config.json"
-                                         CREDENTIALS_DIR="../configs/dispatcher/credentials.json")
-
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(LIBZIP REQUIRED libzip)

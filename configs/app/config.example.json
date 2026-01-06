@@ -1,0 +1,30 @@
+{
+    "my_port": 8000,
+    "ping_interval": 5,
+    "pong_timeout": 3,
+    "ports": {
+        "database": 5432,
+        "auth": 9001,
+        "dispatcher": 9101
+    },
+    "hosts": {
+        "auth": "127.0.0.1",
+        "dispatcher": "127.0.0.1"
+    },
+    "use_ssl": { // now useless, SSL is always used
+        "auth": false,
+        "dispatcher": false
+    },
+    "database": {
+        "host": "127.0.0.1",
+        "username": "my_username",
+        "dbname": "my_dbname"
+    },
+    "directories": {
+        "submissions": "submissions",
+        "submissions_zip": "submissions/.zips",
+        "problems": "problems",
+        "problems_zip": "problems/.zips",
+        "scripts": "scripts"
+    }
+}

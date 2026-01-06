@@ -1,0 +1,27 @@
+{
+    "my_port": 9102,
+    "connection_handler_type": "SimpleConnectionHandler",
+    "ports": {
+        "database": 5432
+    },
+    "database": {
+        "host": "127.0.0.1",
+        "username": "my_username",
+        "dbname": "my_dbname"
+    },
+    "directories": {
+        "submissions": ".submissions",
+        "submissions_zip": "submissions/.zips",
+        "problems": "problems",
+        "problems_zip": "problems/.zips",
+        "scripts": "scripts",
+        "certs": "certs"
+    },
+    "sessions": {
+        "content_storage": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(DataSenderProtocol)\"}))"
+    },
+    "bounds": {
+        "ping_interval": 5,
+        "pong_timeout": 3
+    }
+}
