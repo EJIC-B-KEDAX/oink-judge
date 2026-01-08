@@ -6,16 +6,24 @@ namespace oink_judge::problem_config {
 
 using Config = config::Config;
 
+namespace {
+    std::map<std::string, pugi::xml_document> problem_config_cache;
+} // namespace
+
 pugi::xml_node get_problem_config(const std::string &problem_id) {
     std::cout << "Need problem config" << std::endl;
-    pugi::xml_document problem_config;
     std::string problem_config_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/problem.xml";
-    pugi::xml_parse_result result = problem_config.load_file(problem_config_path.c_str());
+    pugi::xml_parse_result result = problem_config_cache[problem_id].load_file(problem_config_path.c_str());
     if (!result) {
         throw std::runtime_error("Failed to load problem config: " + problem_config_path);
     }
 
-    return problem_config.child("problem");
+    return problem_config_cache[problem_id].child("problem");
+}
+
+pugi::xml_document &get_full_problem_config(const std::string &problem_id) {
+    get_problem_config(problem_id); // Ensure it's loaded
+    return problem_config_cache[problem_id];
 }
 
 std::string get_problem_builder_name(const std::string &problem_id) {

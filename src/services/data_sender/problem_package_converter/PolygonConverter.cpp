@@ -1,5 +1,6 @@
 #include "services/data_sender/problem_package_converter/PolygonConverter.h"
 #include "config/problem_config_utils.h"
+#include <iostream>
 
 namespace oink_judge::services::data_sender::problem_package_converter {
 
@@ -17,7 +18,7 @@ namespace {
 std::string get_problem_id_from_path(const std::string &path_to_package) {
     std::string problem_id;
     for (int i = static_cast<int>(path_to_package.size()) - 1; i >= 0; --i) {
-        if (path_to_package[i] == '/' || path_to_package[i] == '\\') {
+        if ((path_to_package[i] == '/' || path_to_package[i] == '\\') && !problem_id.empty()) {
             break;
         }
         problem_id.push_back(path_to_package[i]);
@@ -39,6 +40,13 @@ void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_p
     std::string problem_id = get_problem_id_from_path(path_to_package);
     pugi::xml_node problem_config = oink_judge::problem_config::get_problem_config(problem_id);
 
+    std::string path_to_checker = path_to_package + problem_config.child("assets").child("checker").child("source").attribute("path").as_string();
+
+    int compile_checker_rc = std::system(("g++ -o " + path_to_package + "/checker " + path_to_checker + " -O2 -std=c++23").c_str());
+    if (compile_checker_rc != 0) {
+        throw std::runtime_error("Can not compile checker");
+    }
+
     problem_config.append_attribute("type").set_value("open_problem");
 
     problem_config.append_child("problem_builder").append_attribute("type").set_value("DefaultProblemBuilder");
@@ -59,6 +67,9 @@ void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_p
             pugi::xml_node cur_test = tests_node.append_child("test");
             cur_test.append_attribute("type").set_value("single");
             std::string test_name = testset_name + std::to_string(test_num);
+            if (testset_name == "tests") {
+                test_name = std::to_string(test_num);
+            }
             cur_test.append_attribute("name").set_value(test_name.c_str());
         }
 
@@ -73,6 +84,9 @@ void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_p
         for (size_t test_num = 1; test_num <= tests_count; test_num++) {
             pugi::xml_node cur_test = testset_node.append_child("test");
             std::string test_name = testset_name + std::to_string(test_num);
+            if (testset_name == "tests") {
+                test_name = std::to_string(test_num);
+            }
             cur_test.append_attribute("name").set_value(test_name.c_str());
         }
     }
@@ -88,7 +102,7 @@ void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_p
     sync_result_node.append_child("test").append_attribute("name").set_value("compilation");
 
     pugi::xml_document config_document;
-    config_document.append_child("problem") = problem_config;
+    config_document.append_copy(problem_config);
     if (!config_document.save_file((path_to_package + "/problem.xml").c_str())) {
         throw std::runtime_error("Can not save config file");
     }

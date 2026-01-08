@@ -25,8 +25,17 @@ namespace {
 
 SingleTest::SingleTest(const std::string &problem_id, const std::string &name) {
     _name = name;
-    _input_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/tests/" + std::format("{:02}", std::stoi(name));
-    _answer_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/tests/" + std::format("{:02}", std::stoi(name)) + ".a";
+    int test_number;
+    try {
+        test_number = std::stoi(name);
+        if (test_number < 0) {
+            throw std::invalid_argument("Test name must be a non-negative integer string");
+        }
+    } catch (const std::exception &e) {
+        test_number = 1; // Default to test 01 if conversion fails
+    }
+    _input_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/tests/" + std::format("{:02}", test_number);
+    _answer_path = Config::config().at("directories").at("problems").get<std::string>() + "/" + problem_id + "/tests/" + std::format("{:02}", test_number) + ".a";
     // TODO get it out of problem config
 }
 
