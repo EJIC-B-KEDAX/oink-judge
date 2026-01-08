@@ -6,8 +6,9 @@ namespace oink_judge::database {
 
 template <typename... Args>
 pqxx::result DataBase::execute(const std::string &sql_template_name, const Args&... args) {
-    pqxx::work txn(_conn);
+    ensure_connection();
 
+    pqxx::work txn(_conn);
     pqxx::params params;
     (params.append(args), ...);
 
@@ -19,8 +20,9 @@ pqxx::result DataBase::execute(const std::string &sql_template_name, const Args&
 
 template <typename... Args>
 pqxx::result DataBase::execute_sql(const std::string &sql, const Args&... args) {
-    pqxx::work txn(_conn);
+    ensure_connection();
 
+    pqxx::work txn(_conn);
     pqxx::params params;
     (params.append(args), ...);
 
@@ -31,9 +33,10 @@ pqxx::result DataBase::execute_sql(const std::string &sql, const Args&... args) 
 }
 
 template <typename... Args>
-pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, const Args&... args) {
+pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, const Args&... args) const {
+    ensure_connection();
+
     pqxx::nontransaction txn(_conn);
-    
     pqxx::params params;
     (params.append(args), ...);
 
@@ -43,9 +46,10 @@ pqxx::result DataBase::execute_read_only(const std::string &sql_template_name, c
 }
 
 template <typename... Args>
-pqxx::result DataBase::execute_sql_read_only(const std::string &sql, const Args&... args) {
-    pqxx::nontransaction txn(_conn);
+pqxx::result DataBase::execute_sql_read_only(const std::string &sql, const Args&... args) const {
+    ensure_connection();
 
+    pqxx::nontransaction txn(_conn);
     pqxx::params params;
     (params.append(args), ...);
 

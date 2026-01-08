@@ -28,20 +28,23 @@ public:
     pqxx::result execute_sql(const std::string &sql, const Args&... args);
     pqxx::result execute_sql(const std::string &sql);
     template <typename... Args>
-    pqxx::result execute_read_only(const std::string &sql_template_name, const Args&... args);
-    pqxx::result execute_read_only(const std::string &sql_template_name);
+    pqxx::result execute_read_only(const std::string &sql_template_name, const Args&... args) const;
+    pqxx::result execute_read_only(const std::string &sql_template_name) const;
     template <typename... Args>
-    pqxx::result execute_sql_read_only(const std::string &sql, const Args&... args);
-    pqxx::result execute_sql_read_only(const std::string &sql);
+    pqxx::result execute_sql_read_only(const std::string &sql, const Args&... args) const;
+    pqxx::result execute_sql_read_only(const std::string &sql) const;
 
     bool is_statement_prepared(const std::string &sql_template_name) const;
 
 private:
     DataBase();
 
-    pqxx::connection _conn;
+    std::string _connection_string;
+    mutable pqxx::connection _conn;
 
     std::unordered_set<std::string> _prepared_statements;
+
+    void ensure_connection() const;
 };
 
 } // namespace oink_judge::database
