@@ -33,5 +33,10 @@
     "bounds": {
         "ping_interval": 5,
         "pong_timeout": 3
+    },
+    "testing": {
+        "meta_file": "logs/meta.txt",
+        "checker_err_file": "logs/checker_err.txt",
+        "checker_out_file": "logs/checker_out.txt"
     }
 }

@@ -53,12 +53,12 @@ std::shared_ptr<Verdict> SingleTest::run(const std::string &submission_id, const
         " " + std::to_string(real_time_limit) + " " + _input_path + " " + box_id_to_run).c_str());
 
     if (rc != 0) {
-        return load_verdict_from_meta(get_name(), "logs/meta.txt");
+        return load_verdict_from_meta(get_name(), Config::config().at("testing").at("meta_file").get<std::string>());
     }
 
     std::system((scripts_path + "/check.sh " + _answer_path + " " + box_id_to_run + " " + box_id_to_check).c_str());
 
-    return load_verdict_from_checker_output(get_name(), "logs/meta.txt", "logs/checker_err.txt");
+    return load_verdict_from_checker_output(get_name(), Config::config().at("testing").at("meta_file").get<std::string>(), Config::config().at("testing").at("checker_err_file").get<std::string>());
 }
 
 std::shared_ptr<Verdict> SingleTest::skip(const std::string &submission_id) {
