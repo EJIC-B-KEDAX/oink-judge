@@ -1,0 +1,26 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  performance-*,
+  readability-*,
+  -readability-identifier-length,
+  modernize-*,
+  cppcoreguidelines-*,
+  readability-identifier-naming
+CheckOptions:
+  - key: readability-make-member-function-const.IgnoreNonMemberEffects
+    value: false
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: _
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+WarningsAsErrors: ""
