@@ -1,5 +1,7 @@
 #include "services/data_sender/problem_package_converter/PolygonConverter.h"
+
 #include "config/problem_config_utils.h"
+
 #include <iostream>
 
 namespace oink_judge::services::data_sender::problem_package_converter {
@@ -7,15 +9,14 @@ namespace oink_judge::services::data_sender::problem_package_converter {
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    PackageConverterFactory::instance().register_type(PolygonConverter::REGISTERED_NAME,
-    [](const std::string &params) -> std::shared_ptr<PackageConverter> {
-        return std::make_shared<PolygonConverter>();
-    });
+    PackageConverterFactory::instance().register_type(
+        PolygonConverter::REGISTERED_NAME,
+        [](const std::string& params) -> std::shared_ptr<PackageConverter> { return std::make_shared<PolygonConverter>(); });
 
     return true;
 }();
 
-std::string get_problem_id_from_path(const std::string &path_to_package) {
+std::string get_problem_id_from_path(const std::string& path_to_package) {
     std::string problem_id;
     for (int i = static_cast<int>(path_to_package.size()) - 1; i >= 0; --i) {
         if ((path_to_package[i] == '/' || path_to_package[i] == '\\') && !problem_id.empty()) {
@@ -32,17 +33,17 @@ std::string get_problem_id_from_path(const std::string &path_to_package) {
 
 PolygonConverter::PolygonConverter() = default;
 
-void PolygonConverter::convert_package(const std::string &path_to_package) {
-    convert_icpc_problem_package(path_to_package);
-}
+void PolygonConverter::convert_package(const std::string& path_to_package) { convert_icpc_problem_package(path_to_package); }
 
-void PolygonConverter::convert_icpc_problem_package(const std::string &path_to_package) {
+void PolygonConverter::convert_icpc_problem_package(const std::string& path_to_package) {
     std::string problem_id = get_problem_id_from_path(path_to_package);
-    pugi::xml_node problem_config = oink_judge::problem_config::get_problem_config(problem_id);
+    pugi::xml_node problem_config = oink_judge::problem_config::getProblemConfig(problem_id);
 
-    std::string path_to_checker = path_to_package + problem_config.child("assets").child("checker").child("source").attribute("path").as_string();
+    std::string path_to_checker =
+        path_to_package + problem_config.child("assets").child("checker").child("source").attribute("path").as_string();
 
-    int compile_checker_rc = std::system(("g++ -o " + path_to_package + "/checker " + path_to_checker + " -O2 -std=c++23").c_str());
+    int compile_checker_rc =
+        std::system(("g++ -o " + path_to_package + "/checker " + path_to_checker + " -O2 -std=c++23").c_str());
     if (compile_checker_rc != 0) {
         throw std::runtime_error("Can not compile checker");
     }

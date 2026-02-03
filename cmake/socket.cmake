@@ -6,8 +6,6 @@ set(SOCKET_HEADERS
     include/socket/protocols/ProtocolBase.h
     include/socket/protocols/ProtocolDecorator.h
     include/socket/protocols/ProtocolWithRequests.h
-    include/socket/sessions/BasicSession.h
-    include/socket/sessions/BlockingSSLSession.h
     include/socket/sessions/SessionBase.h
     include/socket/sessions/SSLSession.h
     include/socket/AsyncServer.h
@@ -29,8 +27,6 @@ set(SOCKET_SOURCES
     src/socket/protocols/ProtocolBase.cpp
     src/socket/protocols/ProtocolDecorator.cpp
     src/socket/protocols/ProtocolWithRequests.cpp
-    src/socket/sessions/BasicSession.cpp
-    src/socket/sessions/BlockingSSLSession.cpp
     src/socket/sessions/SessionBase.cpp
     src/socket/sessions/SSLSession.cpp
     src/socket/AsyncServer.cpp

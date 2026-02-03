@@ -1,21 +1,22 @@
 #pragma once
-
 #include "socket/protocols/ProtocolBase.h"
 
 namespace oink_judge::services::dispatcher {
 
+using boost::asio::awaitable;
+
 class ProtocolWithInvoker : public socket::ProtocolBase {
-public:
+  public:
     ProtocolWithInvoker();
 
-    void start(const std::string &start_message) override;
-    void receive_message(const std::string &message) override;
-    void close_session() override;
+    auto start(std::string start_message) -> awaitable<void> override;
+    auto receive_message(std::string message) -> awaitable<void> override;
+    auto close_session() -> void override;
 
     constexpr static auto REGISTERED_NAME = "ProtocolWithInvoker";
-    
-private:
-    std::string _invoker_id;
+
+  private:
+    std::string invoker_id_;
 };
 
 } // namespace oink_judge::services::dispatcher

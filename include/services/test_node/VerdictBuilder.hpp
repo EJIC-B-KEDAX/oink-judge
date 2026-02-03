@@ -1,11 +1,11 @@
 #pragma once
-#include "verdicts/DefaultVerdict.h"
 #include "ParameterizedTypeFactory.hpp"
+#include "verdicts/DefaultVerdict.h"
 
 namespace oink_judge::services::test_node {
 
 class VerdictBuilder {
-public:
+  public:
     virtual ~VerdictBuilder() = default;
 
     virtual void clear() = 0;

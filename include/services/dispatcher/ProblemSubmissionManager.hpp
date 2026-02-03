@@ -1,15 +1,20 @@
 #pragma once
+#include "ParameterizedTypeFactory.hpp"
 
 #include <string>
-#include "ParameterizedTypeFactory.hpp"
 
 namespace oink_judge::services::dispatcher {
 
 class ProblemSubmissionManager {
-public:
+  public:
     virtual ~ProblemSubmissionManager() = default;
 
-    virtual void handle_submission(const std::string &submission_id) = 0;
+    ProblemSubmissionManager(const ProblemSubmissionManager&) = delete;
+    auto operator=(const ProblemSubmissionManager&) -> ProblemSubmissionManager& = delete;
+    ProblemSubmissionManager(ProblemSubmissionManager&&) = delete;
+    auto operator=(ProblemSubmissionManager&&) -> ProblemSubmissionManager& = delete;
+
+    virtual void handleSubmission(const std::string& submission_id) = 0;
 };
 
 using ProblemSubmissionManagerFactory = ParameterizedTypeFactory<std::shared_ptr<ProblemSubmissionManager>, const std::string&>;

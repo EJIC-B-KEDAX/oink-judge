@@ -1,0 +1,16 @@
+{
+    "logger": {
+        "output_stream": "stdout",
+        "log_level": {
+            "moduleA": 2,
+            "moduleB": 5,
+            "default": 3
+        },
+        "color_map": {
+            "INFO": "green",
+            "ERROR": "red"
+        },
+        "min_location_length": 10,
+        "min_module_length": 8
+    }
+}

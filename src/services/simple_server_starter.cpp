@@ -24,4 +24,6 @@ int main(int argc, char* argv[]) {
 
     server->start_accept();
     oink_judge::socket::BoostIOContext::instance().run();
+
+    std::cerr << "Server stopped." << std::endl;
 }

@@ -1,0 +1,7 @@
+<problem>
+    <problem_builder type="default"/>
+    <tests>
+        <test name="t1"/>
+        <test name="t2"/>
+    </tests>
+</problem>

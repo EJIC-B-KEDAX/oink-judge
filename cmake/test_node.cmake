@@ -60,14 +60,14 @@ set(TEST_NODE_SOURCES
 add_executable(test_node
         ${FACTORY_HEADERS}
         ${FACTORY_SOURCES}
-        ${CONFIG_HEADERS}
-        ${CONFIG_SOURCES}
         ${SOCKET_HEADERS}
         ${SOCKET_SOURCES}
         ${DATABASE_HEADERS}
         ${DATABASE_SOURCES}
         ${DATA_SENDER_HEADERS}
         ${DATA_SENDER_SOURCES}
+        ${UTILS_HEADERS}
+        ${UTILS_SOURCES}
 
         ${TEST_NODE_HEADERS}
         ${TEST_NODE_SOURCES}
@@ -79,6 +79,10 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBZIP REQUIRED libzip)
 target_include_directories(test_node PRIVATE ${LIBZIP_INCLUDE_DIRS})
 target_link_libraries(test_node PRIVATE ${LIBZIP_LIBRARIES})
+
+pkg_check_modules(SODIUM REQUIRED libsodium)
+target_include_directories(test_node PRIVATE ${SODIUM_INCLUDE_DIRS})
+target_link_libraries(test_node PRIVATE ${SODIUM_LIBRARIES})
 
 target_include_directories(test_node PRIVATE /usr/local/include)
 target_link_libraries(test_node PRIVATE pqxx pq)

@@ -1,5 +1,6 @@
 .idea/
 .vscode/
+.cache/
 /venv/
 /build/
 /logs/
@@ -10,3 +11,5 @@ credentials.json
 config.json
 /certs/
 /test_node_venv/
+.clang-format
+.clang-tidy

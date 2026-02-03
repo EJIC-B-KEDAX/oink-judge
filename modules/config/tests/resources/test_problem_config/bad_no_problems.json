@@ -1,0 +1,5 @@
+{
+    "directories": {
+        "problems": "resources/test_problem_config/problems_missing"
+    }
+}

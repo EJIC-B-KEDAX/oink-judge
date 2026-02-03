@@ -1,12 +1,14 @@
 #include "services/test_node/tests/SyncResultTest.h"
-#include "config/problem_config_utils.h"
-#include "services/test_node/problem_builders/enable_get_test_by_name.hpp"
-#include "services/test_node/ProblemTablesStorage.h"
-#include "services/test_node/ProblemBuilder.hpp"
-#include "database/TableSubmissions.h"
+
 #include "config/Config.h"
-#include <iostream>
+#include "config/problem_config_utils.h"
+#include "database/TableSubmissions.h"
+#include "services/test_node/ProblemBuilder.hpp"
+#include "services/test_node/ProblemTablesStorage.h"
+#include "services/test_node/problem_builders/enable_get_test_by_name.hpp"
+
 #include <fstream>
+#include <iostream>
 
 namespace oink_judge::services::test_node {
 
@@ -16,21 +18,22 @@ using TableSubmissions = database::TableSubmissions;
 namespace {
 
 [[maybe_unused]] bool registered = []() -> bool {
-    TestFactory::instance().register_type(SyncResultTest::REGISTERED_NAME,
-        [](ProblemBuilder *problem_builder, const std::string &problem_id, const std::string &name) -> std::shared_ptr<Test> {
-        return std::make_shared<SyncResultTest>(problem_builder, problem_id, name);
-    });
+    TestFactory::instance().register_type(
+        SyncResultTest::REGISTERED_NAME,
+        [](ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name) -> std::shared_ptr<Test> {
+            return std::make_shared<SyncResultTest>(problem_builder, problem_id, name);
+        });
 
     return true;
 }();
 
 } // namespace
 
-SyncResultTest::SyncResultTest(ProblemBuilder *problem_builder, const std::string &problem_id, const std::string &name)
+SyncResultTest::SyncResultTest(ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name)
     : _name(name), _problem_id(problem_id) {
-    pugi::xml_node testset_config = problem_config::get_test_config(problem_id, name);
+    pugi::xml_node testset_config = problem_config::getTestConfig(problem_id, name);
 
-    enable_get_test_by_name *problem_builder_with_getter = dynamic_cast<enable_get_test_by_name*>(problem_builder);
+    enable_get_test_by_name* problem_builder_with_getter = dynamic_cast<enable_get_test_by_name*>(problem_builder);
 
     pugi::xml_node test_node = testset_config.child("test");
 
@@ -41,7 +44,8 @@ SyncResultTest::SyncResultTest(ProblemBuilder *problem_builder, const std::strin
     }
 }
 
-std::shared_ptr<Verdict> SyncResultTest::run(const std::string &submission_id, const std::vector<std::string> &boxes, json additional_params) {
+std::shared_ptr<Verdict> SyncResultTest::run(const std::string& submission_id, const std::vector<std::string>& boxes,
+                                             json additional_params) {
     std::cout << "Sync test testing " << get_name() << std::endl;
     if (boxes.size() < boxes_required()) {
         throw std::runtime_error("Not enough boxes provided");
@@ -51,12 +55,13 @@ std::shared_ptr<Verdict> SyncResultTest::run(const std::string &submission_id, c
 
     double score = verdict->get_score();
     std::string verdict_type = verdict->get_type().short_name;
-    ProblemTable &table = ProblemTablesStorage::instance().get_table(_problem_id);
+    ProblemTable& table = ProblemTablesStorage::instance().get_table(_problem_id);
     std::string username = TableSubmissions::instance().whose_submission(submission_id);
     std::cout << "Result: " << score << ' ' << verdict_type << std::endl;
     std::cout << verdict->to_json(2).dump(4) << std::endl;
 
-    std::ofstream testing_protocol_file(Config::config().at("directories").at("submissions").get<std::string>() + "/" + submission_id + "/protocol.json");
+    std::ofstream testing_protocol_file(Config::config().at("directories").at("submissions").get<std::string>() + "/" +
+                                        submission_id + "/protocol.json");
     testing_protocol_file << verdict->to_json(2).dump(4);
     testing_protocol_file.close();
 
@@ -68,16 +73,10 @@ std::shared_ptr<Verdict> SyncResultTest::run(const std::string &submission_id, c
     return verdict;
 }
 
-std::shared_ptr<Verdict> SyncResultTest::skip(const std::string &submission_id) {
-    return _test->skip(submission_id);
-}
+std::shared_ptr<Verdict> SyncResultTest::skip(const std::string& submission_id) { return _test->skip(submission_id); }
 
-size_t SyncResultTest::boxes_required() const {
-    return _test->boxes_required();
-}
+size_t SyncResultTest::boxes_required() const { return _test->boxes_required(); }
 
-const std::string &SyncResultTest::get_name() const {
-    return _name;
-}
+const std::string& SyncResultTest::get_name() const { return _name; }
 
 } // namespace oink_judge::services::test_node

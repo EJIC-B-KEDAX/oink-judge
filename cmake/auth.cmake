@@ -18,12 +18,12 @@ set(AUTH_SOURCES
 add_executable(auth_server
         ${FACTORY_HEADERS}
         ${FACTORY_SOURCES}
-        ${CONFIG_HEADERS}
-        ${CONFIG_SOURCES}
         ${SOCKET_HEADERS}
         ${SOCKET_SOURCES}
         ${DATABASE_HEADERS}
         ${DATABASE_SOURCES}
+        ${UTILS_HEADERS}
+        ${UTILS_SOURCES}
 
         ${AUTH_HEADERS}
         ${AUTH_SOURCES}
@@ -31,6 +31,10 @@ add_executable(auth_server
 )
 
 find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(LIBZIP REQUIRED libzip)
+target_include_directories(auth_server PRIVATE ${LIBZIP_INCLUDE_DIRS})
+target_link_libraries(auth_server PRIVATE ${LIBZIP_LIBRARIES})
 
 pkg_check_modules(SODIUM REQUIRED libsodium)
 target_include_directories(auth_server PRIVATE ${SODIUM_INCLUDE_DIRS})

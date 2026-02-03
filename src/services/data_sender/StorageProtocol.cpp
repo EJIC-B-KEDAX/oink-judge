@@ -1,6 +1,7 @@
 #include "services/data_sender/StorageProtocol.h"
 #include "config/Config.h"
-#include "services/data_sender/zip_utils.h"
+#include "utils/crypto.h"
+#include <iostream>
 
 namespace oink_judge::services::data_sender {
 
@@ -20,38 +21,41 @@ namespace {
 
 } // namespace
 
-StorageProtocol::StorageProtocol() : _status(WAIT_HEADER), _now_response_id(0) {};
+StorageProtocol::StorageProtocol() {};
 
-void StorageProtocol::start(const std::string &start_message) {
-    _status = WAIT_HEADER;
-    get_session()->receive_message();
+awaitable<void> StorageProtocol::start(const std::string &start_message) {
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
-void StorageProtocol::receive_message(const std::string &message) {
-    if (_status == WAIT_HEADER) {
-        json header = json::parse(message);
+awaitable<void> StorageProtocol::receive_message(const std::string &message) {
+    std::cerr << "StorageProtocol received message: " << message << std::endl;
+    json received_json = json::parse(message);
 
-        _content_type = header["content_type"];
-        _content_id = header[_content_type + "_id"];
-        _now_response_id = header["__id__"];
-        _status = WAIT_DATA;
-    } else if (_status == WAIT_DATA) {
-        clear_directory(Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
-        store_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip", message);
-        unpack_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip",
-            Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
-            
-        _status = WAIT_HEADER;
-
-        auto callback_opt = retrieve_request_callback(_now_response_id);
-        if (callback_opt) {
-            auto callback = *callback_opt;
-            call_callback(callback, std::error_code{});
-            remove_request_callback(_now_response_id);
+    if (received_json["request"] == "response") {
+        uint64_t response_id = received_json["__id__"];
+        std::cerr << "Processing response with ID: " << response_id << std::endl;
+        auto callback_opt = retrieve_request_callback(response_id);
+        if (!callback_opt) {
+            co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
+            co_return;
         }
+        auto callback = *callback_opt;
+        if (received_json["sended_request"] == "get_manifest") {
+            std::decay_t<json> manifest = received_json["manifest"];
+            std::cerr << "Sending manifest in response: " << manifest.dump() << std::endl;
+            call_callback<json>(callback, std::error_code{}, manifest);
+        } else if (received_json["sended_request"] == "get_file") {
+            std::string encoded_file = received_json["file_content"];
+            std::string decoded_file = utils::crypto::from_base64(encoded_file);
+            call_callback<std::string>(callback, std::error_code{}, decoded_file);
+        } else if (received_json["sended_request"] == "update_file" ||
+                   received_json["sended_request"] == "remove_file") {
+            call_callback(callback, std::error_code{});
+        }
+        remove_request_callback(response_id);
     }
     
-    get_session()->receive_message();
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
 void StorageProtocol::close_session() {

@@ -9,8 +9,6 @@ set(PROBLEM_PACKAGE_CONVERTER_SOURCES
 add_executable(problem_package_converter
         ${FACTORY_HEADERS}
         ${FACTORY_SOURCES}
-        ${CONFIG_HEADERS}
-        ${CONFIG_SOURCES}
 
         ${PROBLEM_PACKAGE_CONVERTER_HEADERS}
         ${PROBLEM_PACKAGE_CONVERTER_SOURCES}

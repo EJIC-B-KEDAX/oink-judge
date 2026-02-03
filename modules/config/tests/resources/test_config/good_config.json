@@ -1,0 +1,30 @@
+{
+    "directories": {
+        "problems": "resources/test_config/problems"
+    },
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "username": "user",
+        "dbname": "db"
+    },
+    "ports": {
+        "serverA": 8080
+    },
+    "hosts": {
+        "serverA": "localhost"
+    },
+    "sessions": {
+        "testSession": {
+            "type": "interactive"
+        }
+    },
+    "start_messages": {
+        "testSession": "Welcome"
+    },
+    "timings": {
+        "short": 1.5
+    },
+    "my_port": 9000,
+    "connection_handler_type": "epoll"
+}

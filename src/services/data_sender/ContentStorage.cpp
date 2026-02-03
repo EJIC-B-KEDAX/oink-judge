@@ -1,74 +1,77 @@
 #include "services/data_sender/ContentStorage.h"
-#include "services/data_sender/zip_utils.h"
+#include "utils/filesystem.h"
+#include "utils/crypto.h"
 #include "config/Config.h"
 #include "socket/connection_protocol.h"
+#include "services/data_sender/ManifestStorage.h"
 #include <filesystem>
 #include <iostream>
 
 namespace oink_judge::services::data_sender {
 
-using Config = config::Config;
+using config::Config;
+using namespace utils::filesystem;
 
 ContentStorage &ContentStorage::instance() {
     static ContentStorage instance;
     return instance;
 }
 
-void ContentStorage::ensure_content_exists(const std::string &content_type, const std::string &content_id, CallbackFunc callback) {
+awaitable<void> ContentStorage::ensure_content_exists(const std::string &content_type, const std::string &content_id) {
     if (!_session) {
         throw std::runtime_error("Session is not initialized.");
     }
 
     std::cout << "Checking existing " + content_type + " " + content_id << std::endl;
 
-    if (std::filesystem::exists(Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id)) {
-        callback(std::error_code{});
-        return;
+    std::string content_path = Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id;
+
+    json server_manifest = co_await get_manifest_from_server(content_type, content_id);
+
+    std::cerr << "Received manifest from server: " << server_manifest.dump() << std::endl;
+
+    std::vector<ContentChange> changes = compare_manifests(
+        ManifestStorage::instance().get_manifest(content_type, content_id),
+        server_manifest);
+
+    if (changes.empty()) {
+        co_return;
     }
 
-    if (std::filesystem::exists(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip")) {
-        unpack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",
-            Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
-        callback(std::error_code{});
-        return;
+    for (const auto &change : changes) {
+        if (change.type == ContentChange::Type::Added || change.type == ContentChange::Type::Modified) {
+            std::string file = co_await get_file_from_server(content_type, content_id, change.file_path);
+            store_file(content_path + "/" + change.file_path, file);
+        } else if (change.type == ContentChange::Type::Removed) {
+            remove_file_or_directory(content_path + "/" + change.file_path);
+        }
     }
-
-    // TODO check content version (configurable)
-    // TODO make configurable directories related to content_type
-
-    _session->request("{\"action\": \"get\", \"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\"}",
-        callback);
 }
 
-void ContentStorage::update_content_on_server(const std::string &content_type, const std::string &content_id) {
+awaitable<void> ContentStorage::update_content_on_server(const std::string &content_type, const std::string &content_id) {
     if (!_session) {
         throw std::runtime_error("Session is not initialized.");
     }
 
     std::cout << "Updating " + content_type + " " + content_id + " on server" << std::endl;
 
-    nlohmann::json request_json;
-    request_json["action"] = "update";
-    request_json["content_type"] = content_type;
-    request_json[content_type + "_id"] = content_id;
-
     std::string content_path = Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id;
     if (!std::filesystem::exists(content_path)) {
         throw std::runtime_error("Content path does not exist: " + content_path);
     }
 
-    try {
-        std::string zip_content;
-        std::string zip_path = Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip";
+    json server_manifest = co_await get_manifest_from_server(content_type, content_id);
 
-        remove_file_or_directory(zip_path);
-        pack_zip(zip_path, content_path);
-        zip_content = get_zip(zip_path);
+    std::vector<ContentChange> changes = compare_manifests(server_manifest,
+        ManifestStorage::instance().get_manifest(content_type, content_id).to_json());
 
-        _session->send_message(request_json.dump());
-        _session->send_message(zip_content);
-    } catch (const std::exception &e) {
-        throw std::runtime_error("Failed to pack or send content: " + std::string(e.what()));
+    for (const auto &change : changes) {
+        if (change.type == ContentChange::Type::Added || change.type == ContentChange::Type::Modified) {
+            std::string file_content = load_file(content_path + "/" + change.file_path);
+            co_await update_file_on_server(content_type, content_id, change.file_path, file_content);
+        } else if (change.type == ContentChange::Type::Removed) {
+            co_await remove_file_on_server(content_type, content_id, change.file_path);
+        }
     }
 }
 
@@ -82,6 +85,30 @@ ContentStorage::ContentStorage() {
     if (!_session) {
         throw std::runtime_error("Failed to connect to the data sender endpoint.");
     }
+}
+
+awaitable<json> ContentStorage::get_manifest_from_server(const std::string &content_type, const std::string &content_id) {
+    json manifest = co_await _session->request<json>(
+        "{\"request\": \"get_manifest\", \"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\"}");
+    co_return manifest;
+}
+
+awaitable<std::string> ContentStorage::get_file_from_server(const std::string &content_type, const std::string &content_id, const std::string &file_path) {
+    std::string file_content = co_await _session->request<std::string>(
+        "{\"request\": \"get_file\", \"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\", \"file_path\": \"" + file_path + "\"}");
+    co_return file_content;
+}
+
+awaitable<void> ContentStorage::update_file_on_server(const std::string &content_type, const std::string &content_id, const std::string &file_path, const std::string &file_content) {
+    co_await _session->request<>(
+        "{\"request\": \"update_file\", \"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\", \"file_path\": \"" + file_path + "\", \"file_content\": \"" + utils::crypto::to_base64(file_content) + "\"}");
+    co_return;
+}
+
+awaitable<void> ContentStorage::remove_file_on_server(const std::string &content_type, const std::string &content_id, const std::string &file_path) {
+    co_await _session->request<>(
+        "{\"request\": \"remove_file\", \"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\", \"file_path\": \"" + file_path + "\"}");
+    co_return;
 }
 
 } // namespace oink_judge::services::data_sender

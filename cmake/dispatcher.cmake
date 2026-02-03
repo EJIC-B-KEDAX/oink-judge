@@ -17,14 +17,14 @@ set(DISPATCHER_SOURCES
 add_executable(dispatcher_server
         ${FACTORY_HEADERS}
         ${FACTORY_SOURCES}
-        ${CONFIG_HEADERS}
-        ${CONFIG_SOURCES}
         ${SOCKET_HEADERS}
         ${SOCKET_SOURCES}
         ${DATABASE_HEADERS}
         ${DATABASE_SOURCES}
         ${DATA_SENDER_HEADERS}
         ${DATA_SENDER_SOURCES}
+        ${UTILS_HEADERS}
+        ${UTILS_SOURCES}
 
         ${DISPATCHER_HEADERS}
         ${DISPATCHER_SOURCES}
@@ -36,6 +36,10 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBZIP REQUIRED libzip)
 target_include_directories(dispatcher_server PRIVATE ${LIBZIP_INCLUDE_DIRS})
 target_link_libraries(dispatcher_server PRIVATE ${LIBZIP_LIBRARIES})
+
+pkg_check_modules(SODIUM REQUIRED libsodium)
+target_include_directories(dispatcher_server PRIVATE ${SODIUM_INCLUDE_DIRS})
+target_link_libraries(dispatcher_server PRIVATE ${SODIUM_LIBRARIES})
 
 target_include_directories(dispatcher_server PRIVATE /usr/local/include)
 target_link_libraries(dispatcher_server PRIVATE pqxx pq)

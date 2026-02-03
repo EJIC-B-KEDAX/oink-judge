@@ -1,7 +1,10 @@
 #pragma once
 #include "Test.hpp"
+#include <boost/asio/awaitable.hpp>
 
 namespace oink_judge::services::test_node {
+
+using boost::asio::awaitable;
 
 class TestStorage {
 public:
@@ -10,10 +13,10 @@ public:
     TestStorage(const TestStorage &) = delete;
     TestStorage &operator=(const TestStorage &) = delete;
 
-    void get_test(const std::string &problem_id, std::function<void(std::error_code, std::shared_ptr<Test>)> callback);
+    awaitable<std::shared_ptr<Test>> get_test(const std::string &problem_id);
 
 private:
-    void ensure_test_exists(const std::string &problem_id, std::function<void(std::error_code)> callback);
+    awaitable<void> ensure_test_exists(const std::string &problem_id);
 
     TestStorage();
 

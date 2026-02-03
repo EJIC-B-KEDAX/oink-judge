@@ -1,13 +1,12 @@
 #pragma once
+#include "services/auth/Session.h"
 
 #include <string>
-
-#include "services/auth/Session.h"
 
 namespace oink_judge::services::auth {
 
 class TableSessions {
-public:
+  public:
     static TableSessions& instance();
 
     TableSessions(const TableSessions&) = delete;
@@ -21,7 +20,8 @@ public:
     bool clear_all_user_sessions(const std::string& username);
 
     std::string whose_session(const std::string& session_id) const;
-private:
+
+  private:
     TableSessions();
     static bool _is_expired(time_t expire_at);
 };

@@ -1,0 +1,6 @@
+<problem>
+    <problem_builder type="default"/>
+    <tests>
+        <test name="t1">
+            <!-- malformed: missing closing tags -->
+        </problem>

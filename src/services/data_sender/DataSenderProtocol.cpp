@@ -1,6 +1,9 @@
 #include "services/data_sender/DataSenderProtocol.h"
 #include "config/Config.h"
-#include "services/data_sender/zip_utils.h"
+#include "services/data_sender/ManifestStorage.h"
+#include "utils/filesystem.h"
+#include "utils/crypto.h"
+#include <iostream>
 
 namespace oink_judge::services::data_sender {
 
@@ -19,44 +22,107 @@ namespace {
 
 } // namespace
 
-DataSenderProtocol::DataSenderProtocol() : _status(WAIT_REQUEST), _content_type(""), _content_id("") {}
+DataSenderProtocol::DataSenderProtocol() {}
 
-void DataSenderProtocol::start(const std::string &start_message) {
-    get_session()->receive_message();
+awaitable<void> DataSenderProtocol::start(const std::string &start_message) {
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
-void DataSenderProtocol::receive_message(const std::string &message) {
-    if (_status == WAIT_REQUEST) {
-        json parsed_message = json::parse(message);
-        if (parsed_message.at("action") == "get") {
-            std::string content_type = parsed_message.at("content_type");
-            std::string content_id = parsed_message.at(content_type + "_id");
-            uint64_t request_id = parsed_message.at("__id__");
+awaitable<void> DataSenderProtocol::receive_message(const std::string &message) {
+    json received_json = json::parse(message);
 
-            if (!std::filesystem::exists(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip")) {
-                pack_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip",
-                    Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id);
-            }
+    std::cerr << "DataSenderProtocol received message: " << received_json.dump() << std::endl;
+    
+    if (received_json["request"] == "get_manifest") {
+        std::string content_type = received_json["content_type"];
+        std::string content_id = received_json[content_type + "_id"];
 
-            send_message("{\"content_type\": \"" + content_type + "\", \"" + content_type + "_id\": \"" + content_id + "\", \"__id__\": " + std::to_string(request_id) + "}");
-            send_message(get_zip(Config::config().at("directories").at(content_type + "s_zip").get<std::string>() + "/" + content_id + ".zip"));
-        } else if (parsed_message.at("action") == "update") {
-            json header = json::parse(message);
+        std::cerr << "Fetching manifest for " << content_type << " " << content_id << std::endl;
 
-            _content_type = header["content_type"];
-            _content_id = header[_content_type + "_id"];
-            _status = WAIT_DATA;
-        }
-    } else if (_status == WAIT_DATA) {
-        clear_directory(Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
-        store_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip", message);
-        unpack_zip(Config::config().at("directories").at(_content_type + "s_zip").get<std::string>() + "/" + _content_id + ".zip",
-            Config::config().at("directories").at(_content_type + "s").get<std::string>() + "/" + _content_id);
+        json manifest = ManifestStorage::instance().get_manifest(content_type, content_id).to_json();
 
-        _status = WAIT_REQUEST;
+        std::cerr << "Fetched manifest: " << manifest.dump() << std::endl;
+
+        json response_json = {
+            {"__id__", received_json["__id__"]},
+            {"request", "response"},
+            {"sended_request", "get_manifest"},
+            {"content_type", content_type},
+            {content_type + "_id", content_id},
+            {"manifest", manifest}
+        };
+
+        std::cerr << "Sending manifest response: " << response_json.dump() << std::endl;
+
+        co_spawn(co_await boost::asio::this_coro::executor, send_message(response_json.dump()), boost::asio::detached);
+    } else if (received_json["request"] == "get_file") {
+        std::string content_type = received_json["content_type"];
+        std::string content_id = received_json[content_type + "_id"];
+        std::string file_path = received_json["file_path"];
+
+        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
+        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+
+        std::string file_content = utils::filesystem::load_file(full_file_path);
+
+        json response_json = {
+            {"__id__", received_json["__id__"]},
+            {"request", "response"},
+            {"sended_request", "get_file"},
+            {"content_type", content_type},
+            {content_type + "_id", content_id},
+            {"file_path", file_path},
+            {"file_content", utils::crypto::to_base64(file_content)}
+        };
+        
+        co_spawn(co_await boost::asio::this_coro::executor, send_message(response_json.dump()), boost::asio::detached);
+    } else if (received_json["request"] == "update_file") {
+        std::string content_type = received_json["content_type"];
+        std::string content_id = received_json[content_type + "_id"];
+        std::string file_path = received_json["file_path"];
+        std::string file_content_base64 = received_json["file_content"];
+
+        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
+        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+
+        std::string file_content = utils::crypto::from_base64(file_content_base64);
+        utils::filesystem::store_file(full_file_path, file_content);
+
+        json response_json = {
+            {"__id__", received_json["__id__"]},
+            {"request", "response"},
+            {"sended_request", "update_file"},
+            {"content_type", content_type},
+            {content_type + "_id", content_id},
+            {"file_path", file_path},
+            {"status", "success"}
+        };
+
+        co_spawn(co_await boost::asio::this_coro::executor, send_message(response_json.dump()), boost::asio::detached);
+    } else if (received_json["request"] == "remove_file") {
+        std::string content_type = received_json["content_type"];
+        std::string content_id = received_json[content_type + "_id"];
+        std::string file_path = received_json["file_path"];
+
+        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
+        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+
+        utils::filesystem::remove_file_or_directory(full_file_path);
+
+        json response_json = {
+            {"__id__", received_json["__id__"]},
+            {"request", "response"},
+            {"sended_request", "remove_file"},
+            {"content_type", content_type},
+            {content_type + "_id", content_id},
+            {"file_path", file_path},
+            {"status", "success"}
+        };
+
+        co_spawn(co_await boost::asio::this_coro::executor, send_message(response_json.dump()), boost::asio::detached);
     }
 
-    get_session()->receive_message();
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
 void DataSenderProtocol::close_session() {}

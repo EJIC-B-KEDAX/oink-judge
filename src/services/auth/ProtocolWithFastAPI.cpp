@@ -20,14 +20,14 @@ namespace {
 
 ProtocolWithFastAPI::ProtocolWithFastAPI() = default;
 
-void ProtocolWithFastAPI::start(const std::string &start_message) {
-    get_session()->receive_message();
+awaitable<void> ProtocolWithFastAPI::start(const std::string &start_message) {
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
-void ProtocolWithFastAPI::receive_message(const std::string &message) {
+awaitable<void> ProtocolWithFastAPI::receive_message(const std::string &message) {
     auto json_message = nlohmann::json::parse(message);
-    get_session()->send_message(handle_client(json_message).dump());
-    get_session()->receive_message();
+    co_await get_session()->send_message(handle_client(json_message).dump());
+    co_spawn(co_await boost::asio::this_coro::executor, get_session()->receive_message(), boost::asio::detached);
 }
 
 void ProtocolWithFastAPI::close_session() {}
