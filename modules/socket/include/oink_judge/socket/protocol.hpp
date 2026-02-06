@@ -1,8 +1,8 @@
 #pragma once
-#include "ParameterizedTypeFactory.hpp"
-#include "Session.hpp"
+#include "oink_judge/socket/session.hpp"
 
 #include <nlohmann/json.hpp>
+#include <oink_judge/factory/parameterized_type_factory.hpp>
 
 namespace oink_judge::socket {
 
@@ -10,25 +10,31 @@ class Protocol {
   public:
     using callback_t = std::function<void(std::error_code, std::any)>;
 
+    Protocol(const Protocol&) = delete;
+    auto operator=(const Protocol&) -> Protocol& = delete;
+    Protocol(Protocol&&) = delete;
+    auto operator=(Protocol&&) -> Protocol& = delete;
     virtual ~Protocol() = default;
 
-    virtual awaitable<void> start(std::string start_message) = 0; // TODO: remove links to string
-    virtual awaitable<void> send_message(std::string message) = 0;
-    virtual awaitable<void> receive_message(std::string message) = 0;
-    virtual void close_session() = 0;
+    virtual auto start(std::string start_message) -> awaitable<void> = 0; // TODO: remove links to string
+    virtual auto sendMessage(std::string message) -> awaitable<void> = 0;
+    virtual auto receiveMessage(std::string message) -> awaitable<void> = 0;
+    virtual auto closeSession() -> void = 0;
 
-    virtual void set_session(std::weak_ptr<Session> session) = 0;
-    virtual std::shared_ptr<Session> get_session() const = 0;
+    virtual auto setSession(std::weak_ptr<Session> session) -> void = 0;
+    [[nodiscard]] virtual auto getSession() const -> std::shared_ptr<Session> = 0;
 
-    virtual void request_internal(std::string message, const callback_t& callback) = 0;
+    virtual auto requestInternal(const std::string& message, const callback_t& callback) -> void = 0;
 
   protected:
+    Protocol() = default;
+
     template <typename... Args>
-    static void call_callback(const callback_t& callback, std::error_code ec, std::decay_t<Args>... args);
+    static auto callCallback(const callback_t& callback, std::error_code ec, std::decay_t<Args>... args) -> void;
 };
 
-using ProtocolFactory = ParameterizedTypeFactory<std::unique_ptr<Protocol>>;
+using ProtocolFactory = factory::ParameterizedTypeFactory<std::unique_ptr<Protocol>>;
 
 } // namespace oink_judge::socket
 
-#include "Protocol.inl"
+#include "oink_judge/socket/protocol.inl"

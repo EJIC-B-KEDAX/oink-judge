@@ -1,23 +1,20 @@
 #pragma once
-
-#include "socket/protocols/ProtocolDecorator.h"
+#include "oink_judge/socket/protocols/protocol_decorator.h"
 
 namespace oink_judge::socket {
 
 class AuthorizingProtocol : public ProtocolDecorator {
-public:
+  public:
     AuthorizingProtocol(std::unique_ptr<Protocol> inner_protocols, std::string auth_token);
 
-    awaitable<void> start(const std::string &start_message) override;
+    auto start(std::string start_message) -> awaitable<void> override;
 
-    void request_internal(const std::string &message, const callback_t &callback) override;
+    auto requestInternal(const std::string& message, const callback_t& callback) -> void override;
 
     constexpr static auto REGISTERED_NAME = "Authorizing";
 
-private:
-    std::string _auth_token;
-    bool _authorized;
-    std::vector<std::pair<std::string, callback_t>> _pending_requests;
+  private:
+    std::string auth_token_;
 };
 
 } // namespace oink_judge::socket

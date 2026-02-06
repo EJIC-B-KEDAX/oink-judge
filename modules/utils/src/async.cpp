@@ -2,7 +2,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/process.hpp>
-#include <boost/process/extend.hpp>
+#include <boost/process/v1/extend.hpp>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::utils::async {
@@ -10,6 +10,7 @@ namespace oink_judge::utils::async {
 auto awaitableSystem(std::string command) -> awaitable<int> {
     using namespace boost::asio;
     namespace bp = boost::process;
+    namespace bpv1 = boost::process::v1;
 
     auto executor = co_await this_coro::executor;
 
@@ -28,7 +29,7 @@ auto awaitableSystem(std::string command) -> awaitable<int> {
                 // it to be copy-constructible.
                 struct LocalHolder {
                     std::shared_ptr<HandlerType> completion;
-                    std::shared_ptr<bp::child> child;
+                    std::shared_ptr<bpv1::child> child;
                 };
 
                 auto holder = std::make_shared<LocalHolder>();
@@ -62,8 +63,8 @@ auto awaitableSystem(std::string command) -> awaitable<int> {
                 // Let Boost.Process use its default reactor and ensure
                 // the completion runs on the coroutine's executor by posting
                 // into it from the on_exit callback.
-                holder->child = std::make_shared<bp::child>("/bin/sh", "-c", command, bp::std_out > bp::null,
-                                                            bp::std_err > bp::null, bp::on_exit(on_exit_cb));
+                // holder->child = std::make_shared<bpv1::child>("/bin/sh", "-c", command, bp::std_out > bp::null,
+                //                                               bp::std_err > bp::null, bp::on_exit(on_exit_cb));
             },
             boost::asio::use_awaitable);
 

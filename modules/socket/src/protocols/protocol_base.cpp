@@ -1,21 +1,23 @@
-#include "socket/protocols/ProtocolBase.h"
+#include "oink_judge/socket/protocols/protocol_base.h"
 
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::socket {
 
-awaitable<void> ProtocolBase::send_message(const std::string &message) {
-    co_await get_session()->send_message(message);
+auto ProtocolBase::sendMessage(std::string message) -> awaitable<void> { co_await getSession()->sendMessage(std::move(message)); }
+
+auto ProtocolBase::setSession(std::weak_ptr<socket::Session> session) -> void { session_ = session; }
+
+auto ProtocolBase::getSession() const -> std::shared_ptr<socket::Session> {
+    if (session_.expired()) {
+        logger::logMessage("socket", 1, "Trying to get session from protocol, but session is expired", logger::ERROR);
+        throw std::runtime_error("Session is expired");
+    }
+    return session_.lock();
 }
 
-void ProtocolBase::set_session(std::weak_ptr<socket::Session> session) {
-    _session = session;
-}
-
-std::shared_ptr<socket::Session> ProtocolBase::get_session() const {
-    return _session.lock();
-}
-
-void ProtocolBase::request_internal(const std::string &message, const callback_t &callback) {
+auto ProtocolBase::requestInternal(const std::string& message, const callback_t& callback) -> void {
+    logger::logMessage("socket", 1, "Trying to request on base protocol, which is not implemented", logger::ERROR);
     throw std::runtime_error("Request is not implemented for this protocol");
 }
 

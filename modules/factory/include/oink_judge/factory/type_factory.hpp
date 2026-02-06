@@ -29,6 +29,8 @@ template <smart_or_raw_pointer Base, typename... Args> class TypeFactory {
     virtual auto create(const std::string& name, Args&&... args) const -> Base;
 
   protected:
+    TypeFactory() = default;
+
     auto accessRegisteredTypes() -> std::unordered_map<std::string, CreateFunc>&;
 
   private:

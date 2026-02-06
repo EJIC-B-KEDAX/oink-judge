@@ -1,17 +1,19 @@
 #pragma once
-
 #include <boost/asio.hpp>
 
 namespace oink_judge::socket {
 
 class BoostIOContext {
-public:
-    static boost::asio::io_context& instance();
-
+  public:
     BoostIOContext(const BoostIOContext&) = delete;
-    BoostIOContext& operator=(const BoostIOContext&) = delete;
-    
-private:
+    auto operator=(const BoostIOContext&) -> BoostIOContext& = delete;
+    BoostIOContext(BoostIOContext&&) = delete;
+    auto operator=(BoostIOContext&&) -> BoostIOContext& = delete;
+    ~BoostIOContext();
+
+    static auto instance() -> boost::asio::io_context&;
+
+  private:
     BoostIOContext() = default;
 };
 

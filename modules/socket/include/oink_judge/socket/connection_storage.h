@@ -1,23 +1,25 @@
 #pragma once
-
-#include "Session.hpp"
+#include "oink_judge/socket/session.hpp"
 
 namespace oink_judge::socket {
 
 class ConnectionStorage {
-public:
-    static ConnectionStorage& instance();
+  public:
+    static auto instance() -> ConnectionStorage&;
 
     ConnectionStorage(const ConnectionStorage&) = delete;
-    ConnectionStorage& operator=(const ConnectionStorage&) = delete;
+    auto operator=(const ConnectionStorage&) -> ConnectionStorage& = delete;
+    ConnectionStorage(ConnectionStorage&&) = delete;
+    auto operator=(ConnectionStorage&&) -> ConnectionStorage& = delete;
+    ~ConnectionStorage();
 
-    void insert_connection(std::shared_ptr<Session> session);
-    void remove_connection(std::shared_ptr<Session> session);
+    auto insertConnection(const std::shared_ptr<Session>& session) -> void;
+    auto removeConnection(const std::shared_ptr<Session>& session) -> void;
 
-private:
+  private:
     ConnectionStorage();
 
-    std::vector<std::shared_ptr<Session>> _connections;
+    std::vector<std::shared_ptr<Session>> connections_;
 };
 
 } // namespace oink_judge::socket

@@ -1,22 +1,21 @@
 #pragma once
-
-#include "socket/Session.hpp"
-#include "socket/Protocol.hpp"
+#include "oink_judge/socket/protocol.hpp"
+#include "oink_judge/socket/session.hpp"
 
 namespace oink_judge::socket {
 
 class SessionBase : public Session, public std::enable_shared_from_this<Session> {
-public:
-    void set_session_ptr();
-    void request_internal(const std::string &message, const callback_t &callback) override;
+  public:
+    auto setSessionPtr() -> void;
+    auto requestInternal(const std::string& message, const callback_t& callback) -> void override;
 
-protected:
+  protected:
     SessionBase(std::unique_ptr<Protocol> protocol);
 
-    Protocol &access_protocol();
+    auto accessProtocol() -> Protocol&;
 
-private:
-    std::unique_ptr<Protocol> _protocol;
+  private:
+    std::unique_ptr<Protocol> protocol_;
 };
 
 } // namespace oink_judge::socket

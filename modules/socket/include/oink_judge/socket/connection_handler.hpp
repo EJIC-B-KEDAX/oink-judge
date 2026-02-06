@@ -1,7 +1,6 @@
 #pragma once
-
 #include <boost/asio.hpp>
-#include <oink_judge>
+#include <oink_judge/factory/parameterized_type_factory.hpp>
 
 namespace oink_judge::socket {
 
@@ -10,9 +9,16 @@ using boost::asio::awaitable;
 
 class ConnectionHandler {
   public:
+    ConnectionHandler(const ConnectionHandler&) = delete;
+    auto operator=(const ConnectionHandler&) -> ConnectionHandler& = delete;
+    ConnectionHandler(ConnectionHandler&&) = delete;
+    auto operator=(ConnectionHandler&&) -> ConnectionHandler& = delete;
     virtual ~ConnectionHandler() = default;
 
-    virtual awaitable<void> new_connection(tcp::socket& socket, const std::string& start_message) = 0;
+    virtual auto newConnection(tcp::socket socket, std::string start_message) -> awaitable<void> = 0;
+
+  protected:
+    ConnectionHandler() = default;
 };
 
 using ConnectionHandlerFactory = factory::ParameterizedTypeFactory<std::shared_ptr<ConnectionHandler>>;

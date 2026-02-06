@@ -1,14 +1,13 @@
 #pragma once
-
-#include "socket/protocols/ProtocolDecorator.h"
+#include "oink_judge/socket/protocols/protocol_decorator.h"
 
 namespace oink_judge::socket {
 
 class PongingProtocol : public ProtocolDecorator {
-public:
+  public:
     PongingProtocol(std::unique_ptr<Protocol> inner_protocol);
 
-    awaitable<void> receive_message(const std::string &message) override;
+    auto receiveMessage(std::string message) -> awaitable<void> override;
 
     constexpr static auto REGISTERED_NAME = "Ponging";
 };

@@ -2,7 +2,7 @@
 
 namespace oink_judge::socket {
 
-boost::asio::io_context& BoostIOContext::instance() {
+auto BoostIOContext::instance() -> boost::asio::io_context& {
     static boost::asio::io_context instance;
     return instance;
 }

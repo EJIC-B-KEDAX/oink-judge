@@ -1,21 +1,19 @@
 #pragma once
-#include "socket/Protocol.hpp"
+#include "oink_judge/socket/protocol.hpp"
 
 namespace oink_judge::socket {
 
 class ProtocolBase : public Protocol {
   public:
-    ProtocolBase() = default;
+    auto sendMessage(std::string message) -> awaitable<void> override;
 
-    awaitable<void> send_message(std::string message) override;
+    auto setSession(std::weak_ptr<socket::Session> session) -> void override;
+    [[nodiscard]] auto getSession() const -> std::shared_ptr<socket::Session> override;
 
-    void set_session(std::weak_ptr<socket::Session> session) override;
-    std::shared_ptr<socket::Session> get_session() const override;
-
-    void request_internal(std::string message, const callback_t& callback) override;
+    auto requestInternal(const std::string& message, const callback_t& callback) -> void override;
 
   private:
-    std::weak_ptr<socket::Session> _session;
+    std::weak_ptr<socket::Session> session_;
 };
 
 } // namespace oink_judge::socket

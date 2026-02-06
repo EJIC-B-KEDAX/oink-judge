@@ -1,200 +1,168 @@
-#include "socket/sessions/SSLSession.h"
-#include "socket/BoostSSLContext.h"
-#include "socket/ConnectionStorage.h"
-#include "socket/byte_order.h"
-#include <iostream>
+#include "oink_judge/socket/sessions/ssl_session.h"
+
+#include "oink_judge/socket/boost_ssl_context.h"
+#include "oink_judge/socket/byte_order.h"
+#include "oink_judge/socket/connection_storage.h"
+
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::socket {
 
 namespace {
 
-[[maybe_unused]] bool registered_client = []() -> bool {
-    SessionFactory::instance().register_type(
-        SSLSession::REGISTERED_NAME_CLIENT,
-        [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
-        auto event_handler = ProtocolFactory::instance().create(params);
+[[maybe_unused]] const bool REGISTERED_CLIENT = []() -> bool {
+    SessionFactory::instance().registerType(
+        SSLSession::REGISTERED_NAME_CLIENT, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
+            auto event_handler = ProtocolFactory::instance().create(params);
 
-        auto ptr = std::make_shared<SSLSession>(
-            std::move(socket),
-            std::move(event_handler),
-            boost::asio::ssl::stream_base::client);
+            auto ptr =
+                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::client);
 
-        ptr->set_session_ptr();
+            ptr->setSessionPtr();
 
-        return ptr;
-    });
+            return ptr;
+        });
 
     return true;
 }();
 
-[[maybe_unused]] bool registered_server = []() -> bool {
-    SessionFactory::instance().register_type(
-        SSLSession::REGISTERED_NAME_SERVER,
-        [](const std::string &params, tcp::socket socket) -> std::shared_ptr<Session> {
-        std::cout << "Creating SSL server session with params: " << params << std::endl;
-        auto event_handler = ProtocolFactory::instance().create(params);
+[[maybe_unused]] const bool REGISTERED_SERVER = []() -> bool {
+    SessionFactory::instance().registerType(
+        SSLSession::REGISTERED_NAME_SERVER, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
+            auto event_handler = ProtocolFactory::instance().create(params);
 
-        auto ptr = std::make_shared<SSLSession>(
-            std::move(socket),
-            std::move(event_handler),
-            boost::asio::ssl::stream_base::server);
+            auto ptr =
+                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::server);
 
-        ptr->set_session_ptr();
+            ptr->setSessionPtr();
 
-        return ptr;
-    });
+            return ptr;
+        });
 
     return true;
 }();
 
 } // namespace
 
-SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,  boost::asio::ssl::stream_base::handshake_type handshake_type)
-    : SessionBase(std::move(protocol)),
-      _is_sending(false),
-      _ssl_stream(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::server) ? BoostSSLContext::server() : BoostSSLContext::client()),
-      _handshake_type(handshake_type) {}
+SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,
+                       boost::asio::ssl::stream_base::handshake_type handshake_type)
+    : SessionBase(std::move(protocol)), is_sending_(false),
+      ssl_stream_(std::move(socket), (handshake_type == boost::asio::ssl::stream_base::server) ? BoostSSLContext::server()
+                                                                                               : BoostSSLContext::client()),
+      handshake_type_(handshake_type) {}
 
 SSLSession::~SSLSession() {
     close();
     // ConnectionStorage::instance().remove_connection(std::static_pointer_cast<SSLSession>(shared_from_this()));
 }
 
-awaitable<void> SSLSession::start(const std::string &start_message) {
-    if (!_ssl_stream.lowest_layer().is_open()) {
+auto SSLSession::start(std::string start_message) -> awaitable<void> {
+    if (!ssl_stream_.lowest_layer().is_open()) {
         throw std::runtime_error("SSL socket is not open.");
     }
 
     // keep session alive for duration of async operations
     auto self = std::static_pointer_cast<SSLSession>(shared_from_this());
 
-    ConnectionStorage::instance().insert_connection(self);
+    ConnectionStorage::instance().insertConnection(self);
 
     try {
-        _ssl_stream.set_verify_mode(boost::asio::ssl::verify_peer);
+        ssl_stream_.set_verify_mode(boost::asio::ssl::verify_peer);
 
-        std::cout << "wait hanshake" << std::endl;
-
-        co_await _ssl_stream.async_handshake(_handshake_type, boost::asio::use_awaitable);
-
-        std::cout << "Handshake" << _handshake_type << std::endl;
-        co_await access_protocol().start(start_message);
+        co_await ssl_stream_.async_handshake(handshake_type_, boost::asio::use_awaitable);
+        co_await accessProtocol().start(start_message);
 
     } catch (const boost::system::system_error& e) {
-        std::cout << "Error " << e.what() << std::endl;
+        logger::logMessage("SSLSession", 1, std::string("Error: ") + e.what(), logger::ERROR);
         close();
     }
 }
 
-awaitable<void> SSLSession::send_message(const std::string &message) {
-    std::cerr << "Queueing message to send: " << message << std::endl;
+auto SSLSession::sendMessage(std::string message) -> awaitable<void> {
     // keep session alive for duration of async operations
     auto self = std::static_pointer_cast<SSLSession>(shared_from_this());
 
     co_return co_await boost::asio::async_initiate<decltype(boost::asio::use_awaitable), void(boost::system::error_code)>(
-        [self, message](auto&& handler) {
-            self->_message_queue.push({message, std::move(handler)});
+        [self, message](auto&& handler) -> auto {
+            self->message_queue_.push({message, std::forward<decltype(handler)>(handler)});
 
-            if (!self->_is_sending) {
-                self->_is_sending = true;
-                boost::asio::co_spawn(self->_ssl_stream.get_executor(), [self]() -> awaitable<void> { co_await self->_send_loop(); }, boost::asio::detached);
+            if (!self->is_sending_) {
+                self->is_sending_ = true;
+                boost::asio::co_spawn(
+                    self->ssl_stream_.get_executor(), [self]() -> awaitable<void> { co_await self->sendLoop(); }, // NOLINT
+                    boost::asio::detached);
             }
         },
-        boost::asio::use_awaitable
-    );
+        boost::asio::use_awaitable);
 }
 
-awaitable<void> SSLSession::receive_message() {
+auto SSLSession::receiveMessage() -> awaitable<void> {
     // keep session alive for duration of async operations
     auto self = std::static_pointer_cast<SSLSession>(shared_from_this());
 
     try {
-        std::cout << "Receiving message" << std::endl;
-
         uint64_t message_length_net = 0;
 
-        co_await boost::asio::async_read(
-            _ssl_stream,
-            boost::asio::buffer(&message_length_net, sizeof message_length_net),
-            boost::asio::use_awaitable
-        );
+        co_await boost::asio::async_read(ssl_stream_, boost::asio::buffer(&message_length_net, sizeof message_length_net),
+                                         boost::asio::use_awaitable);
 
         uint64_t message_length = ntoh64(message_length_net);
-        std::cout << "Reading message of size " << message_length << std::endl;
 
         std::string message(static_cast<size_t>(message_length), '\0');
 
-        co_await boost::asio::async_read(
-            _ssl_stream,
-            boost::asio::buffer(message),
-            boost::asio::use_awaitable
-        );
-
-        std::cout << "Read message: " << message << std::endl;
-        co_await access_protocol().receive_message(message);
+        co_await boost::asio::async_read(ssl_stream_, boost::asio::buffer(message), boost::asio::use_awaitable);
+        co_await accessProtocol().receiveMessage(message);
     } catch (const boost::system::system_error& e) {
-        std::cout << "Receive error: " << e.what() << std::endl;
+        logger::logMessage("SSLSession", 1, std::string("Receive error: ") + e.what(), logger::ERROR);
         close();
     }
 }
 
-void SSLSession::close() {
-    if (_ssl_stream.lowest_layer().is_open()) {
-        _ssl_stream.lowest_layer().close();
-        access_protocol().close_session();
+auto SSLSession::close() -> void {
+    if (ssl_stream_.lowest_layer().is_open()) {
+        ssl_stream_.lowest_layer().close();
+        accessProtocol().closeSession();
     }
 }
 
-boost::asio::any_io_executor SSLSession::get_executor() {
-    return _ssl_stream.get_executor();
-}
+auto SSLSession::getExecutor() -> boost::asio::any_io_executor { return ssl_stream_.get_executor(); }
 
-awaitable<void> SSLSession::_send_loop () {
+auto SSLSession::sendLoop() -> awaitable<void> {
     // keep session alive for duration of async operations
     auto self = std::static_pointer_cast<SSLSession>(shared_from_this());
-    
-    while (!_message_queue.empty()) {
-        QueuedMessage qm = std::move(_message_queue.front());
-        _message_queue.pop();
 
-        std::cerr << "Sending queued message: " << qm.message << std::endl;
+    while (!message_queue_.empty()) {
+        QueuedMessage qm = std::move(message_queue_.front());
+        message_queue_.pop();
 
         uint64_t message_length = hton64(qm.message.size());
 
         boost::system::error_code ec;
 
-        co_await boost::asio::async_write(
-            _ssl_stream,
-            boost::asio::buffer(&message_length, sizeof message_length),
-            boost::asio::redirect_error(boost::asio::use_awaitable, ec)
-        );
+        co_await boost::asio::async_write(ssl_stream_, boost::asio::buffer(&message_length, sizeof message_length),
+                                          boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec) {
+            logger::logMessage("SSLSession", 1, std::string("Send length error: ") + ec.message(), logger::ERROR);
             qm.callback(ec);
             close();
             co_return;
         }
 
-        std::cerr << "Sent message length: " << ntoh64(message_length) << std::endl;
-
-        co_await boost::asio::async_write(
-            _ssl_stream,
-            boost::asio::buffer(qm.message),
-            boost::asio::redirect_error(boost::asio::use_awaitable, ec)
-        );
+        co_await boost::asio::async_write(ssl_stream_, boost::asio::buffer(qm.message),
+                                          boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec) {
+            logger::logMessage("SSLSession", 1, std::string("Send message error: ") + ec.message(), logger::ERROR);
             qm.callback(ec);
             close();
             co_return;
         }
-
-        std::cerr << "Sent message body: " << qm.message << std::endl;
 
         qm.callback(ec);
     }
 
-    _is_sending = false;
+    is_sending_ = false;
 }
 
 } // namespace oink_judge::socket

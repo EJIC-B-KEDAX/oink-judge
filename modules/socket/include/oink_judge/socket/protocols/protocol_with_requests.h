@@ -1,23 +1,23 @@
 #pragma once
-#include "socket/protocols/ProtocolBase.h"
+#include "oink_judge/socket/protocols/protocol_base.h"
 
 namespace oink_judge::socket {
 
 class ProtocolWithRequests : public ProtocolBase {
-public:
-    void request_internal(const std::string &message, const callback_t &callback) override;
+  public:
+    void requestInternal(const std::string& message, const callback_t& callback) override;
 
-    void close_session() override;
+    void closeSession() override;
 
-protected:
-    void store_request_callback(uint64_t request_id, const callback_t &callback);
-    std::optional<callback_t> retrieve_request_callback(uint64_t request_id);
-    void remove_request_callback(uint64_t request_id);
+  protected:
+    auto storeRequestCallback(uint64_t request_id, const callback_t& callback) -> void;
+    auto retrieveRequestCallback(uint64_t request_id) -> std::optional<callback_t>;
+    auto removeRequestCallback(uint64_t request_id) -> void;
 
-    std::unordered_map<uint64_t, callback_t> &access_pending_requests_callbacks();
+    auto accessPendingRequestsCallbacks() -> std::unordered_map<uint64_t, callback_t>&;
 
-private:
-    std::unordered_map<uint64_t, callback_t> _pending_requests_callbacks;
+  private:
+    std::unordered_map<uint64_t, callback_t> pending_requests_callbacks_;
 };
 
 } // namespace oink_judge::socket

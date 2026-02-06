@@ -1,27 +1,27 @@
 #pragma once
-#include "socket/protocols/ProtocolWithRequests.h"
+#include "oink_judge/socket/protocol.hpp"
 
 namespace oink_judge::socket {
 
 class ProtocolDecorator : public Protocol {
-public:
+  public:
     ProtocolDecorator(std::unique_ptr<Protocol> inner_protocol);
 
-    awaitable<void> start(const std::string &start_message) override;
-    awaitable<void> send_message(const std::string &message) override;
-    awaitable<void> receive_message(const std::string &message) override;
-    void close_session() override;
+    auto start(std::string start_message) -> awaitable<void> override;
+    auto sendMessage(std::string message) -> awaitable<void> override;
+    auto receiveMessage(std::string message) -> awaitable<void> override;
+    auto closeSession() -> void override;
 
-    void set_session(std::weak_ptr<Session> session) override;
-    std::shared_ptr<Session> get_session() const override;
+    auto setSession(std::weak_ptr<Session> session) -> void override;
+    [[nodiscard]] auto getSession() const -> std::shared_ptr<Session> override;
 
-    void request_internal(const std::string &message, const callback_t &callback) override;
+    auto requestInternal(const std::string& message, const callback_t& callback) -> void override;
 
-protected:
-    std::unique_ptr<Protocol> &access_inner_protocol();
-    
-private:
-    std::unique_ptr<Protocol> _inner_protocol;
+  protected:
+    auto accessInnerProtocol() -> std::unique_ptr<Protocol>&;
+
+  private:
+    std::unique_ptr<Protocol> inner_protocol_;
 };
 
 } // namespace oink_judge::socket

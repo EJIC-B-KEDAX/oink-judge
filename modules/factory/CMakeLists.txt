@@ -13,7 +13,7 @@ add_library(oink_judge_factory INTERFACE ${FACTORY_PUBLIC_HEADERS})
 add_library(oink_judge::factory ALIAS oink_judge_factory)
 
 target_include_directories(oink_judge_factory INTERFACE
-	$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:include>
 )
 

@@ -1,9 +1,0 @@
-set(DATABASE_HEADERS
-    include/database/DataBase.h
-    include/database/TableSubmissions.h
-)
-set(DATABASE_SOURCES
-    include/database/DataBase.inl
-    src/database/DataBase.cpp
-    src/database/TableSubmissions.cpp
-)

@@ -28,7 +28,7 @@ target_include_directories(oink_judge_database
 target_compile_features(oink_judge_database PUBLIC cxx_std_20)
 
 find_package(PugiXML REQUIRED)
-target_link_libraries(oink_judge_database PUBLIC pugixml oink_judge::logger oink_judge::config)
+target_link_libraries(oink_judge_database PUBLIC pq pqxx pugixml oink_judge::logger oink_judge::config)
 
 option(OINK_DATABASE_INSTALL "Install oink_judge::database target" ON)
 if(OINK_DATABASE_INSTALL)

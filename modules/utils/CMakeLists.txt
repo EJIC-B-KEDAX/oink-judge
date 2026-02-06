@@ -28,7 +28,7 @@ target_include_directories(oink_judge_utils
 
 target_compile_features(oink_judge_utils PUBLIC cxx_std_20)
 
-target_link_libraries(oink_judge_utils PUBLIC oink_judge::logger)
+target_link_libraries(oink_judge_utils PUBLIC zip sodium oink_judge::logger)
 
 option(OINK_UTILS_INSTALL "Install oink_judge::utils target" ON)
 if(OINK_UTILS_INSTALL)

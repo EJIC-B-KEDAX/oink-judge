@@ -2,17 +2,17 @@
 
 namespace oink_judge::socket {
 
-ConnectionStorage& ConnectionStorage::instance() {
+auto ConnectionStorage::instance() -> ConnectionStorage& {
     static ConnectionStorage instance;
     return instance;
 }
 
-void ConnectionStorage::insert_connection(std::shared_ptr<Session> session) { _connections.push_back(session); }
+auto ConnectionStorage::insertConnection(const std::shared_ptr<Session>& session) -> void { connections_.push_back(session); }
 
-void ConnectionStorage::remove_connection(std::shared_ptr<Session> session) {
-    auto it = std::ranges::find(_connections, session);
-    if (it != _connections.end()) {
-        _connections.erase(it, _connections.end());
+auto ConnectionStorage::removeConnection(const std::shared_ptr<Session>& session) -> void {
+    auto it = std::ranges::find(connections_, session);
+    if (it != connections_.end()) {
+        connections_.erase(it, connections_.end());
     }
 }
 

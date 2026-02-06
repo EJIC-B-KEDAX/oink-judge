@@ -1,16 +1,15 @@
 #pragma once
-
-#include "socket/ConnectionHandler.hpp"
+#include "oink_judge/socket/connection_handler.hpp"
 
 namespace oink_judge::socket {
 
 using tcp = boost::asio::ip::tcp;
 
 class SimpleConnectionHandler : public ConnectionHandler {
-public:
+  public:
     SimpleConnectionHandler();
 
-    awaitable<void> new_connection(tcp::socket &socket, const std::string &start_message) override;
+    auto newConnection(tcp::socket socket, std::string start_message) -> awaitable<void> override;
 
     constexpr static auto REGISTERED_NAME = "SimpleConnectionHandler";
 };

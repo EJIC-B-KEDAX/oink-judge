@@ -1,71 +1,87 @@
-#include "socket/protocols/PingingProtocol.h"
-#include "socket/BoostIOContext.h"
-#include "config/Config.h"
-#include <iostream>
+#include "oink_judge/socket/protocols/pinging_protocol.h"
 
+#include "oink_judge/socket/boost_io_context.h"
+
+#include <chrono>
+#include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 namespace oink_judge::socket {
 
 namespace {
 
-[[maybe_unused]] bool registered = []() {
-    ProtocolFactory::instance().register_type(PingingProtocol::REGISTERED_NAME,
-        [](const std::string &params) -> std::unique_ptr<Protocol> {
-        std::string inner_type = params;
+[[maybe_unused]] const bool REGISTERED = []() -> bool {
+    ProtocolFactory::instance().registerType(
+        PingingProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
+            const std::string& inner_type = params;
 
-        return std::make_unique<PingingProtocol>(ProtocolFactory::instance().create(inner_type));
-    });
+            return std::make_unique<PingingProtocol>(ProtocolFactory::instance().create(inner_type));
+        });
     return true;
 }();
+
+const int SECONDS_TO_MILLISECONDS = 1000;
 
 } // namespace
 
 PingingProtocol::PingingProtocol(std::unique_ptr<Protocol> inner_protocol)
-    : ProtocolDecorator(std::move(inner_protocol)), _ping_timer(BoostIOContext::instance()), _pong_timer(BoostIOContext::instance()) {
-    const auto &config = config::Config::config();
-    _ping_interval_seconds = config["bounds"]["ping_interval"].get<float>();
-    _pong_timeout_seconds = config["bounds"]["pong_timeout"].get<float>();
+    : ProtocolDecorator(std::move(inner_protocol)), ping_timer_(BoostIOContext::instance()),
+      pong_timer_(BoostIOContext::instance()), ping_interval_seconds_(), pong_timeout_seconds_() {
+    auto ping_interval_opt = config::getTiming("ping_interval");
+    if (!ping_interval_opt.has_value()) {
+        logger::logMessage("PingingProtocol", 1, "ping_interval not set in config", logger::ERROR);
+        throw std::runtime_error("ping_interval not set in config");
     }
-
-awaitable<void> PingingProtocol::start(const std::string &start_message) {
-    co_await ProtocolDecorator::start(start_message);
-    ping_loop();
+    ping_interval_seconds_ = ping_interval_opt.value();
+    auto pong_timeout_opt = config::getTiming("pong_timeout");
+    if (!pong_timeout_opt.has_value()) {
+        logger::logMessage("PingingProtocol", 1, "pong_timeout not set in config", logger::ERROR);
+        throw std::runtime_error("pong_timeout not set in config");
+    }
+    pong_timeout_seconds_ = pong_timeout_opt.value();
 }
 
-awaitable<void> PingingProtocol::receive_message(const std::string &message) {
+auto PingingProtocol::start(std::string start_message) -> awaitable<void> {
+    co_await ProtocolDecorator::start(start_message);
+    pingLoop();
+}
+
+auto PingingProtocol::receiveMessage(std::string message) -> awaitable<void> {
     if (message == "pong") {
-        _pong_timer.cancel();
-        co_await get_session()->receive_message();
+        co_spawn(co_await boost::asio::this_coro::executor, getSession()->receiveMessage(), boost::asio::detached);
+        pong_timer_.cancel();
         co_return;
     }
-    co_await ProtocolDecorator::receive_message(message);
+    co_await ProtocolDecorator::receiveMessage(message);
 }
 
-void PingingProtocol::close_session() {
-    _ping_timer.cancel();
-    _pong_timer.cancel();
-    ProtocolDecorator::close_session();
+void PingingProtocol::closeSession() {
+    ping_timer_.cancel();
+    pong_timer_.cancel();
+    ProtocolDecorator::closeSession();
 }
 
-void PingingProtocol::ping_loop() {
-    auto session = get_session();
+void PingingProtocol::pingLoop() {
+    auto session = getSession();
 
-    _ping_timer.expires_after(std::chrono::milliseconds(static_cast<int64_t>(_ping_interval_seconds * 1000)));
-    _ping_timer.async_wait([this, session](const boost::system::error_code &ec) {
+    ping_timer_.expires_after(
+        std::chrono::milliseconds(static_cast<int64_t>(ping_interval_seconds_.count() * SECONDS_TO_MILLISECONDS)));
+    ping_timer_.async_wait([this, session](const boost::system::error_code& ec) -> void {
         if (ec) {
             return;
         }
 
-        co_spawn(_ping_timer.get_executor(), session->send_message("ping"), boost::asio::detached);
-        wait_for_pong();
-        ping_loop();
+        co_spawn(ping_timer_.get_executor(), session->sendMessage("ping"), boost::asio::detached);
+        waitForPong();
+        pingLoop();
     });
 }
 
-void PingingProtocol::wait_for_pong() {
-    auto session = get_session();
+void PingingProtocol::waitForPong() {
+    auto session = getSession();
 
-    _pong_timer.expires_after(std::chrono::milliseconds(static_cast<int64_t>(_pong_timeout_seconds * 1000)));
-    _pong_timer.async_wait([this, session](const boost::system::error_code &ec) {
+    pong_timer_.expires_after(
+        std::chrono::milliseconds(static_cast<int64_t>(pong_timeout_seconds_.count() * SECONDS_TO_MILLISECONDS)));
+    pong_timer_.async_wait([this, session](const boost::system::error_code& ec) -> void {
         if (ec) {
             return;
         }

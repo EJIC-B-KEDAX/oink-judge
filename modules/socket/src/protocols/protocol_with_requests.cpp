@@ -1,55 +1,58 @@
-#include "socket/protocols/ProtocolWithRequests.h"
+#include "oink_judge/socket/protocols/protocol_with_requests.h"
+
 #include <nlohmann/json.hpp>
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::socket {
 
 using json = nlohmann::json;
 
-void ProtocolWithRequests::request_internal(const std::string &message, const callback_t &callback) {
+auto ProtocolWithRequests::requestInternal(const std::string& message, const callback_t& callback) -> void {
     static uint64_t request_id_counter = 0;
     uint64_t request_id = ++request_id_counter;
 
-    store_request_callback(request_id, callback);
+    storeRequestCallback(request_id, callback);
 
     json request_json;
 
     try {
         request_json = json::parse(message);
-    } catch (const json::parse_error &e) {
+    } catch (const json::parse_error& e) {
         request_json = json::object();
         request_json["data"] = message;
     }
-    
+
     request_json["__id__"] = request_id;
 
-    boost::asio::co_spawn(get_session()->get_executor(), send_message(request_json.dump()), boost::asio::detached);
+    boost::asio::co_spawn(getSession()->getExecutor(), sendMessage(request_json.dump()), boost::asio::detached);
 }
 
-void ProtocolWithRequests::close_session() {
-    for (auto &[request_id, callback] : _pending_requests_callbacks) {
-        call_callback(callback, std::make_error_code(std::errc::operation_canceled));
+auto ProtocolWithRequests::closeSession() -> void {
+    for (auto& [request_id, callback] : pending_requests_callbacks_) {
+        logger::logMessage("ProtocolWithRequests", 1,
+                           "Cancelling pending request with ID " + std::to_string(request_id) + " due to session closure",
+                           logger::WARNING);
+        callCallback(callback, std::make_error_code(std::errc::operation_canceled));
     }
-    _pending_requests_callbacks.clear();
+    pending_requests_callbacks_.clear();
 }
 
-void ProtocolWithRequests::store_request_callback(uint64_t request_id, const callback_t &callback) {
-    _pending_requests_callbacks.emplace(request_id, callback);
+auto ProtocolWithRequests::storeRequestCallback(uint64_t request_id, const callback_t& callback) -> void {
+    pending_requests_callbacks_.emplace(request_id, callback);
 }
 
-std::optional<ProtocolWithRequests::callback_t> ProtocolWithRequests::retrieve_request_callback(uint64_t request_id) {
-    auto it = _pending_requests_callbacks.find(request_id);
-    if (it != _pending_requests_callbacks.end()) {
+auto ProtocolWithRequests::retrieveRequestCallback(uint64_t request_id) -> std::optional<ProtocolWithRequests::callback_t> {
+    auto it = pending_requests_callbacks_.find(request_id);
+    if (it != pending_requests_callbacks_.end()) {
         return it->second;
     }
     return std::nullopt;
 }
 
-void ProtocolWithRequests::remove_request_callback(uint64_t request_id) {
-    _pending_requests_callbacks.erase(request_id);
-}
+auto ProtocolWithRequests::removeRequestCallback(uint64_t request_id) -> void { pending_requests_callbacks_.erase(request_id); }
 
-std::unordered_map<uint64_t, ProtocolWithRequests::callback_t> &ProtocolWithRequests::access_pending_requests_callbacks() {
-    return _pending_requests_callbacks;
+auto ProtocolWithRequests::accessPendingRequestsCallbacks() -> std::unordered_map<uint64_t, ProtocolWithRequests::callback_t>& {
+    return pending_requests_callbacks_;
 }
 
 } // namespace oink_judge::socket
