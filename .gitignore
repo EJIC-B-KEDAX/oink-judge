@@ -11,3 +11,4 @@ credentials.json
 config.json
 /certs/
 /test_node_venv/
+/plugins/
