@@ -1,6 +1,6 @@
 #include "oink_judge/test_node/problem_tables_storage.h"
 
-#include <oink_judge/content_service/content_storage.h>
+#include <oink_judge/content_service/client/content_storage.h>
 
 namespace oink_judge::test_node {
 

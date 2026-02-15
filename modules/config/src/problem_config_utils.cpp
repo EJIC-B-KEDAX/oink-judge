@@ -12,7 +12,7 @@ using Config = config::Config;
 auto getFullProblemConfig(const std::string& problem_id) -> pugi::xml_document& {
     static std::map<std::string, pugi::xml_document> problem_config_cache;
 
-    logger::logMessage("problem_config", 3, "Fetching full problem config for problem ID: " + problem_id, logger::LogType::DEBUG);
+    logger::logMessage("problem_config", "Fetching full problem config for problem ID: " + problem_id, logger::LogType::DEBUG, 3);
     std::optional<std::filesystem::path> problems_dir = config::getDirectoryPath("problems");
     if (!problems_dir.has_value()) {
         throw std::runtime_error("Directory 'problems' is not configured");
@@ -36,8 +36,8 @@ auto getProblemConfig(const std::string& problem_id) -> std::optional<pugi::xml_
         }
         return problem;
     } catch (const std::runtime_error& e) {
-        logger::logMessage("problem_config", 1, "Error getting problem config for problem '" + problem_id + "': " + e.what(),
-                           logger::LogType::ERROR);
+        logger::logMessage("problem_config", "Error getting problem config for problem '" + problem_id + "': " + e.what(),
+                           logger::LogType::ERROR, 1);
         return std::nullopt;
     }
 }

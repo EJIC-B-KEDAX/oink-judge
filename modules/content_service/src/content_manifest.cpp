@@ -3,28 +3,30 @@
 #include <ctime>
 #include <filesystem>
 #include <oink_judge/config/config.h>
+#include <oink_judge/content_service/content_config_utils.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
 namespace oink_judge::content_service {
 
-using Config = config::Config;
+using config::Config;
+using logger::requireHasValue;
 
 using namespace oink_judge::utils;
 
 namespace {
 
 auto getPathToContentDirectory(const std::string& content_type, const std::string& content_id) -> std::filesystem::path {
-    std::string path_to_content = Config::config().at("directories").at(content_type + "s");
-    return path_to_content + "/" + content_id + "/";
+    std::filesystem::path path_to_content = requireHasValue(getContentDirectory(content_type));
+    return path_to_content / content_id;
 }
 
 } // namespace
 
 ContentManifest::ContentManifest(std::string content_type, std::string content_id)
     : content_type_(std::move(content_type)), content_id_(std::move(content_id)), last_updated_(std::time(nullptr)),
-      last_full_rescan_(std::time(nullptr)),
-      full_rescan_interval_(Config::config().at("bounds").at("full_rescan_interval").get<time_t>()) {}
+      last_full_rescan_(std::time(nullptr)), full_rescan_interval_(requireHasValue(config::getTiming("full_rescan_interval"))) {}
 
 auto ContentManifest::getContentType() const -> const std::string& { return content_type_; }
 
@@ -41,13 +43,13 @@ auto ContentManifest::toJson() const -> json {
 }
 
 auto ContentManifest::getPathToManifestFile() const -> std::filesystem::path {
-    std::string path_to_content = Config::config().at("directories").at(content_type_ + "s");
-    return path_to_content + "/" + content_id_ + "/" + "manifest.json";
+    fs::path path_to_content = requireHasValue(getContentDirectory(content_type_));
+    return path_to_content / content_id_ / "manifest.json";
 }
 
 auto ContentManifest::updateManifest() const -> void {
     time_t started_update_on = std::time(nullptr);
-    if (std::difftime(std::time(nullptr), last_full_rescan_) >= static_cast<double>(full_rescan_interval_)) {
+    if (std::difftime(std::time(nullptr), last_full_rescan_) >= full_rescan_interval_.count()) {
         last_full_rescan_ = std::time(nullptr);
         fullRescanContent();
     } else {

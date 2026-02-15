@@ -12,7 +12,7 @@ using tcp = boost::asio::ip::tcp;
 class SSLSession : public SessionBase {
   public:
     SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,
-               boost::asio::ssl::stream_base::handshake_type _handshake_type);
+               boost::asio::ssl::stream_base::handshake_type handshake_type);
 
     SSLSession(const SSLSession&) = delete;
     auto operator=(const SSLSession&) -> SSLSession& = delete;
@@ -43,5 +43,8 @@ class SSLSession : public SessionBase {
     auto sendLoop() -> awaitable<void>;
     bool is_sending_;
 };
+
+auto registerSSLSessionClientType() -> void;
+auto registerSSLSessionServerType() -> void;
 
 } // namespace oink_judge::socket

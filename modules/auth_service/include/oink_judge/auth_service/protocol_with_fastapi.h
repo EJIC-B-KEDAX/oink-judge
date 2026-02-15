@@ -16,4 +16,6 @@ class ProtocolWithFastAPI : public socket::ProtocolBase {
     constexpr static auto REGISTERED_NAME = "ProtocolWithFastAPI";
 };
 
+auto registerProtocolWithFastAPIType() -> void;
+
 } // namespace oink_judge::auth_service

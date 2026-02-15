@@ -1,59 +1,65 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Module: oink_judge::content_service
-# This CMakeLists provides a reusable `oink_judge::content_service` target with public
-# headers under `include/oink/content_service` and sources under `src/`.
 
-# Source / header lists - keep these minimal; add files as needed
-set(CONTENT_SERVICE_PUBLIC_HEADERS
-	include/oink_judge/content_service/content_client_protocol.h
+set(CONTENT_SERVICE_COMMON_PUBLIC_HEADERS
     include/oink_judge/content_service/content_manifest.h
-    include/oink_judge/content_service/content_server_protocol.h
-    include/oink_judge/content_service/content_storage.h
     include/oink_judge/content_service/manifest_storage.h
+	include/oink_judge/content_service/content_config_utils.h
 )
 
-set(CONTENT_SERVICE_SOURCES
-	src/content_client_protocol.cpp
+set(CONTENT_SERVICE_COMMON_SOURCES
     src/content_manifest.cpp
-    src/content_server_protocol.cpp
-    src/content_storage.cpp
     src/manifest_storage.cpp
+	src/content_config_utils.cpp
 )
 
-add_library(oink_judge_content_service STATIC ${CONTENT_SERVICE_SOURCES} ${CONTENT_SERVICE_PUBLIC_HEADERS})
-add_library(oink_judge::content_service ALIAS oink_judge_content_service)
+set(CONTENT_SERVICE_CLIENT_PUBLIC_HEADERS
+	include/oink_judge/content_service/client/content_client_protocol.h
+    include/oink_judge/content_service/client/content_storage.h
+)
 
-target_include_directories(oink_judge_content_service
-	PUBLIC
+set(CONTENT_SERVICE_CLIENT_SOURCES
+	src/client/content_client_protocol.cpp
+    src/client/content_storage.cpp
+)
+
+set(CONTENT_SERVICE_SERVER_PUBLIC_HEADERS
+    include/oink_judge/content_service/server/content_server_protocol.h
+)
+
+set(CONTENT_SERVICE_SERVER_SOURCES
+    src/server/content_server_protocol.cpp
+	src/server/server_starter.cpp
+)
+
+set(CONTENT_SERVICE_PUBLIC_HEADERS ${CONTENT_SERVICE_COMMON_PUBLIC_HEADERS} ${CONTENT_SERVICE_CLIENT_PUBLIC_HEADERS} ${CONTENT_SERVICE_SERVER_PUBLIC_HEADERS})
+
+add_library(oink_judge_content_service_headers INTERFACE ${CONTENT_SERVICE_PUBLIC_HEADERS})
+
+target_include_directories(oink_judge_content_service_headers
+	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(oink_judge_content_service PUBLIC cxx_std_20)
-target_link_libraries(oink_judge_content_service PUBLIC oink_judge::logger oink_judge::config oink_judge::utils oink_judge::factory oink_judge::socket)
+target_link_libraries(oink_judge_content_service_headers INTERFACE oink_judge_logger_headers oink_judge_config_headers oink_judge_utils_headers oink_judge_factory oink_judge_socket_headers)
 
-option(OINK_CONTENT_SERVICE_INSTALL "Install oink_judge::content_service target" ON)
-if(OINK_CONTENT_SERVICE_INSTALL)
-	install(TARGETS oink_judge_content_service
-        EXPORT oinkJudgeTargets
-		ARCHIVE DESTINATION lib
-		LIBRARY DESTINATION lib
-		RUNTIME DESTINATION bin
-		INCLUDES DESTINATION include
-	)
+add_library(oink_judge_content_service_common SHARED ${CONTENT_SERVICE_COMMON_SOURCES} ${CONTENT_SERVICE_COMMON_PUBLIC_HEADERS})
+add_library(oink_judge::content_service_common ALIAS oink_judge_content_service_common)
 
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-		DESTINATION include
-		FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.inl"
-	)
+target_compile_features(oink_judge_content_service_common PUBLIC cxx_std_20)
+target_link_libraries(oink_judge_content_service_common PUBLIC oink_judge_content_service_headers oink_judge::logger oink_judge::config oink_judge::utils oink_judge::socket)
 
-	install(EXPORT oinkJudgeTargets
-		NAMESPACE oink_judge::
-		FILE oinkJudgeTargets-content_service.cmake
-		DESTINATION lib/cmake/oink_judge
-	)
-endif()
+
+add_library(oink_judge_content_service_client SHARED ${CONTENT_SERVICE_CLIENT_SOURCES} ${CONTENT_SERVICE_CLIENT_PUBLIC_HEADERS})
+add_library(oink_judge::content_service_client ALIAS oink_judge_content_service_client)
+
+target_link_libraries(oink_judge_content_service_client PUBLIC oink_judge::content_service_common)
+
+
+add_executable(oink_judge_content_service_server ${CONTENT_SERVICE_SERVER_SOURCES} ${CONTENT_SERVICE_SERVER_PUBLIC_HEADERS})
+target_link_libraries(oink_judge_content_service_server PUBLIC oink_judge::content_service_common)
 
 set(PROBLEM_PACKAGE_CONVERTER_PUBLIC_HEADERS
 	include/oink_judge/content_service/problem_package_converter/package_converter.hpp
@@ -61,13 +67,13 @@ set(PROBLEM_PACKAGE_CONVERTER_PUBLIC_HEADERS
 )
 
 set(PROBLEM_PACKAGE_CONVERTER_SOURCES
+	src/problem_package_converter/main.cpp	
 	src/problem_package_converter/polygon_converter.cpp
 )
 
-add_executable(problem_package_converter ${PROBLEM_PACKAGE_CONVERTER_SOURCES} ${PROBLEM_PACKAGE_CONVERTER_PUBLIC_HEADERS}
-	src/problem_package_converter/main.cpp)
+add_executable(problem_package_converter ${PROBLEM_PACKAGE_CONVERTER_SOURCES} ${PROBLEM_PACKAGE_CONVERTER_PUBLIC_HEADERS})
 
 target_include_directories(problem_package_converter PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
-target_link_libraries(problem_package_converter oink_judge::factory oink_judge::config oink_judge::logger)
+target_link_libraries(problem_package_converter oink_judge::factory oink_judge::logger pugixml)

@@ -113,11 +113,11 @@ auto getServerHostname(const std::string& server_name) -> std::optional<std::str
 auto getSessionType(const std::string& session_for) -> std::optional<std::string> {
     const auto& config_data = Config::config();
     if (!config_data.contains("sessions") || !config_data["sessions"].contains(session_for) ||
-        !config_data["sessions"][session_for].contains("type") || !config_data["sessions"][session_for]["type"].is_string()) {
+        !config_data["sessions"][session_for].is_string()) {
         return std::nullopt;
     }
 
-    return config_data["sessions"][session_for]["type"].get<std::string>();
+    return config_data["sessions"][session_for].get<std::string>();
 }
 
 auto getStartMessage(const std::string& session_for) -> std::optional<std::string> {

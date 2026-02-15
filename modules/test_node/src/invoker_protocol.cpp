@@ -1,19 +1,25 @@
 #include "oink_judge/test_node/invoker_protocol.h"
 
+#include "oink_judge/test_node/test_node_config_utils.h"
 #include "oink_judge/test_node/test_storage.h"
 
 #include <oink_judge/config/config.h>
-#include <oink_judge/content_service/content_storage.h>
+#include <oink_judge/config/server_config_utils.h>
+#include <oink_judge/content_service/client/content_storage.h>
 #include <oink_judge/database/table_submissions.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/socket/connection_protocol.h>
 
 namespace oink_judge::test_node {
 
-using json = nlohmann::json;
-using Config = config::Config;
-using TableSubmissions = database::TableSubmissions;
+using config::Config;
+using database::TableSubmissions;
+using logger::requireHasValue;
+using nlohmann::json;
 
 namespace {
+
+using logger::requireHasValue;
 
 [[maybe_unused]] const bool REGISTERED = []() -> bool {
     socket::ProtocolFactory::instance().registerType(
@@ -27,13 +33,13 @@ namespace {
 
 InvokerProtocol::InvokerProtocol() = default;
 
-awaitable<void> InvokerProtocol::start(std::string start_message) {
-    json set_id_request = {{"invoker_id", Config::config()["my_id"].get<std::string>()}};
+auto InvokerProtocol::start(std::string start_message) -> awaitable<void> {
+    json set_id_request = {{"invoker_id", requireHasValue(getMyTestNodeId())}};
     co_await sendMessage(set_id_request.dump());
     co_spawn(co_await boost::asio::this_coro::executor, getSession()->receiveMessage(), boost::asio::detached);
 }
 
-awaitable<void> InvokerProtocol::receiveMessage(std::string message) {
+auto InvokerProtocol::receiveMessage(std::string message) -> awaitable<void> {
     json parsed_message = json::parse(message);
 
     co_spawn(co_await boost::asio::this_coro::executor, getSession()->receiveMessage(), boost::asio::detached);
@@ -72,13 +78,11 @@ awaitable<void> InvokerProtocol::receiveMessage(std::string message) {
     }
 }
 
-void InvokerProtocol::closeSession() {
-    std::string host = Config::config().at("hosts").at("dispatcher").get<std::string>();
-    short port = Config::config().at("ports").at("dispatcher").get<short>();
-    std::string session_type = Config::config().at("sessions").at("dispatcher").get<std::string>();
+auto InvokerProtocol::closeSession() -> void {
+    config::ConnectionConfig connection_config = requireHasValue(config::getConnectionConfig("dispatcher"));
     co_spawn(getSession()->getExecutor(),
-             socket::asyncConnectToTheEndpoint(host, port, session_type,
-                                               Config::config().at("start_messages").at("dispatcher").get<std::string>()),
+             socket::asyncConnectToTheEndpoint(connection_config.host, connection_config.port, connection_config.session_type,
+                                               connection_config.start_message),
              boost::asio::detached);
 }
 

@@ -20,7 +20,7 @@
     "sessions": {
         "content_storage": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(DataSenderProtocol)\"}))"
     },
-    "bounds": {
+    "timings": {
         "ping_interval": 5,
         "pong_timeout": 3
     }

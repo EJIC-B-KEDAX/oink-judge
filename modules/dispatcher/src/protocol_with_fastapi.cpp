@@ -1,6 +1,6 @@
 #include "oink_judge/dispatcher/protocol_with_fastapi.h"
 
-#include <oink_judge/content_service/content_storage.h>
+#include <oink_judge/content_service/client/content_storage.h>
 #include <oink_judge/database/table_submissions.h>
 
 namespace oink_judge::dispatcher {

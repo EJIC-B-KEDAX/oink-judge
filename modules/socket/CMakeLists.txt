@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Module: oink_judge::socket
-# This CMakeLists provides a reusable `oink_judge::socket` target with public
-# headers under `include/oink/socket` and sources under `src/`.
 
-# Source / header lists - keep these minimal; add files as needed
 set(SOCKET_PUBLIC_HEADERS
 	include/oink_judge/socket/async_server.h
     include/oink_judge/socket/boost_io_context.h
@@ -48,37 +45,24 @@ set(SOCKET_SOURCES
     src/sessions/ssl_session.cpp
 )
 
-add_library(oink_judge_socket STATIC ${SOCKET_SOURCES} ${SOCKET_PUBLIC_HEADERS})
-add_library(oink_judge::socket ALIAS oink_judge_socket)
+add_library(oink_judge_socket_headers INTERFACE ${SOCKET_PUBLIC_HEADERS})
 
-target_include_directories(oink_judge_socket
-	PUBLIC
+target_include_directories(oink_judge_socket_headers
+	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
 )
 
+target_link_libraries(oink_judge_socket_headers INTERFACE oink_judge_logger_headers oink_judge_config_headers oink_judge_factory)
+
+add_library(oink_judge_socket SHARED ${SOCKET_SOURCES})
+add_library(oink_judge::socket ALIAS oink_judge_socket)
+
+find_package(OpenSSL REQUIRED)
+
 target_compile_features(oink_judge_socket PUBLIC cxx_std_20)
+target_link_libraries(oink_judge_socket PUBLIC oink_judge_socket_headers oink_judge::logger oink_judge::config OpenSSL::SSL OpenSSL::Crypto)
 
-target_link_libraries(oink_judge_socket PUBLIC oink_judge::logger oink_judge::config oink_judge::factory)
-
-option(OINK_SOCKET_INSTALL "Install oink_judge::socket target" ON)
-if(OINK_SOCKET_INSTALL)
-	install(TARGETS oink_judge_socket
-        EXPORT oinkJudgeTargets
-		ARCHIVE DESTINATION lib
-		LIBRARY DESTINATION lib
-		RUNTIME DESTINATION bin
-		INCLUDES DESTINATION include
-	)
-
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-		DESTINATION include
-		FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.inl"
-	)
-
-	install(EXPORT oinkJudgeTargets
-		NAMESPACE oink_judge::
-		FILE oinkJudgeTargets-socket.cmake
-		DESTINATION lib/cmake/oink_judge
-	)
-endif()
+add_library(socket_type_registration SHARED type_registration/type_registration.cpp)
+target_link_libraries(socket_type_registration PRIVATE oink_judge::socket)
+target_compile_options(socket_type_registration PRIVATE -fPIC)

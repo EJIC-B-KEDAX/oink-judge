@@ -30,7 +30,7 @@
         "data_sender": "{\"connection_type\": \"content_storage\"}",
         "dispatcher": "{\"connection_type\": \"test_node\"}"
     },
-    "bounds": {
+    "timings": {
         "ping_interval": 5,
         "pong_timeout": 3
     },

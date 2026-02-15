@@ -55,4 +55,4 @@ target_include_directories(oink_judge_test_node PUBLIC
 )
 
 target_compile_features(oink_judge_test_node PUBLIC cxx_std_20)
-target_link_libraries(oink_judge_test_node PUBLIC oink_judge::logger oink_judge::config oink_judge::utils oink_judge::socket oink_judge::database oink_judge::content_service)
+target_link_libraries(oink_judge_test_node PUBLIC oink_judge::logger oink_judge::config oink_judge::utils oink_judge::socket oink_judge::database oink_judge::content_service_client)

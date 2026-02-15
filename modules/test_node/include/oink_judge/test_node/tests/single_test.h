@@ -3,6 +3,8 @@
 
 namespace oink_judge::test_node {
 
+namespace fs = std::filesystem;
+
 class SingleTest : public Test {
   public:
     SingleTest(const std::string& problem_id, std::string name);
@@ -17,8 +19,8 @@ class SingleTest : public Test {
 
   private:
     std::string name_;
-    std::string input_path_;
-    std::string answer_path_;
+    fs::path input_path_;
+    fs::path answer_path_;
 };
 
 } // namespace oink_judge::test_node

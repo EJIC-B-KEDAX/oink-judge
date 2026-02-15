@@ -15,7 +15,7 @@
     "directories": {
         "certs": "certs"
     },
-    "bounds": {
+    "timings": {
         "valid_session_time": 3600,
         "ping_interval": 5,
         "pong_timeout": 3

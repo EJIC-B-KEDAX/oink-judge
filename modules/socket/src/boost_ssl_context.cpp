@@ -1,32 +1,35 @@
 #include "oink_judge/socket/boost_ssl_context.h"
 
 #include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 #include <stdexcept>
 
 namespace oink_judge::socket {
 
-using Config = config::Config;
+using logger::requireHasValue;
 
-boost::asio::ssl::context& BoostSSLContext::server() {
+namespace fs = std::filesystem;
+
+auto BoostSSLContext::server() -> boost::asio::ssl::context& {
     static boost::asio::ssl::context server_context(boost::asio::ssl::context::tlsv12_server);
     static bool initialized = false;
 
     if (!initialized) {
-        std::string certs_dir = Config::config().at("directories").at("certs").get<std::string>();
-        setupSSLContext(server_context, certs_dir + "/server.crt", certs_dir + "/server.key", certs_dir + "/dh2048.pem");
+        fs::path certs_dir = requireHasValue(config::getDirectoryPath("certs"));
+        setupSSLContext(server_context, certs_dir / "server.crt", certs_dir / "server.key", certs_dir / "dh2048.pem");
         initialized = true;
     }
 
     return server_context;
 }
 
-boost::asio::ssl::context& BoostSSLContext::client() {
+auto BoostSSLContext::client() -> boost::asio::ssl::context& {
     static boost::asio::ssl::context client_context(boost::asio::ssl::context::tlsv12_client);
     static bool initialized = false;
 
     if (!initialized) {
-        std::string certs_dir = Config::config().at("directories").at("certs").get<std::string>();
-        client_context.load_verify_file(certs_dir + "/ca.pem");
+        fs::path certs_dir = requireHasValue(config::getDirectoryPath("certs"));
+        client_context.load_verify_file(certs_dir / "ca.pem");
         client_context.set_verify_mode(boost::asio::ssl::verify_peer);
 
         initialized = true;
@@ -35,8 +38,8 @@ boost::asio::ssl::context& BoostSSLContext::client() {
     return client_context;
 }
 
-void BoostSSLContext::setupSSLContext(boost::asio::ssl::context& context, const std::string& cert_path,
-                                      const std::string& key_path, const std::string& dh_path) {
+void BoostSSLContext::setupSSLContext(boost::asio::ssl::context& context, const fs::path& cert_path, const fs::path& key_path,
+                                      const fs::path& dh_path) {
     context.set_options(boost::asio::ssl::context::default_workarounds | boost::asio::ssl::context::no_sslv2 |
                         boost::asio::ssl::context::no_sslv3 | boost::asio::ssl::context::single_dh_use);
 

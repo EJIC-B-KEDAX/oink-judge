@@ -32,7 +32,7 @@ auto asyncConnectToTheEndpoint(std::string host, short port, std::string session
         co_return session_ptr;
 
     } catch (const std::exception& e) {
-        logger::logMessage("socket", 1, std::string("Error during async connect: ") + e.what(), logger::ERROR);
+        logger::logMessage("socket", std::string("Error during async connect: ") + e.what(), logger::ERROR);
         socket.close();
     }
 
@@ -50,7 +50,7 @@ auto asyncScheduleConnectToTheEndpoint(std::string host, short port, std::string
         co_await timer.async_wait(boost::asio::use_awaitable);
         co_return co_await asyncConnectToTheEndpoint(host, port, session_type, request);
     } catch (const std::exception& e) {
-        logger::logMessage("socket", 1, std::string("Error during scheduled async connect: ") + e.what(), logger::ERROR);
+        logger::logMessage("socket", std::string("Error during scheduled async connect: ") + e.what(), logger::ERROR);
     }
 
     co_return co_await asyncConnectToTheEndpoint(host, port, session_type, request);
@@ -75,7 +75,7 @@ auto connectToTheEndpoint(std::string host, short port, std::string session_type
 
         return ptr;
     } catch (const boost::system::system_error& e) {
-        logger::logMessage("socket", 1, std::string("Error during connect: ") + e.what(), logger::ERROR);
+        logger::logMessage("socket", std::string("Error during connect: ") + e.what(), logger::ERROR);
         socket->close();
         return scheduleConnectToTheEndpoint(std::move(host), port, std::move(session_type), std::move(request));
     }

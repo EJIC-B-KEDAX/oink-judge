@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint>
 #include <map>
 #include <ostream>
@@ -52,6 +51,8 @@ class Logger {
     uint32_t min_module_length_;
 };
 
+enum LogType : std::uint8_t { DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL };
+
 inline const std::map<std::string, std::string> Logger::DEFAULT_COLOR_MAP = {
     {"DEBUG", "\033[36m"},      // Cyan
     {"INFO", "\033[0m"},        // Default
@@ -64,14 +65,32 @@ inline const std::map<std::string, std::string> Logger::DEFAULT_COLOR_MAP = {
     {"TIMESTAMP", "\033[90m"}   // Bright Black
 };
 
-enum LogType : std::uint8_t { DEBUG, INFO, SUCCESS, WARNING, ERROR, CRITICAL };
-
-auto logMessage(const std::string& module, int level, const std::string& message, LogType type = LogType::INFO,
-                uint32_t full_function_name_on_level = UINT32_MAX,
-                std::source_location location = std::source_location::current()) -> void;
-
 auto disableColors() -> void;
 
 auto enableColors(const std::map<std::string, std::string>& color_map = Logger::DEFAULT_COLOR_MAP) -> void;
 
+auto logMessage(const std::string& module, const std::string& message, LogType type = LogType::INFO, int level = 1,
+                uint32_t full_function_name_on_level = UINT32_MAX,
+                std::source_location location = std::source_location::current()) -> void;
+
+auto logError(const std::string& module, const std::string& message, int level = 1,
+              uint32_t full_function_name_on_level = UINT32_MAX, std::source_location location = std::source_location::current())
+    -> void;
+
+auto logInfo(const std::string& module, const std::string& message, int level = 1,
+             uint32_t full_function_name_on_level = UINT32_MAX, std::source_location location = std::source_location::current())
+    -> void;
+
+auto logSuccess(const std::string& module, const std::string& message, int level = 1,
+                uint32_t full_function_name_on_level = UINT32_MAX,
+                std::source_location location = std::source_location::current()) -> void;
+
+template <typename T>
+auto requireHasValue(const std::optional<T>& opt, const std::string& message = "optional expected with value",
+                     const std::string& module = "optinal_unpacking", int level = 1,
+                     uint32_t full_function_name_on_level = UINT32_MAX,
+                     std::source_location location = std::source_location::current()) -> const T&;
+
 } // namespace oink_judge::logger
+
+#include "oink_judge/logger/logger.inl"

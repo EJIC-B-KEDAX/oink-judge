@@ -1,8 +1,10 @@
 #pragma once
 #include <boost/asio/ssl.hpp>
-#include <string>
+#include <filesystem>
 
 namespace oink_judge::socket {
+
+namespace fs = std::filesystem;
 
 class BoostSSLContext {
   public:
@@ -17,8 +19,8 @@ class BoostSSLContext {
 
   private:
     BoostSSLContext() = default;
-    static auto setupSSLContext(boost::asio::ssl::context& context, const std::string& cert_path, const std::string& key_path,
-                                const std::string& dh_path) -> void;
+    static auto setupSSLContext(boost::asio::ssl::context& context, const fs::path& cert_path, const fs::path& key_path,
+                                const fs::path& dh_path) -> void;
 };
 
 } // namespace oink_judge::socket

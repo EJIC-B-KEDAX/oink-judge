@@ -40,11 +40,11 @@ awaitable<void> AsyncServer::accept() {
             co_await handler_->newConnection(std::move(socket), std::move(start_message));
             co_return;
         } catch (const std::exception& e) {
-            logger::logMessage("socket", 1, std::string("Error during connection setup: ") + e.what(), logger::ERROR);
+            logger::logMessage("socket", std::string("Error during connection setup: ") + e.what(), logger::ERROR);
             socket.close();
         }
     } catch (const std::exception& e) {
-        logger::logMessage("socket", 1, std::string("Error accepting connection: ") + e.what(), logger::ERROR);
+        logger::logMessage("socket", std::string("Error accepting connection: ") + e.what(), logger::ERROR);
     }
 
     co_spawn(co_await boost::asio::this_coro::executor, accept(), boost::asio::detached);

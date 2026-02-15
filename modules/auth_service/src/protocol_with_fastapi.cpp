@@ -4,16 +4,7 @@
 
 namespace oink_judge::auth_service {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    socket::ProtocolFactory::instance().registerType(
-        ProtocolWithFastAPI::REGISTERED_NAME,
-        [](const std::string& params) -> std::unique_ptr<socket::Protocol> { return std::make_unique<ProtocolWithFastAPI>(); });
-    return true;
-}();
-
-} // namespace
+namespace {} // namespace
 
 ProtocolWithFastAPI::ProtocolWithFastAPI() = default;
 
@@ -28,5 +19,11 @@ auto ProtocolWithFastAPI::receiveMessage(std::string message) -> awaitable<void>
 }
 
 auto ProtocolWithFastAPI::closeSession() -> void {}
+
+auto registerProtocolWithFastAPIType() -> void {
+    socket::ProtocolFactory::instance().registerType(
+        ProtocolWithFastAPI::REGISTERED_NAME,
+        [](const std::string& params) -> std::unique_ptr<socket::Protocol> { return std::make_unique<ProtocolWithFastAPI>(); });
+}
 
 } // namespace oink_judge::auth_service

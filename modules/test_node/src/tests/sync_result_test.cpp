@@ -8,11 +8,12 @@
 #include <oink_judge/config/config.h>
 #include <oink_judge/config/problem_config_utils.h>
 #include <oink_judge/database/table_submissions.h>
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
 
-using Config = config::Config;
-using TableSubmissions = database::TableSubmissions;
+using database::TableSubmissions;
+using logger::requireHasValue;
 
 namespace {
 
@@ -56,8 +57,8 @@ auto SyncResultTest::run(const std::string& submission_id, const std::vector<std
     ProblemTable& table = ProblemTablesStorage::instance().getTable(problem_id_);
     std::string username = TableSubmissions::instance().whoseSubmission(submission_id);
 
-    std::ofstream testing_protocol_file(Config::config().at("directories").at("submissions").get<std::string>() + "/" +
-                                        submission_id + "/protocol.json");
+    std::ofstream testing_protocol_file(requireHasValue(config::getDirectoryPath("submissions")) / submission_id /
+                                        "protocol.json");
     testing_protocol_file << verdict->toJson(2).dump(4);
     testing_protocol_file.close();
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 #include <ctime>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -22,7 +23,7 @@ class ContentManifest {
     std::string content_type_;
     std::string content_id_;
 
-    time_t full_rescan_interval_;
+    std::chrono::duration<double> full_rescan_interval_;
     mutable time_t last_updated_;
     mutable time_t last_full_rescan_;
 

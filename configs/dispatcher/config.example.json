@@ -29,7 +29,7 @@
     "start_messages": {
         "data_sender": "{\"connection_type\": \"content_storage\"}"
     },
-    "bounds": {
+    "timings": {
         "ping_interval": 5,
         "pong_timeout": 3
     }

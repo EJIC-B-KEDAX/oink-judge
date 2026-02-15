@@ -33,7 +33,7 @@ async def handle_logout(request: Request):
 
 @router.get("/register", response_class=HTMLResponse)
 async def show_register_page(request: Request, username: str = Depends(get_current_user)):
-    if await username is not None:
+    if username is not None:
         return RedirectResponse(url="/dashboard", status_code=302)
 
     return templates.TemplateResponse("register.html", {"request": request})

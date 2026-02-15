@@ -1,10 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Module: oink_judge::config
-# This CMakeLists provides a reusable `oink_judge::config` target with public
-# headers under `include/oink/config` and sources under `src/`.
 
-# Source / header lists - keep these minimal; add files as needed
 set(CONFIG_PUBLIC_HEADERS
 	include/oink_judge/config/config.h
     include/oink_judge/config/server_config_utils.h
@@ -19,41 +16,24 @@ set(CONFIG_SOURCES
 	src/logger_config_utils.cpp
 )
 
-add_library(oink_judge_config STATIC ${CONFIG_SOURCES} ${CONFIG_PUBLIC_HEADERS})
-add_library(oink_judge::config ALIAS oink_judge_config)
+add_library(oink_judge_config_headers INTERFACE ${CONFIG_PUBLIC_HEADERS})
 
-target_include_directories(oink_judge_config
-	PUBLIC
+target_include_directories(oink_judge_config_headers
+	INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
 )
 
+target_link_libraries(oink_judge_config_headers INTERFACE oink_judge_logger_headers)
+
+add_library(oink_judge_config SHARED ${CONFIG_SOURCES})
+add_library(oink_judge::config ALIAS oink_judge_config)
+
 target_compile_features(oink_judge_config PUBLIC cxx_std_20)
 
 find_package(PugiXML REQUIRED)
-target_link_libraries(oink_judge_config PUBLIC pugixml oink_judge::logger)
+target_link_libraries(oink_judge_config PUBLIC oink_judge_config_headers pugixml oink_judge::logger)
 
-option(OINK_CONFIG_INSTALL "Install oink_judge::config target" ON)
-if(OINK_CONFIG_INSTALL)
-	install(TARGETS oink_judge_config
-        EXPORT oinkJudgeTargets
-		ARCHIVE DESTINATION lib
-		LIBRARY DESTINATION lib
-		RUNTIME DESTINATION bin
-		INCLUDES DESTINATION include
-	)
-
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-		DESTINATION include
-		FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.inl"
-	)
-
-	install(EXPORT oinkJudgeTargets
-		NAMESPACE oink_judge::
-		FILE oinkJudgeTargets-config.cmake
-		DESTINATION lib/cmake/oink_judge
-	)
-endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_config.cpp)
     add_executable(oink_judge_config_tests tests/test_config.cpp)

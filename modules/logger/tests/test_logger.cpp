@@ -14,11 +14,11 @@ static auto expectTrue(bool cond, const std::string& msg, std::source_location l
     Logger::instance().setMinLocationLength(Logger::DEFAULT_MIN_LOCATION_LENGTH);
     Logger::instance().setMinModuleLength(Logger::DEFAULT_MIN_MODULE_LENGTH);
     if (!cond) {
-        logMessage("TestLogger", 1, msg, LogType::CRITICAL, 2, location);
+        logMessage("TestLogger", msg, LogType::CRITICAL, 1, 2, location);
         return false;
     }
 
-    logMessage("TestLogger", 1, msg, LogType::SUCCESS, 2, location);
+    logMessage("TestLogger", msg, LogType::SUCCESS, 1, 2, location);
     return true;
 }
 
@@ -46,8 +46,8 @@ static auto testLogLevelFiltering() -> bool {
     Logger::instance().setOutputStream(out);
     Logger::instance().setLogLevel("TestLogger", 1);
 
-    logMessage("TestLogger", 1, "visible message", LogType::INFO);
-    logMessage("TestLogger", 2, "hidden message", LogType::INFO);
+    logMessage("TestLogger", "visible message", LogType::INFO, 1);
+    logMessage("TestLogger", "hidden message", LogType::INFO, 2);
 
     std::string out_str = out.str();
     success &= expectTrue(out_str.find("visible message") != std::string::npos, "level 1 message logged");
@@ -65,7 +65,7 @@ static auto testColorDisableEnable() -> bool {
     // Ensure colors present by default (or when enabled)
     enableColors(Logger::DEFAULT_COLOR_MAP);
     out.str(std::string());
-    logMessage("TestLogger", 1, "colored", LogType::INFO);
+    logMessage("TestLogger", "colored", LogType::INFO, 1);
     std::string colored_out = out.str();
     success &= expectTrue(colored_out.find("\033[") != std::string::npos, "colors present after enableColors");
 
@@ -73,7 +73,7 @@ static auto testColorDisableEnable() -> bool {
     disableColors();
     Logger::instance().setOutputStream(out);
     out.str(std::string());
-    logMessage("TestLogger", 1, "nocolor", LogType::INFO);
+    logMessage("TestLogger", "nocolor", LogType::INFO, 1);
     std::string no_color_out = out.str();
     success &= expectTrue(no_color_out.find("\033[") == std::string::npos, "no color sequences after disableColors");
 

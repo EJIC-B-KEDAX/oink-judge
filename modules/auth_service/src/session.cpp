@@ -2,6 +2,7 @@
 
 #include <ctime>
 #include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <random>
 
@@ -14,7 +15,7 @@ std::mt19937_64 rng(rd()); // NOLINT
 
 } // namespace
 
-using Config = config::Config;
+using logger::requireHasValue;
 
 Session::Session(std::string username) : username_(std::move(username)), expire_at_(0) {}
 
@@ -52,7 +53,7 @@ auto Session::generateSessionId() -> std::string {
 }
 
 auto Session::generateExpiredAt() -> time_t {
-    return std::time(nullptr) + static_cast<time_t>(Config::config()["bounds"]["valid_session_time"]);
+    return std::time(nullptr) + static_cast<time_t>(requireHasValue(config::getTiming("valid_session_time")).count());
 }
 
 } // namespace oink_judge::auth_service

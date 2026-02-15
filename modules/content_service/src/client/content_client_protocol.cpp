@@ -1,4 +1,4 @@
-#include "oink_judge/content_service/content_client_protocol.h"
+#include "oink_judge/content_service/client/content_client_protocol.h"
 
 #include <oink_judge/config/config.h>
 #include <oink_judge/utils/crypto.h>

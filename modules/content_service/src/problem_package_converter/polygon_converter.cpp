@@ -1,7 +1,7 @@
 #include "oink_judge/content_service/problem_package_converter/polygon_converter.h"
 
 #include <algorithm>
-#include <oink_judge/config/problem_config_utils.h>
+#include <pugixml.hpp>
 
 namespace oink_judge::content_service::problem_package_converter {
 
@@ -32,21 +32,25 @@ auto getProblemIdFromPath(const std::string& path_to_package) -> std::string {
 
 PolygonConverter::PolygonConverter() = default;
 
-auto PolygonConverter::convertPackage(const std::string& path_to_package) -> void { convertICPCProblemPackage(path_to_package); }
+auto PolygonConverter::convertPackage(const fs::path& path_to_package) -> void { convertICPCProblemPackage(path_to_package); }
 
-auto PolygonConverter::convertICPCProblemPackage(const std::string& path_to_package) -> void { // NOLINT
-    std::string problem_id = getProblemIdFromPath(path_to_package);
-    auto problem_config_opt = oink_judge::problem_config::getProblemConfig(problem_id);
-    if (!problem_config_opt) {
-        throw std::runtime_error("Can not find problem config for problem " + problem_id);
+auto PolygonConverter::convertICPCProblemPackage(const fs::path& path_to_package) -> void { // NOLINT
+    pugi::xml_document problem_config_doc;
+    pugi::xml_parse_result parse_result = problem_config_doc.load_file((path_to_package / "problem.xml").c_str());
+    if (!parse_result) {
+        throw std::runtime_error("Can not open" + path_to_package.string() + "/problem.xml");
     }
-    pugi::xml_node problem_config = *problem_config_opt;
 
-    std::string path_to_checker =
-        path_to_package + problem_config.child("assets").child("checker").child("source").attribute("path").as_string();
+    pugi::xml_node problem_config = problem_config_doc.child("problem");
+    if (!problem_config) {
+        throw std::runtime_error("Problem config have not child problem");
+    }
+
+    fs::path path_to_checker =
+        path_to_package / problem_config.child("assets").child("checker").child("source").attribute("path").as_string();
 
     int compile_checker_rc =
-        std::system(("g++ -o " + path_to_package + "/checker " + path_to_checker + " -O2 -std=c++23").c_str());
+        std::system(("g++ -o " + path_to_package.string() + "/checker " + path_to_checker.string() + " -O2 -std=c++23").c_str());
     if (compile_checker_rc != 0) {
         throw std::runtime_error("Can not compile checker");
     }
@@ -107,7 +111,7 @@ auto PolygonConverter::convertICPCProblemPackage(const std::string& path_to_pack
 
     pugi::xml_document config_document;
     config_document.append_copy(problem_config);
-    if (!config_document.save_file((path_to_package + "/problem.xml").c_str())) {
+    if (!config_document.save_file((path_to_package / "problem.xml").c_str())) {
         throw std::runtime_error("Can not save config file");
     }
 }

@@ -2,6 +2,7 @@
 
 #include "oink_judge/test_node/problem_builder.hpp"
 #include "oink_judge/test_node/problem_builders/enable_get_test_by_name.hpp"
+#include "oink_judge/test_node/verdicts/verdict_base.h"
 
 #include <oink_judge/config/problem_config_utils.h>
 
@@ -43,8 +44,8 @@ Testset::Testset(ProblemBuilder* problem_builder, const std::string& problem_id,
     }
 }
 
-std::shared_ptr<Verdict> Testset::run(const std::string& submission_id, const std::vector<std::string>& boxes,
-                                      json additional_params) {
+auto Testset::run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
+    -> std::shared_ptr<Verdict> {
     if (boxes.size() < boxesRequired()) {
         throw std::runtime_error("Not enough boxes provided");
     }
@@ -63,24 +64,24 @@ std::shared_ptr<Verdict> Testset::run(const std::string& submission_id, const st
         } else {
             test_verdict = tests_[i]->run(submission_id, boxes, additional_params);
         }
-        verdict_builder_->addVerdict(std::dynamic_pointer_cast<DefaultVerdict>(test_verdict));
+        verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
 
     return verdict_builder_->finalize();
 }
 
-std::shared_ptr<Verdict> Testset::skip(const std::string& submission_id) {
+auto Testset::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> {
     verdict_builder_->clear();
 
     for (size_t i = 0; i < tests_.size(); ++i) {
         std::shared_ptr<Verdict> test_verdict = tests_[i]->skip(submission_id);
-        verdict_builder_->addVerdict(std::dynamic_pointer_cast<DefaultVerdict>(test_verdict));
+        verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
 
     return verdict_builder_->finalize();
 }
 
-size_t Testset::boxesRequired() const {
+auto Testset::boxesRequired() const -> size_t {
     size_t max_boxes = 0;
     for (const auto& test : tests_) {
         max_boxes = std::max(max_boxes, test->boxesRequired());
@@ -88,6 +89,6 @@ size_t Testset::boxesRequired() const {
     return max_boxes;
 }
 
-const std::string& Testset::getName() const { return name_; }
+auto Testset::getName() const -> const std::string& { return name_; }
 
 } // namespace oink_judge::test_node

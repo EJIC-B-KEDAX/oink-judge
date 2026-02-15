@@ -1,15 +1,19 @@
-#include "oink_judge/content_service/content_server_protocol.h"
+#include "oink_judge/content_service/server/content_server_protocol.h"
 
+#include "oink_judge/content_service/content_config_utils.h"
 #include "oink_judge/content_service/manifest_storage.h"
 
-#include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
 namespace oink_judge::content_service {
 
-using json = nlohmann::json;
-using Config = config::Config;
+using logger::requireHasValue;
+using nlohmann::json;
+
+namespace fs = std::filesystem;
+
 namespace {
 
 [[maybe_unused]] const bool REGISTERED = []() -> bool {
@@ -46,10 +50,10 @@ auto ContentServerProtocol::receiveMessage(std::string message) -> awaitable<voi
     } else if (received_json["request"] == "get_file") {
         std::string content_type = received_json["content_type"];
         std::string content_id = received_json[content_type + "_id"];
-        std::string file_path = received_json["file_path"];
+        fs::path file_path = received_json["file_path"];
 
-        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
-        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+        fs::path base_directory = requireHasValue(getContentDirectory(content_type));
+        fs::path full_file_path = base_directory / content_id / file_path;
 
         std::string file_content = utils::filesystem::loadFile(full_file_path);
 
@@ -65,11 +69,11 @@ auto ContentServerProtocol::receiveMessage(std::string message) -> awaitable<voi
     } else if (received_json["request"] == "update_file") {
         std::string content_type = received_json["content_type"];
         std::string content_id = received_json[content_type + "_id"];
-        std::string file_path = received_json["file_path"];
+        fs::path file_path = received_json["file_path"];
         std::string file_content_base64 = received_json["file_content"];
 
-        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
-        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+        fs::path base_directory = requireHasValue(getContentDirectory(content_type));
+        fs::path full_file_path = base_directory / content_id / file_path;
 
         std::string file_content = utils::crypto::fromBase64(file_content_base64);
         utils::filesystem::storeFile(full_file_path, file_content);
@@ -86,10 +90,10 @@ auto ContentServerProtocol::receiveMessage(std::string message) -> awaitable<voi
     } else if (received_json["request"] == "remove_file") {
         std::string content_type = received_json["content_type"];
         std::string content_id = received_json[content_type + "_id"];
-        std::string file_path = received_json["file_path"];
+        fs::path file_path = received_json["file_path"];
 
-        std::string base_directory = Config::config().at("directories").at(content_type + "s").get<std::string>();
-        std::string full_file_path = base_directory + "/" + content_id + "/" + file_path;
+        fs::path base_directory = requireHasValue(getContentDirectory(content_type));
+        fs::path full_file_path = base_directory / content_id / file_path;
 
         utils::filesystem::removeFileOrDirectory(full_file_path);
 

@@ -1,10 +1,22 @@
 #include "oink_judge/database/database.h"
 
 #include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::database {
 
-using Config = config::Config;
+using logger::requireHasValue;
+
+namespace {
+
+auto getDatabaseCreateString() -> std::string {
+    config::DatabaseConfig database_config = requireHasValue(config::getDatabaseConfig());
+    return "host=" + database_config.host + " port=" + std::to_string(database_config.port) +
+           " dbname=" + database_config.database_name + " user=" + database_config.username +
+           " password=" + database_config.password + " keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=5";
+}
+
+} // namespace
 
 DataBase::~DataBase() = default;
 
@@ -90,13 +102,7 @@ auto DataBase::isStatementPrepared(const std::string& sql_template_name) const -
 
 DataBase::DataBase()
     // TODO: use getDatabaseConfig function
-    : connection_string_("host=" + static_cast<std::string>(Config::config()["database"]["host"]) +
-                         " port=" + std::to_string(static_cast<short>(Config::config()["ports"]["database"])) +
-                         " dbname=" + static_cast<std::string>(Config::config()["database"]["dbname"]) +
-                         " user=" + static_cast<std::string>(Config::config()["database"]["username"]) +
-                         " password=" + static_cast<std::string>(Config::credentials()["database"]["password"]) +
-                         " keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=5"),
-      connection_(connection_string_) {}
+    : connection_string_(getDatabaseCreateString()), connection_(connection_string_) {}
 
 void DataBase::ensureConnection() const {
     if (!connection_.is_open()) {

@@ -47,15 +47,14 @@ auto awaitableSystem(std::string command) -> awaitable<int> {
                             try {
                                 (*holder->completion)(bec, exit_code);
                             } catch (std::exception& e) {
-                                logger::logMessage("async_utils", 1,
+                                logger::logMessage("async_utils",
                                                    "Exception in async completion handler: " + std::string(e.what()),
-                                                   logger::LogType::ERROR);
+                                                   logger::LogType::ERROR, 1);
                             }
                         });
                     } catch (std::exception& e) {
-                        logger::logMessage("async_utils", 1,
-                                           "Exception posting async completion handler: " + std::string(e.what()),
-                                           logger::LogType::ERROR);
+                        logger::logMessage("async_utils", "Exception posting async completion handler: " + std::string(e.what()),
+                                           logger::LogType::ERROR, 1);
                     }
                     holder->child.reset();
                 };

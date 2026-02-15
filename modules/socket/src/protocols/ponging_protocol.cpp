@@ -4,20 +4,6 @@
 
 namespace oink_judge::socket {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    ProtocolFactory::instance().registerType(
-        PongingProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
-            const std::string& inner_type = params;
-
-            return std::make_unique<PongingProtocol>(ProtocolFactory::instance().create(inner_type));
-        });
-    return true;
-}();
-
-} // namespace
-
 PongingProtocol::PongingProtocol(std::unique_ptr<Protocol> inner_protocol) : ProtocolDecorator(std::move(inner_protocol)) {}
 
 auto PongingProtocol::receiveMessage(std::string message) -> awaitable<void> {
@@ -28,6 +14,15 @@ auto PongingProtocol::receiveMessage(std::string message) -> awaitable<void> {
     }
 
     co_await ProtocolDecorator::receiveMessage(message);
+}
+
+auto registerPongingProtocolType() -> void {
+    ProtocolFactory::instance().registerType(
+        PongingProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
+            const std::string& inner_type = params;
+
+            return std::make_unique<PongingProtocol>(ProtocolFactory::instance().create(inner_type));
+        });
 }
 
 } // namespace oink_judge::socket

@@ -4,9 +4,19 @@
 
 namespace oink_judge::socket {
 
-namespace {
+AuthorizingProtocol::AuthorizingProtocol(std::unique_ptr<Protocol> inner_protocol, std::string auth_token)
+    : ProtocolDecorator(std::move(inner_protocol)), auth_token_(std::move(auth_token)) {}
 
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
+auto AuthorizingProtocol::start(std::string start_message) -> awaitable<void> {
+    co_await sendMessage(auth_token_);
+    co_await ProtocolDecorator::start(start_message);
+}
+
+void AuthorizingProtocol::requestInternal(const std::string& message, const callback_t& callback) {
+    ProtocolDecorator::requestInternal(message, callback);
+}
+
+auto registerAuthorizingProtocolType() -> void {
     ProtocolFactory::instance().registerType(
         AuthorizingProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
             auto json_params = nlohmann::json::parse(params);
@@ -43,21 +53,6 @@ namespace {
             return std::make_unique<AuthorizingProtocol>(ProtocolFactory::instance().create(inner_type),
                                                          now_part[now_transition].get<std::string>());
         });
-    return true;
-}();
-
-} // namespace
-
-AuthorizingProtocol::AuthorizingProtocol(std::unique_ptr<Protocol> inner_protocol, std::string auth_token)
-    : ProtocolDecorator(std::move(inner_protocol)), auth_token_(std::move(auth_token)) {}
-
-auto AuthorizingProtocol::start(std::string start_message) -> awaitable<void> {
-    co_await sendMessage(auth_token_);
-    co_await ProtocolDecorator::start(start_message);
-}
-
-void AuthorizingProtocol::requestInternal(const std::string& message, const callback_t& callback) {
-    ProtocolDecorator::requestInternal(message, callback);
 }
 
 } // namespace oink_judge::socket

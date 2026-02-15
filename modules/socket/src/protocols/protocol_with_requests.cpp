@@ -29,7 +29,7 @@ auto ProtocolWithRequests::requestInternal(const std::string& message, const cal
 
 auto ProtocolWithRequests::closeSession() -> void {
     for (auto& [request_id, callback] : pending_requests_callbacks_) {
-        logger::logMessage("ProtocolWithRequests", 1,
+        logger::logMessage("ProtocolWithRequests",
                            "Cancelling pending request with ID " + std::to_string(request_id) + " due to session closure",
                            logger::WARNING);
         callCallback(callback, std::make_error_code(std::errc::operation_canceled));

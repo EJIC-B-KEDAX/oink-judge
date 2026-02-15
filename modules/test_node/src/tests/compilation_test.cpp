@@ -7,11 +7,14 @@
 #include <oink_judge/config/config.h>
 #include <oink_judge/config/problem_config_utils.h>
 #include <oink_judge/database/table_submissions.h>
+#include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
 
-using Config = config::Config;
-using TableSubmissions = database::TableSubmissions;
+namespace fs = std::filesystem;
+
+using database::TableSubmissions;
+using logger::requireHasValue;
 
 namespace {
 
@@ -48,20 +51,19 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         throw std::runtime_error("Not enough boxes provided");
     }
 
-    std::string scripts_dir = Config::config().at("directories").at("scripts").get<std::string>();
-    std::string submissions_dir = Config::config().at("directories").at("submissions").get<std::string>();
-    std::string problems_dir = Config::config().at("directories").at("problems").get<std::string>();
+    fs::path scripts_dir = requireHasValue(config::getDirectoryPath("scripts"));
+    fs::path submissions_dir = requireHasValue(config::getDirectoryPath("submissions"));
+    fs::path problems_dir = requireHasValue(config::getDirectoryPath("problems"));
 
     std::string language = TableSubmissions::instance().languageOfSubmission(submission_id);
 
-    std::string compilation_script = scripts_dir + "/compilation/" + language + ".sh"; // TODO change type to fs::path
-    std::string output_executale_name = "/var/local/lib/isolate/" + boxes[0] + "/box/solution";
-    std::string error_file_name = submissions_dir + "/" + submission_id + "/compilation_error.txt";
-    std::string source_file_name = submissions_dir + "/" + submission_id + "/source.cpp";
+    fs::path compilation_script = scripts_dir / "compilation" / (language + ".sh"); // TODO change type to fs::path
+    fs::path output_executale_name = fs::path("/var/local/lib/isolate") / boxes[0] / "box/solution";
+    fs::path error_file_name = submissions_dir / submission_id / "compilation_error.txt";
+    fs::path source_file_name = submissions_dir / submission_id / "source.cpp";
 
-    int rc_prepare = std::system((Config::config().at("directories").at("scripts").get<std::string>() +
-                                  "/prepare_for_testing.sh " + boxes[0] + " " + boxes[1] + " " + problem_id_)
-                                     .c_str());
+    int rc_prepare = std::system(
+        ((scripts_dir / "prepare_for_testing.sh").string() + " " + boxes[0] + " " + boxes[1] + " " + problem_id_).c_str());
 
     if (rc_prepare != 0) {
         auto verdict = std::make_shared<DefaultVerdict>(name_);
@@ -76,8 +78,9 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         return verdict;
     }
 
-    int rc_compilation =
-        std::system((compilation_script + " " + output_executale_name + " " + error_file_name + " " + source_file_name).c_str());
+    int rc_compilation = std::system((compilation_script.string() + " " + output_executale_name.string() + " " +
+                                      error_file_name.string() + " " + source_file_name.string())
+                                         .c_str());
 
     if (rc_compilation != 0) {
         auto verdict = std::make_shared<DefaultVerdict>(name_);
@@ -92,8 +95,9 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         return verdict;
     }
 
-    int rc_copy_checker = std::system(
-        ("cp " + problems_dir + "/" + problem_id_ + "/checker /var/local/lib/isolate/" + boxes[1] + "/box/checker").c_str());
+    int rc_copy_checker = std::system(("cp " + (problems_dir / problem_id_ / "checker").string() + " " +
+                                       (fs::path("/var/local/lib/isolate") / boxes[1] / "box/checker").string())
+                                          .c_str());
 
     if (rc_copy_checker != 0) {
         auto verdict = std::make_shared<DefaultVerdict>(name_);
@@ -110,9 +114,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
 
     std::shared_ptr<Verdict> result = test_->run(submission_id, boxes, additional_params);
 
-    int rc_clear = std::system(
-        (Config::config().at("directories").at("scripts").get<std::string>() + "/end_testing.sh " + boxes[0] + " " + boxes[1])
-            .c_str());
+    int rc_clear = std::system(((scripts_dir / "end_testing.sh").string() + " " + boxes[0] + " " + boxes[1]).c_str());
 
     if (rc_clear != 0) {
         auto verdict = std::make_shared<DefaultVerdict>(name_);

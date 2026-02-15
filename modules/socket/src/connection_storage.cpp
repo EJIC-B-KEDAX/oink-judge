@@ -2,6 +2,8 @@
 
 namespace oink_judge::socket {
 
+ConnectionStorage::~ConnectionStorage() = default;
+
 auto ConnectionStorage::instance() -> ConnectionStorage& {
     static ConnectionStorage instance;
     return instance;

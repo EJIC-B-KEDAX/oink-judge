@@ -17,4 +17,6 @@ class AuthorizingProtocol : public ProtocolDecorator {
     std::string auth_token_;
 };
 
+auto registerAuthorizingProtocolType() -> void;
+
 } // namespace oink_judge::socket

@@ -14,4 +14,6 @@ class SimpleConnectionHandler : public ConnectionHandler {
     constexpr static auto REGISTERED_NAME = "SimpleConnectionHandler";
 };
 
+auto registerSimpleConnectionHandlerType() -> void;
+
 } // namespace oink_judge::socket

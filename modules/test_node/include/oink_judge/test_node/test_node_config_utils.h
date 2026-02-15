@@ -4,7 +4,7 @@
 
 namespace oink_judge::test_node {
 
-auto getMyTestNodeId() -> std::optional<int>;
+auto getMyTestNodeId() -> std::optional<std::string>;
 
 auto getTestingLogFilePath(const std::string& key) -> std::optional<std::string>;
 

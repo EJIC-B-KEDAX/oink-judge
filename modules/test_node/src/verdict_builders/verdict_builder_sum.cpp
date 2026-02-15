@@ -17,20 +17,20 @@ namespace {
 } // namespace
 
 VerdictBuilderSum::VerdictBuilderSum(std::string test_name)
-    : test_name_(std::move(test_name)), current_verdict_(std::make_shared<DefaultVerdict>(test_name_)) {
+    : test_name_(std::move(test_name)), current_verdict_(std::make_shared<VerdictBase>(test_name_)) {
     clear();
 }
 
 auto VerdictBuilderSum::clear() -> void {
-    current_verdict_ = std::make_shared<DefaultVerdict>(test_name_);
+    current_verdict_ = std::make_shared<VerdictBase>(test_name_);
     current_verdict_->setInfo({.type = VerdictType::ACCEPTED, .score = 0, .time_used = 0, .memory_used = 0, .real_time_used = 0});
 }
 
-auto VerdictBuilderSum::addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> void {
+auto VerdictBuilderSum::addVerdict(std::shared_ptr<VerdictBase> verdict) -> void {
     current_verdict_->addToAdditionalInfo(verdict->getTestName(), verdict->toJson(2));
     auto info = verdict->getInfo();
     auto current_info = current_verdict_->getInfo();
-    DefaultVerdict::VerdictInfo new_info;
+    VerdictBase::VerdictInfo new_info;
     VerdictType new_type;
     if (current_info.type.type == VerdictType::Type::ACCEPTED_T) {
         if (info.type.type == VerdictType::Type::WRONG_T || info.type.type == VerdictType::Type::SKIPPED_T) {
@@ -71,6 +71,6 @@ auto VerdictBuilderSum::addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> v
 
 auto VerdictBuilderSum::canScoreChange() const -> bool { return current_verdict_->getInfo().score != 0.0; }
 
-auto VerdictBuilderSum::finalize() -> std::shared_ptr<DefaultVerdict> { return current_verdict_; }
+auto VerdictBuilderSum::finalize() -> std::shared_ptr<VerdictBase> { return current_verdict_; }
 
 } // namespace oink_judge::test_node

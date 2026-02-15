@@ -25,4 +25,6 @@ class PingingProtocol : public ProtocolDecorator {
     auto waitForPong() -> void;
 };
 
+auto registerPingingProtocolType() -> void;
+
 } // namespace oink_judge::socket

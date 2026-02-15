@@ -14,11 +14,11 @@ namespace fs = std::filesystem;
 static auto expectTrue(bool cond, const std::string& msg, std::source_location location = std::source_location::current())
     -> bool {
     if (!cond) {
-        logMessage("TestLoggerConfig", 1, msg, LogType::CRITICAL, 2, location);
+        logMessage("TestLoggerConfig", msg, LogType::CRITICAL, 1, 2, location);
         return false;
     }
 
-    logMessage("TestLoggerConfig", 1, msg, LogType::SUCCESS, 2, location);
+    logMessage("TestLoggerConfig", msg, LogType::SUCCESS, 1, 2, location);
     return true;
 }
 

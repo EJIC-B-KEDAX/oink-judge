@@ -1,5 +1,5 @@
 #pragma once
-#include "oink_judge/test_node/verdicts/default_verdict.h"
+#include "oink_judge/test_node/verdicts/verdict_base.h"
 
 #include <oink_judge/factory/parameterized_type_factory.hpp>
 
@@ -14,9 +14,9 @@ class VerdictBuilder {
     virtual ~VerdictBuilder() = default;
 
     virtual auto clear() -> void = 0;
-    virtual auto addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> void = 0;
+    virtual auto addVerdict(std::shared_ptr<VerdictBase> verdict) -> void = 0;
     [[nodiscard]] virtual auto canScoreChange() const -> bool = 0;
-    [[nodiscard]] virtual auto finalize() -> std::shared_ptr<DefaultVerdict> = 0;
+    [[nodiscard]] virtual auto finalize() -> std::shared_ptr<VerdictBase> = 0;
 
   protected:
     VerdictBuilder() = default;

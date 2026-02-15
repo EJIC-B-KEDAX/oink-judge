@@ -8,15 +8,15 @@ class VerdictBuilderSum : public VerdictBuilder {
     VerdictBuilderSum(std::string test_name);
 
     auto clear() -> void override;
-    auto addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> void override;
+    auto addVerdict(std::shared_ptr<VerdictBase> verdict) -> void override;
     [[nodiscard]] auto canScoreChange() const -> bool override;
-    [[nodiscard]] auto finalize() -> std::shared_ptr<DefaultVerdict> override;
+    [[nodiscard]] auto finalize() -> std::shared_ptr<VerdictBase> override;
 
     constexpr static auto REGISTERED_NAME = "sum";
 
   private:
     std::string test_name_;
-    std::shared_ptr<DefaultVerdict> current_verdict_;
+    std::shared_ptr<VerdictBase> current_verdict_;
 };
 
 } // namespace oink_judge::test_node

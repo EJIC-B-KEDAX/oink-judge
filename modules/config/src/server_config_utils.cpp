@@ -2,6 +2,8 @@
 
 #include "oink_judge/config/config.h"
 
+#include <optional>
+
 namespace oink_judge::config {
 
 auto getMyPort() -> std::optional<int> {
@@ -20,6 +22,30 @@ auto getConnectionHandlerType() -> std::optional<std::string> {
     }
 
     return config_data["connection_handler_type"].get<std::string>();
+}
+
+auto getConnectionConfig(const std::string& key) -> std::optional<ConnectionConfig> {
+    std::optional<std::string> host_opt = getServerHostname(key);
+    if (!host_opt) {
+        return std::nullopt;
+    }
+
+    std::optional<short> port_opt = getServerPort(key);
+    if (!port_opt) {
+        return std::nullopt;
+    }
+
+    std::optional<std::string> session_type_opt = getSessionType(key);
+    if (!session_type_opt) {
+        return std::nullopt;
+    }
+
+    std::optional<std::string> start_message_opt = getStartMessage(key);
+    if (!start_message_opt) {
+        return std::nullopt;
+    }
+
+    return ConnectionConfig(*host_opt, *port_opt, *session_type_opt, *start_message_opt);
 }
 
 } // namespace oink_judge::config

@@ -8,42 +8,6 @@
 
 namespace oink_judge::socket {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED_CLIENT = []() -> bool {
-    SessionFactory::instance().registerType(
-        SSLSession::REGISTERED_NAME_CLIENT, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
-            auto event_handler = ProtocolFactory::instance().create(params);
-
-            auto ptr =
-                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::client);
-
-            ptr->setSessionPtr();
-
-            return ptr;
-        });
-
-    return true;
-}();
-
-[[maybe_unused]] const bool REGISTERED_SERVER = []() -> bool {
-    SessionFactory::instance().registerType(
-        SSLSession::REGISTERED_NAME_SERVER, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
-            auto event_handler = ProtocolFactory::instance().create(params);
-
-            auto ptr =
-                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::server);
-
-            ptr->setSessionPtr();
-
-            return ptr;
-        });
-
-    return true;
-}();
-
-} // namespace
-
 SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,
                        boost::asio::ssl::stream_base::handshake_type handshake_type)
     : SessionBase(std::move(protocol)), is_sending_(false),
@@ -73,7 +37,7 @@ auto SSLSession::start(std::string start_message) -> awaitable<void> {
         co_await accessProtocol().start(start_message);
 
     } catch (const boost::system::system_error& e) {
-        logger::logMessage("SSLSession", 1, std::string("Error: ") + e.what(), logger::ERROR);
+        logger::logMessage("SSLSession", std::string("Error: ") + e.what(), logger::ERROR);
         close();
     }
 }
@@ -113,7 +77,7 @@ auto SSLSession::receiveMessage() -> awaitable<void> {
         co_await boost::asio::async_read(ssl_stream_, boost::asio::buffer(message), boost::asio::use_awaitable);
         co_await accessProtocol().receiveMessage(message);
     } catch (const boost::system::system_error& e) {
-        logger::logMessage("SSLSession", 1, std::string("Receive error: ") + e.what(), logger::ERROR);
+        logger::logMessage("SSLSession", std::string("Receive error: ") + e.what(), logger::ERROR);
         close();
     }
 }
@@ -143,7 +107,7 @@ auto SSLSession::sendLoop() -> awaitable<void> {
                                           boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec) {
-            logger::logMessage("SSLSession", 1, std::string("Send length error: ") + ec.message(), logger::ERROR);
+            logger::logMessage("SSLSession", std::string("Send length error: ") + ec.message(), logger::ERROR);
             qm.callback(ec);
             close();
             co_return;
@@ -153,7 +117,7 @@ auto SSLSession::sendLoop() -> awaitable<void> {
                                           boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec) {
-            logger::logMessage("SSLSession", 1, std::string("Send message error: ") + ec.message(), logger::ERROR);
+            logger::logMessage("SSLSession", std::string("Send message error: ") + ec.message(), logger::ERROR);
             qm.callback(ec);
             close();
             co_return;
@@ -163,6 +127,34 @@ auto SSLSession::sendLoop() -> awaitable<void> {
     }
 
     is_sending_ = false;
+}
+
+auto registerSSLSessionClientType() -> void {
+    SessionFactory::instance().registerType(
+        SSLSession::REGISTERED_NAME_CLIENT, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
+            auto event_handler = ProtocolFactory::instance().create(params);
+
+            auto ptr =
+                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::client);
+
+            ptr->setSessionPtr();
+
+            return ptr;
+        });
+}
+
+auto registerSSLSessionServerType() -> void {
+    SessionFactory::instance().registerType(
+        SSLSession::REGISTERED_NAME_SERVER, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
+            auto event_handler = ProtocolFactory::instance().create(params);
+
+            auto ptr =
+                std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::server);
+
+            ptr->setSessionPtr();
+
+            return ptr;
+        });
 }
 
 } // namespace oink_judge::socket

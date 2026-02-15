@@ -24,4 +24,6 @@ class AuthRequiredProtocol : public ProtocolDecorator {
     std::string saved_start_message_;
 };
 
+auto registerAuthRequiredProtocolType() -> void;
+
 } // namespace oink_judge::socket

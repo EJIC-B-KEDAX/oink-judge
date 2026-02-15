@@ -10,14 +10,14 @@ auto ProtocolBase::setSession(std::weak_ptr<socket::Session> session) -> void { 
 
 auto ProtocolBase::getSession() const -> std::shared_ptr<socket::Session> {
     if (session_.expired()) {
-        logger::logMessage("socket", 1, "Trying to get session from protocol, but session is expired", logger::ERROR);
+        logger::logMessage("socket", "Trying to get session from protocol, but session is expired", logger::ERROR);
         throw std::runtime_error("Session is expired");
     }
     return session_.lock();
 }
 
 auto ProtocolBase::requestInternal(const std::string& message, const callback_t& callback) -> void {
-    logger::logMessage("socket", 1, "Trying to request on base protocol, which is not implemented", logger::ERROR);
+    logger::logMessage("socket", "Trying to request on base protocol, which is not implemented", logger::ERROR);
     throw std::runtime_error("Request is not implemented for this protocol");
 }
 

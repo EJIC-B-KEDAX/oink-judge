@@ -81,7 +81,7 @@ auto TestingQueue::findInvokerIndexById(const std::string& invoker_id) const -> 
         }
     }
 
-    logger::logMessage("TestingQueue", 1, "Invoker with ID " + invoker_id + " not found.", logger::LogType::ERROR);
+    logger::logMessage("TestingQueue", "Invoker with ID " + invoker_id + " not found.", logger::LogType::ERROR);
     throw std::runtime_error("Invoker with ID " + invoker_id + " not found.");
 }
 

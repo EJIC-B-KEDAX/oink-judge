@@ -30,7 +30,7 @@ auto Logger::setOutputStream(std::ostream& out) -> void { out_stream_ = &out; }
 auto Logger::log(const std::string& module, int level, const std::string& message) -> void {
     auto it = log_levels_.find(module);
     if (it == log_levels_.end() || level > it->second) {
-        return; // Log level too big, ignore message
+        // return; // Log level too big, ignore message
     }
 
     (*out_stream_) << message;
@@ -62,7 +62,18 @@ Logger::Logger()
     : out_stream_(&std::cerr), min_location_length_(DEFAULT_MIN_LOCATION_LENGTH), min_module_length_(DEFAULT_MIN_MODULE_LENGTH),
       color_map_(DEFAULT_COLOR_MAP) {}
 
-auto logMessage(const std::string& module, int level, const std::string& message, LogType type,
+auto disableColors() -> void {
+    auto& logger = Logger::instance();
+    std::map<std::string, std::string> no_color_map;
+    for (const auto& [key, value] : logger.getColorMap()) {
+        no_color_map[key] = "";
+    }
+    logger.setColorMap(no_color_map);
+}
+
+auto enableColors(const std::map<std::string, std::string>& color_map) -> void { Logger::instance().setColorMap(color_map); }
+
+auto logMessage(const std::string& module, const std::string& message, LogType type, int level,
                 uint32_t full_function_name_on_level, std::source_location location) -> void {
 
     const std::map<std::string, std::string>& color_map = Logger::instance().getColorMap();
@@ -147,15 +158,19 @@ auto logMessage(const std::string& module, int level, const std::string& message
     Logger::instance().log(module, level, log_entry);
 }
 
-auto disableColors() -> void {
-    auto& logger = Logger::instance();
-    std::map<std::string, std::string> no_color_map;
-    for (const auto& [key, value] : logger.getColorMap()) {
-        no_color_map[key] = "";
-    }
-    logger.setColorMap(no_color_map);
+auto logError(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
+              std::source_location location) -> void {
+    logMessage(module, message, LogType::ERROR, level, full_function_name_on_level, location);
 }
 
-auto enableColors(const std::map<std::string, std::string>& color_map) -> void { Logger::instance().setColorMap(color_map); }
+auto logInfo(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
+             std::source_location location) -> void {
+    logMessage(module, message, LogType::INFO, level, full_function_name_on_level, location);
+}
+
+auto logSuccess(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
+                std::source_location location) -> void {
+    logMessage(module, message, LogType::SUCCESS, level, full_function_name_on_level, location);
+}
 
 } // namespace oink_judge::logger

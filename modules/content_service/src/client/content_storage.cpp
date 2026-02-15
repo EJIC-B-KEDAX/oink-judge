@@ -1,17 +1,23 @@
-#include "oink_judge/content_service/content_storage.h"
+#include "oink_judge/content_service/client/content_storage.h"
 
+#include "oink_judge/content_service/content_config_utils.h"
 #include "oink_judge/content_service/manifest_storage.h"
 
 #include <filesystem>
 #include <oink_judge/config/config.h>
+#include <oink_judge/config/server_config_utils.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/socket/connection_protocol.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
 namespace oink_judge::content_service {
 
-using config::Config;
 using namespace utils::filesystem;
+namespace fs = std::filesystem;
+
+using config::Config;
+using logger::requireHasValue;
 
 auto ContentStorage::instance() -> ContentStorage& {
     static ContentStorage instance;
@@ -23,8 +29,7 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
         throw std::runtime_error("Session is not initialized.");
     }
 
-    std::filesystem::path content_path =
-        Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id;
+    fs::path content_path = requireHasValue(getContentDirectory(content_type)) / content_id;
 
     json server_manifest = co_await getManifestFromServer(content_type, content_id);
 
@@ -50,9 +55,9 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
         throw std::runtime_error("Session is not initialized.");
     }
 
-    std::string content_path = Config::config().at("directories").at(content_type + "s").get<std::string>() + "/" + content_id;
+    fs::path content_path = requireHasValue(getContentDirectory(content_type)) / content_id;
     if (!std::filesystem::exists(content_path)) {
-        throw std::runtime_error("Content path does not exist: " + content_path);
+        throw std::runtime_error("Content path does not exist: " + content_path.string());
     }
 
     json server_manifest = co_await getManifestFromServer(content_type, content_id);
@@ -71,10 +76,9 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
 }
 
 ContentStorage::ContentStorage() {
-    session_ = socket::connectToTheEndpoint(Config::config().at("hosts").at("data_sender").get<std::string>(),
-                                            Config::config().at("ports").at("data_sender").get<short>(),
-                                            Config::config().at("sessions").at("data_sender").get<std::string>(),
-                                            Config::config().at("start_messages").at("data_sender").get<std::string>());
+    auto connection_config = requireHasValue(config::getConnectionConfig("content_service"));
+    session_ = socket::connectToTheEndpoint(connection_config.host, connection_config.port, connection_config.session_type,
+                                            connection_config.start_message);
 
     if (!session_) {
         throw std::runtime_error("Failed to connect to the data sender endpoint.");

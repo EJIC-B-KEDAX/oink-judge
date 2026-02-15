@@ -12,4 +12,6 @@ class PongingProtocol : public ProtocolDecorator {
     constexpr static auto REGISTERED_NAME = "Ponging";
 };
 
+auto registerPongingProtocolType() -> void;
+
 } // namespace oink_judge::socket

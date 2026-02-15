@@ -1,5 +1,7 @@
 #include "oink_judge/test_node/verdict_builders/verdict_builder_min.h"
 
+#include "oink_judge/test_node/verdicts/verdict_base.h"
+
 namespace oink_judge::test_node {
 
 namespace {
@@ -17,22 +19,22 @@ namespace {
 } // namespace
 
 VerdictBuilderMin::VerdictBuilderMin(std::string test_name)
-    : test_name_(std::move(test_name)), current_verdict_(std::make_shared<DefaultVerdict>(test_name_)) {
+    : test_name_(std::move(test_name)), current_verdict_(std::make_shared<VerdictBase>(test_name_)) {
     clear();
 }
 
 auto VerdictBuilderMin::clear() -> void {
-    current_verdict_ = std::make_shared<DefaultVerdict>(test_name_);
+    current_verdict_ = std::make_shared<VerdictBase>(test_name_);
     current_verdict_->setInfo(
         {.type = VerdictType::ACCEPTED, .score = 100, .time_used = 0, .memory_used = 0, .real_time_used = 0}); // NOLINT
     // TODO make the default score configurable
 }
 
-auto VerdictBuilderMin::addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> void {
+auto VerdictBuilderMin::addVerdict(std::shared_ptr<VerdictBase> verdict) -> void {
     current_verdict_->addToAdditionalInfo(verdict->getTestName(), verdict->toJson(2));
     auto info = verdict->getInfo();
     auto current_info = current_verdict_->getInfo();
-    DefaultVerdict::VerdictInfo new_info;
+    VerdictBase::VerdictInfo new_info;
     VerdictType new_type;
     if (current_info.type.type == VerdictType::Type::ACCEPTED_T) {
         new_type = info.type;
@@ -68,6 +70,6 @@ auto VerdictBuilderMin::addVerdict(std::shared_ptr<DefaultVerdict> verdict) -> v
 
 auto VerdictBuilderMin::canScoreChange() const -> bool { return current_verdict_->getInfo().score != 0.0; }
 
-auto VerdictBuilderMin::finalize() -> std::shared_ptr<DefaultVerdict> { return current_verdict_; }
+auto VerdictBuilderMin::finalize() -> std::shared_ptr<VerdictBase> { return current_verdict_; }
 
 } // namespace oink_judge::test_node
