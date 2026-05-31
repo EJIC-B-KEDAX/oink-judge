@@ -21,4 +21,6 @@ class SyncResultTest : public Test {
     std::shared_ptr<Test> test_;
 };
 
+auto registerSyncResultTestType() -> void;
+
 } // namespace oink_judge::test_node

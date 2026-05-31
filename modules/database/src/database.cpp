@@ -1,16 +1,17 @@
 #include "oink_judge/database/database.h"
 
-#include <oink_judge/config/config.h>
-#include <oink_judge/logger/logger.h>
+#include "oink_judge/database/config_utils.h"
+
+#include <oink_judge/config/common_utils.h>
 
 namespace oink_judge::database {
 
-using logger::requireHasValue;
+using config::requireHasValue;
 
 namespace {
 
 auto getDatabaseCreateString() -> std::string {
-    config::DatabaseConfig database_config = requireHasValue(config::getDatabaseConfig());
+    DatabaseConfig database_config = requireHasValue(getDatabaseConfig());
     return "host=" + database_config.host + " port=" + std::to_string(database_config.port) +
            " dbname=" + database_config.database_name + " user=" + database_config.username +
            " password=" + database_config.password + " keepalives=1 keepalives_idle=30 keepalives_interval=10 keepalives_count=5";

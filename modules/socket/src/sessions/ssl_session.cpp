@@ -6,6 +6,8 @@
 
 #include <oink_judge/logger/logger.h>
 
+#include <memory>
+
 namespace oink_judge::socket {
 
 SSLSession::SSLSession(tcp::socket socket, std::unique_ptr<Protocol> protocol,
@@ -46,9 +48,11 @@ auto SSLSession::sendMessage(std::string message) -> awaitable<void> {
     // keep session alive for duration of async operations
     auto self = std::static_pointer_cast<SSLSession>(shared_from_this());
 
+    logger::logInfo("SSLSession", "Queueing message for sending: " + message);
+
     co_return co_await boost::asio::async_initiate<decltype(boost::asio::use_awaitable), void(boost::system::error_code)>(
         [self, message](auto&& handler) -> auto {
-            self->message_queue_.push({message, std::forward<decltype(handler)>(handler)});
+            self->message_queue_.push({.message = message, .callback = std::forward<decltype(handler)>(handler)});
 
             if (!self->is_sending_) {
                 self->is_sending_ = true;
@@ -132,7 +136,7 @@ auto SSLSession::sendLoop() -> awaitable<void> {
 auto registerSSLSessionClientType() -> void {
     SessionFactory::instance().registerType(
         SSLSession::REGISTERED_NAME_CLIENT, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
-            auto event_handler = ProtocolFactory::instance().create(params);
+            auto event_handler = ProtocolFactory::instance().create(params, boost::asio::any_io_executor(socket.get_executor()));
 
             auto ptr =
                 std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::client);
@@ -146,7 +150,7 @@ auto registerSSLSessionClientType() -> void {
 auto registerSSLSessionServerType() -> void {
     SessionFactory::instance().registerType(
         SSLSession::REGISTERED_NAME_SERVER, [](const std::string& params, tcp::socket socket) -> std::shared_ptr<Session> {
-            auto event_handler = ProtocolFactory::instance().create(params);
+            auto event_handler = ProtocolFactory::instance().create(params, boost::asio::any_io_executor(socket.get_executor()));
 
             auto ptr =
                 std::make_shared<SSLSession>(std::move(socket), std::move(event_handler), boost::asio::ssl::stream_base::server);

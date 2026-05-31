@@ -15,4 +15,6 @@ class SendSubmissionToInvoker : public ProblemSubmissionManager {
     std::string problem_id_;
 };
 
+auto registerSendSubmissionToInvokerType() -> void;
+
 } // namespace oink_judge::dispatcher

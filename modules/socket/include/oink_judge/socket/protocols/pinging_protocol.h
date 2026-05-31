@@ -7,7 +7,7 @@ namespace oink_judge::socket {
 
 class PingingProtocol : public ProtocolDecorator {
   public:
-    PingingProtocol(std::unique_ptr<Protocol> inner_protocol);
+    PingingProtocol(std::unique_ptr<Protocol> inner_protocol, const boost::asio::any_io_executor& executor);
 
     auto start(std::string start_message) -> awaitable<void> override;
     auto receiveMessage(std::string message) -> awaitable<void> override;

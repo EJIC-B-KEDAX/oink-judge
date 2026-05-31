@@ -16,4 +16,6 @@ class AggregateMax : public VerdictAggregator {
     std::string test_name_;
 };
 
+auto registerAggregateMaxType() -> void;
+
 } // namespace oink_judge::test_node

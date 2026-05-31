@@ -8,20 +8,6 @@
 
 namespace oink_judge::test_node {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    TestFactory::instance().registerType(Testset::REGISTERED_NAME,
-                                         [](ProblemBuilder* problem_builder, const std::string& problem_id,
-                                            const std::string& testset_name) -> std::shared_ptr<Test> {
-                                             return std::make_shared<Testset>(problem_builder, problem_id, testset_name);
-                                         });
-
-    return true;
-}();
-
-} // namespace
-
 Testset::Testset(ProblemBuilder* problem_builder, const std::string& problem_id, std::string testset_name)
     : name_(std::move(testset_name)) {
     pugi::xml_node testset_config = problem_config::getTestConfig(problem_id, name_).value_or(pugi::xml_node{});
@@ -56,13 +42,13 @@ auto Testset::run(const std::string& submission_id, const std::vector<std::strin
 
     verdict_builder_->clear();
 
-    for (size_t i = 0; i < tests_.size(); ++i) {
+    for (auto& test : tests_) {
         std::shared_ptr<Verdict> test_verdict = nullptr;
 
         if (!verdict_builder_->canScoreChange()) {
-            test_verdict = tests_[i]->skip(submission_id);
+            test_verdict = test->skip(submission_id);
         } else {
-            test_verdict = tests_[i]->run(submission_id, boxes, additional_params);
+            test_verdict = test->run(submission_id, boxes, additional_params);
         }
         verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
@@ -73,8 +59,8 @@ auto Testset::run(const std::string& submission_id, const std::vector<std::strin
 auto Testset::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> {
     verdict_builder_->clear();
 
-    for (size_t i = 0; i < tests_.size(); ++i) {
-        std::shared_ptr<Verdict> test_verdict = tests_[i]->skip(submission_id);
+    for (auto& test : tests_) {
+        std::shared_ptr<Verdict> test_verdict = test->skip(submission_id);
         verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
 
@@ -90,5 +76,13 @@ auto Testset::boxesRequired() const -> size_t {
 }
 
 auto Testset::getName() const -> const std::string& { return name_; }
+
+auto registerTestsetType() -> void {
+    TestFactory::instance().registerType(Testset::REGISTERED_NAME,
+                                         [](ProblemBuilder* problem_builder, const std::string& problem_id,
+                                            const std::string& testset_name) -> std::shared_ptr<Test> {
+                                             return std::make_shared<Testset>(problem_builder, problem_id, testset_name);
+                                         });
+}
 
 } // namespace oink_judge::test_node

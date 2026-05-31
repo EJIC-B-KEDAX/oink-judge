@@ -4,7 +4,7 @@
 
 auto hton64(uint64_t val) -> uint64_t {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    return static_cast<int64_t>(htonl(val & 0xFFFFFFFF)) << 32 | htonl(val >> 32 & 0xFFFFFFFF); // NOLINT
+    return static_cast<uint64_t>(htonl(val & 0xFFFFFFFF)) << 32 | htonl(val >> 32 & 0xFFFFFFFF); // NOLINT
 #else
     return val;
 #endif

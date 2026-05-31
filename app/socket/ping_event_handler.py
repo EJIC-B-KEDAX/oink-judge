@@ -1,5 +1,8 @@
+import asyncio
+import time
+
 from app.socket.event_handler import EventHandler
-import asyncio, time
+
 
 class PingEventHandler(EventHandler):
     def __init__(self, ping_interval: float, pong_timeout: float, inner=None):
@@ -18,7 +21,8 @@ class PingEventHandler(EventHandler):
 
         if self.is_closed():
             return
-        
+
+        assert self.session is not None
         self.session.send_message("ping")
         await asyncio.sleep(self.pong_timeout)
 
@@ -27,16 +31,17 @@ class PingEventHandler(EventHandler):
                 self.session.transport.close()
                 self.session.connection_lost(Exception("Pong timeout"))
             return
-        
+
         asyncio.create_task(self.ping_loop())
 
     async def receive_message(self, message: str) -> None:
         if self.is_closed():
             print("Cannot receive message in PingEventHandler: session is closed.")
             return
-        
-        if (message == "pong"):
+
+        if message == "pong":
             self.last_pong = time.time()
             return
-        
-        if self._inner: await self._inner.receive_message(message)
+
+        if self._inner:
+            await self._inner.receive_message(message)

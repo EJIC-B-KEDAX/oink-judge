@@ -14,3 +14,14 @@ ReferenceAlignment: Left
 
 SortIncludes: true
 IncludeBlocks: Regroup
+IncludeIsMainRegex: "([-_]?(inl|impl))?$"
+IncludeIsMainSourceRegex: "(.(inl|impl|cpp|cc|cxx|c))$"
+IncludeCategories:
+  - Regex: '^".*"'
+    Priority: 1
+  - Regex: "^<oink_judge/.*>"
+    Priority: 2
+  - Regex: '^<.*\.(h|hpp)>'
+    Priority: 3
+  - Regex: "^<.*>"
+    Priority: 4

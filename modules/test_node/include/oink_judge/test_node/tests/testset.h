@@ -25,4 +25,6 @@ class Testset : public Test {
     std::unique_ptr<VerdictBuilder> verdict_builder_;
 };
 
+auto registerTestsetType() -> void;
+
 } // namespace oink_judge::test_node

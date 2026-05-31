@@ -11,6 +11,7 @@ auto TestingQueue::instance() -> TestingQueue& {
 }
 
 auto TestingQueue::pushSubmission(const std::string& submission_id) -> void {
+    logger::logInfo("TestingQueue", "Received submission_id: " + submission_id + " for testing.");
     if (trySubmission(submission_id)) {
         return;
     }
@@ -24,10 +25,12 @@ auto TestingQueue::freeInvoker(const std::string& invoker_id) -> void {
     }
 
     connected_invokers_[findInvokerIndexById(invoker_id)].second = "";
+    logger::logInfo("TestingQueue", "Freed invoker_id: " + invoker_id);
 }
 
 auto TestingQueue::connectInvoker(std::unique_ptr<Invoker> invoker_ptr) -> void {
     connected_invokers_.emplace_back(std::move(invoker_ptr), "");
+    logger::logInfo("TestingQueue", "Connected invoker_id: " + connected_invokers_.back().first->getId());
 
     tryInvoker(*connected_invokers_.back().first);
 }
@@ -40,6 +43,7 @@ auto TestingQueue::disconnectInvoker(const std::string& invoker_id) -> void {
     }
 
     connected_invokers_.erase(connected_invokers_.begin() + static_cast<long>(index));
+    logger::logInfo("TestingQueue", "Disconnected invoker_id: " + invoker_id);
 }
 
 TestingQueue::TestingQueue() = default;
@@ -72,6 +76,7 @@ auto TestingQueue::sendSubmissionForTesting(const std::string& submission_id, In
     connected_invokers_[findInvokerIndexById(invoker.getId())].second = submission_id;
     std::string message = R"({"request": "test_submission","submission_id": ")" + submission_id + "\"}";
     invoker.sendMessage(message);
+    logger::logInfo("TestingQueue", "Sent submission_id: " + submission_id + " for testing to invoker_id: " + invoker.getId());
 }
 
 auto TestingQueue::findInvokerIndexById(const std::string& invoker_id) const -> size_t {

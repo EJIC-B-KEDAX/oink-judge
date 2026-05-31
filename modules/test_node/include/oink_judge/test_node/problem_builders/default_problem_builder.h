@@ -15,4 +15,6 @@ class DefaultProblemBuilder : public ProblemBuilder, public EnableGetTestByNameI
     std::string problem_id_;
 };
 
+auto registerDefaultProblemBuilderType() -> void;
+
 } // namespace oink_judge::test_node

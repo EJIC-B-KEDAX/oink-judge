@@ -12,4 +12,6 @@ class AggregateCurrent : public VerdictAggregator {
     constexpr static auto REGISTERED_NAME = "current";
 };
 
+auto registerAggregateCurrentType() -> void;
+
 } // namespace oink_judge::test_node

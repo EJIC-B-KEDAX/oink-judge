@@ -4,19 +4,6 @@
 
 namespace oink_judge::test_node {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    ProblemBuilderFactory::instance().registerType(DefaultProblemBuilder::REGISTERED_NAME,
-                                                   [](const std::string& problem_id) -> std::shared_ptr<DefaultProblemBuilder> {
-                                                       return std::make_shared<DefaultProblemBuilder>(problem_id);
-                                                   });
-
-    return true;
-}();
-
-} // namespace
-
 DefaultProblemBuilder::DefaultProblemBuilder(std::string problem_id) : problem_id_(std::move(problem_id)) {}
 
 auto DefaultProblemBuilder::build() -> std::shared_ptr<Test> {
@@ -30,6 +17,13 @@ auto DefaultProblemBuilder::build() -> std::shared_ptr<Test> {
     }
 
     return getTestByName("main");
+}
+
+auto registerDefaultProblemBuilderType() -> void {
+    ProblemBuilderFactory::instance().registerType(DefaultProblemBuilder::REGISTERED_NAME,
+                                                   [](const std::string& problem_id) -> std::shared_ptr<DefaultProblemBuilder> {
+                                                       return std::make_shared<DefaultProblemBuilder>(problem_id);
+                                                   });
 }
 
 } // namespace oink_judge::test_node

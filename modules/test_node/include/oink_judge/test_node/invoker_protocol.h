@@ -16,4 +16,6 @@ class InvokerProtocol : public socket::ProtocolBase {
     constexpr static auto REGISTERED_NAME = "InvokerProtocol";
 };
 
+auto registerInvokerProtocolType() -> void;
+
 } // namespace oink_judge::test_node

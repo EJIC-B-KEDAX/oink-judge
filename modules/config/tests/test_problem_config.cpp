@@ -2,156 +2,91 @@
 #include "oink_judge/config/problem_config_utils.h"
 
 #include <filesystem>
-#include <oink_judge/logger/logger.h>
-#include <source_location>
+#include <gtest/gtest.h>
 #include <string>
 
 using namespace oink_judge::config;
 using namespace oink_judge::problem_config;
-using namespace oink_judge::logger;
 namespace fs = std::filesystem;
 
-static auto expectTrue(bool cond, const std::string& msg, std::source_location location = std::source_location::current())
-    -> bool {
-    if (!cond) {
-        logMessage("TestConfig", msg, LogType::CRITICAL, 1, 2, location);
-        return false;
+class ProblemConfigTest : public ::testing::Test {
+  protected:
+    auto SetUp() -> void override {
+        resources_ = fs::path("resources") / "test_problem_config";
+        ProblemConfigTest::loadConfig(resources_ / "good_config.json", resources_ / "good_credentials.json");
     }
 
-    logMessage("TestConfig", msg, LogType::SUCCESS, 1, 2, location);
-    return true;
-}
+    auto getResourcesPath() -> const fs::path& { return resources_; }
 
-const fs::path RESOURCES = fs::path("resources") / "test_problem_config";
+    static auto loadConfig(const fs::path& config, const fs::path& credentials) -> void {
+        Config::setConfigFilePath(config);
+        Config::setCredentialsFilePath(credentials);
+        Config::reloadData();
+    }
 
-static auto setConfig(const fs::path& config_path, const fs::path& credentials_path) -> void {
-    Config::setConfigFilePath(config_path);
-    Config::setCredentialsFilePath(credentials_path);
-    Config::reloadData();
-}
+  private:
+    fs::path resources_;
+};
 
-// Forward declarations
-static auto testAllTestNames() -> bool;
-static auto testProblemBuilderName() -> bool;
-static auto testGetTestConfig() -> bool;
-static auto testNoProblemsDir() -> bool;
-static auto testMalformedProblemXML() -> bool;
-static auto testNoProblemConfig() -> bool;
-
-int main() {
-    fs::path test_dir = fs::path(__FILE__).parent_path();
-    fs::current_path(test_dir);
-
-    Logger::instance().setLogLevel("TestConfig", 1);
-
-    // Run grouped tests implemented as helper functions
-    bool success = true;
-    success &= testAllTestNames();
-    success &= testProblemBuilderName();
-    success &= testGetTestConfig();
-    success &= testNoProblemsDir();
-    success &= testMalformedProblemXML();
-    success &= testNoProblemConfig();
-    return success ? 0 : 1;
-}
-
-static auto testAllTestNames() -> bool {
-    bool success = true;
-
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
-    const std::string EXPECTED_T1 = "t1";
-    const std::string EXPECTED_T2 = "t2";
-
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsCorrectTestNames) {
     auto all_tests = getAllTestNames("problem_two_tests");
-    if (!expectTrue(all_tests.has_value() && all_tests->size() == 2, "getAllTestNames size")) {
-        success = false;
-    } else {
-        success &= expectTrue((*all_tests)[0] == EXPECTED_T1 && (*all_tests)[1] == EXPECTED_T2, "getAllTestNames content");
-    }
+    ASSERT_TRUE(all_tests.has_value());
+    ASSERT_EQ(all_tests->size(), 2);
+    EXPECT_EQ((*all_tests)[0], "t1");
+    EXPECT_EQ((*all_tests)[1], "t2");
+}
 
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsEmptyForProblemWithNoTests) {
     auto empty_tests = getAllTestNames("problem_no_tests");
-    success &= expectTrue(empty_tests.has_value() && empty_tests->empty(), "getAllTestNames empty problem");
-
-    auto no_node_tests = getAllTestNames("problem_no_node_tests");
-    success &= expectTrue(!no_node_tests.has_value(), "getAllTestNames returns nullopt for problem with no tests node");
-
-    auto missing_tests = getAllTestNames("non_existent_problem");
-    success &= expectTrue(!missing_tests.has_value(), "getAllTestNames returns nullopt for missing problem");
-
-    return success;
+    ASSERT_TRUE(empty_tests.has_value());
+    EXPECT_TRUE(empty_tests->empty());
 }
 
-static auto testProblemBuilderName() -> bool {
-    bool success = true;
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptForNoTestsNode) {
+    EXPECT_FALSE(getAllTestNames("problem_no_node_tests").has_value());
+}
 
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptForMissingProblem) {
+    EXPECT_FALSE(getAllTestNames("non_existent_problem").has_value());
+}
 
-    const std::string EXPECTED_BUILDER = "default";
-
+TEST_F(ProblemConfigTest, GetProblemBuilderNameReturnsCorrectName) {
     auto builder = getProblemBuilderName("problem_two_tests");
-    success &= expectTrue(builder.has_value() && *builder == EXPECTED_BUILDER, "getProblemBuilderName");
-
-    builder = getProblemBuilderName("problem_no_builder");
-    success &= expectTrue(!builder.has_value(), "getProblemBuilderName returns nullopt for missing builder");
-
-    return success;
+    ASSERT_TRUE(builder.has_value());
+    EXPECT_EQ(*builder, "default");
 }
 
-static auto testGetTestConfig() -> bool {
-    bool success = true;
+TEST_F(ProblemConfigTest, GetProblemBuilderNameReturnsNulloptForMissingBuilder) {
+    EXPECT_FALSE(getProblemBuilderName("problem_no_builder").has_value());
+}
 
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
-    const std::string EXPECTED_TEST_NAME = "t2";
-
+TEST_F(ProblemConfigTest, GetTestConfigReturnsCorrectNode) {
     auto tnode = getTestConfig("problem_two_tests", "t2");
-    if (!expectTrue(tnode.has_value(), "getTestConfig returns node")) {
-        success = false;
-    } else {
-        success &=
-            expectTrue(std::string(tnode->attribute("name").as_string()) == EXPECTED_TEST_NAME, "test node attribute name");
-    }
-
-    tnode = getTestConfig("problem_two_tests", "non_existent_test");
-    success &= expectTrue(!tnode.has_value(), "getTestConfig returns nullopt for missing test");
-
-    return success;
+    ASSERT_TRUE(tnode.has_value());
+    EXPECT_EQ(std::string(tnode->attribute("name").as_string()), "t2");
 }
 
-static auto testNoProblemsDir() -> bool {
-    bool success = true;
-
-    setConfig(RESOURCES / "bad_no_problems.json", RESOURCES / "good_credentials.json");
-
-    auto all = getAllTestNames("problem_two_tests");
-    success &= expectTrue(!all.has_value(), "getAllTestNames returns nullopt when problems dir missing");
-    return success;
+TEST_F(ProblemConfigTest, GetTestConfigReturnsNulloptForMissingTest) {
+    EXPECT_FALSE(getTestConfig("problem_two_tests", "non_existent_test").has_value());
 }
 
-static auto testMalformedProblemXML() -> bool {
-    bool success = true;
-
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
-    auto all = getAllTestNames("problem_bad_xml");
-    success &= expectTrue(!all.has_value(), "getAllTestNames returns nullopt when problem XML malformed");
-    return success;
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptWhenProblemsDirMissing) {
+    loadConfig(getResourcesPath() / "bad_no_problems.json", getResourcesPath() / "good_credentials.json");
+    EXPECT_FALSE(getAllTestNames("problem_two_tests").has_value());
 }
 
-static auto testNoProblemConfig() -> bool {
-    bool success = true;
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptForMalformedXml) {
+    EXPECT_FALSE(getAllTestNames("problem_bad_xml").has_value());
+}
 
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptWhenConfigMissing) {
+    EXPECT_FALSE(getAllTestNames("problem_no_config").has_value());
+}
 
-    auto all = getAllTestNames("problem_no_config");
-    success &= expectTrue(!all.has_value(), "getAllTestNames returns nullopt when problem config missing");
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptWhenConfigEmpty) {
+    EXPECT_FALSE(getAllTestNames("problem_empty_config").has_value());
+}
 
-    all = getAllTestNames("problem_empty_config");
-    success &= expectTrue(!all.has_value(), "getAllTestNames returns nullopt when problem config empty");
-
-    all = getAllTestNames("unexistent_problem");
-    success &= expectTrue(!all.has_value(), "getAllTestNames returns nullopt when problem does not exist");
-
-    return success;
+TEST_F(ProblemConfigTest, GetAllTestNamesReturnsNulloptForUnexistentProblem) {
+    EXPECT_FALSE(getAllTestNames("unexistent_problem").has_value());
 }

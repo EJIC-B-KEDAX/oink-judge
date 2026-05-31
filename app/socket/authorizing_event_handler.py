@@ -1,5 +1,6 @@
-from app.socket.session import Session
 from app.socket.event_handler import EventHandler
+from app.socket.session import Session
+
 
 class AuthorizingEventHandler(EventHandler):
     def __init__(self, secket_key: str, inner: EventHandler | None = None):
@@ -11,7 +12,8 @@ class AuthorizingEventHandler(EventHandler):
         if self.is_closed() or self.session is None:
             print("Cannot start AuthorizingEventHandler: session is closed.")
             return
-        
+
         self.session.send_message(self.secket_key)
 
-        if self._inner: await self._inner.start(start_message)
+        if self._inner:
+            await self._inner.start(start_message)

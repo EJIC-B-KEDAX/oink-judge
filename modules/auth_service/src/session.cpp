@@ -1,7 +1,7 @@
 #include "oink_judge/auth_service/session.h"
 
 #include <ctime>
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <random>
@@ -15,7 +15,7 @@ std::mt19937_64 rng(rd()); // NOLINT
 
 } // namespace
 
-using logger::requireHasValue;
+using config::requireHasValue;
 
 Session::Session(std::string username) : username_(std::move(username)), expire_at_(0) {}
 

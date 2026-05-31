@@ -1,25 +1,12 @@
 #include "oink_judge/content_service/client/content_client_protocol.h"
 
 #include <oink_judge/config/config.h>
+#include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 
 namespace oink_judge::content_service {
 
 using json = nlohmann::json;
-using Config = config::Config;
-
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    socket::ProtocolFactory::instance().registerType(ContentClientProtocol::REGISTERED_NAME,
-                                                     [](const std::string& params) -> std::unique_ptr<ContentClientProtocol> {
-                                                         return std::make_unique<ContentClientProtocol>();
-                                                     });
-
-    return true;
-}();
-
-} // namespace
 
 ContentClientProtocol::ContentClientProtocol() = default;
 
@@ -57,6 +44,14 @@ auto ContentClientProtocol::receiveMessage(std::string message) -> awaitable<voi
 auto ContentClientProtocol::closeSession() -> void {
     socket::ProtocolWithRequests::closeSession();
     // Reconnect to the server
+}
+
+auto registerContentClientProtocolType() -> void {
+    socket::ProtocolFactory::instance().registerType(
+        ContentClientProtocol::REGISTERED_NAME,
+        [](const std::string& params, const boost::asio::any_io_executor& executor) -> std::unique_ptr<ContentClientProtocol> {
+            return std::make_unique<ContentClientProtocol>();
+        });
 }
 
 } // namespace oink_judge::content_service

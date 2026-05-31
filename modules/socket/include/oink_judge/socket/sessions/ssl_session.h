@@ -3,6 +3,7 @@
 #include "oink_judge/socket/sessions/session_base.h"
 
 #include <boost/asio/ssl.hpp>
+
 #include <queue>
 
 namespace oink_judge::socket {
@@ -36,7 +37,7 @@ class SSLSession : public SessionBase {
 
     struct QueuedMessage {
         std::string message;
-        std::move_only_function<void(boost::system::error_code)> callback;
+        boost::asio::any_completion_handler<void(boost::system::error_code)> callback;
     };
     std::queue<QueuedMessage> message_queue_;
 

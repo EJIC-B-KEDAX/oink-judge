@@ -25,8 +25,8 @@ auto PluginManager::load(const fs::path& path) -> bool {
     using RegisterTypesFunc = void (*)();
     auto* register_types = reinterpret_cast<RegisterTypesFunc>(dlsym(handle, "registerTypes")); // NOLINT
     if (register_types == nullptr) {
-        dlclose(handle);
         logger::logError("plugin_manager", "Failed to find registerTypes function in plugin: " + std::string(dlerror()));
+        dlclose(handle);
         return false;
     }
     register_types();

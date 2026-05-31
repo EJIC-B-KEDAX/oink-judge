@@ -15,7 +15,7 @@ class AsyncServer : public std::enable_shared_from_this<AsyncServer> {
     auto operator=(AsyncServer&&) -> AsyncServer& = delete;
     virtual ~AsyncServer() = default;
 
-    AsyncServer(short port, std::shared_ptr<ConnectionHandler> handler);
+    AsyncServer(short port, std::shared_ptr<ConnectionHandler> handler, boost::asio::io_context& io_context);
 
     void startAccept();
 

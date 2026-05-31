@@ -1,9 +1,11 @@
 #pragma once
-#include <chrono>
-#include <filesystem>
-#include <memory>
 #include <nlohmann/json.hpp>
-#include <optional>
+
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace oink_judge::config {
 
@@ -30,31 +32,26 @@ class Config {
     static std::unique_ptr<Config> credentials_instance;
     static std::filesystem::path config_file_path;      // Path to the main configuration file, must be set before use
     static std::filesystem::path credentials_file_path; // Path to the main credentials file, must be set before use
-    Config(const std::filesystem::path& config_file_path);
+    Config(const std::filesystem::path& file_path);
 
     json config_data_;
 };
 
-auto getDirectoryPath(const std::string& key) -> std::optional<std::filesystem::path>;
+auto checkPathWith(const json& j, const std::vector<std::string>& path, const std::function<bool(const json&)>& predicate)
+    -> bool;
+auto checkPath(const json& j, const std::vector<std::string>& path, json::value_t type) -> bool;
 
-struct DatabaseConfig {
-    std::string host;
-    int port;
-    std::string username;
-    std::string password;
-    std::string database_name;
-};
-
-auto getDatabaseConfig() -> std::optional<DatabaseConfig>;
-
-auto getServerPort(const std::string& server_name) -> std::optional<int>;
-
-auto getServerHostname(const std::string& server_name) -> std::optional<std::string>;
-
-auto getSessionType(const std::string& session_for) -> std::optional<std::string>;
-
-auto getStartMessage(const std::string& session_for) -> std::optional<std::string>;
-
-auto getTiming(const std::string& timing_name) -> std::optional<std::chrono::duration<double>>;
+auto checkObjectIsArray(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsBinary(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsBoolean(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsDiscarded(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsNull(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsNumber(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsNumberFloat(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsNumberInteger(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsNumberUnsigned(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsObject(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsPrimitive(const json& j, const std::vector<std::string>& path) -> bool;
+auto checkObjectIsString(const json& j, const std::vector<std::string>& path) -> bool;
 
 } // namespace oink_judge::config

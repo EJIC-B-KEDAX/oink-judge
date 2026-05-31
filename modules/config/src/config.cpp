@@ -1,6 +1,9 @@
 #include "oink_judge/config/config.h"
 
+#include <oink_judge/logger/logger.h>
+
 #include <fstream>
+#include <string>
 
 namespace oink_judge::config {
 
@@ -31,114 +34,83 @@ auto Config::setConfigFilePath(const std::filesystem::path& path) -> void { conf
 auto Config::setCredentialsFilePath(const std::filesystem::path& path) -> void { credentials_file_path = path; }
 
 auto Config::reloadData() -> void {
-    // Reset existing instances and reload from the configured file paths.
-    if (config_instance) {
-        config_instance.reset();
-    }
-    if (credentials_instance) {
-        credentials_instance.reset();
-    }
-
     config_instance = std::unique_ptr<Config>(new Config(config_file_path));
     credentials_instance = std::unique_ptr<Config>(new Config(credentials_file_path));
 }
 
-Config::Config(const std::filesystem::path& config_file_path) {
-    std::ifstream config_file(config_file_path);
+Config::Config(const std::filesystem::path& file_path) {
+    std::ifstream config_file(file_path);
     if (!config_file.is_open()) {
-        throw std::runtime_error("Could not open config file: " + config_file_path.string());
+        throw std::runtime_error("Could not open config file: " + file_path.string());
     }
     config_file >> config_data_;
 }
 
-auto getDirectoryPath(const std::string& key) -> std::optional<std::filesystem::path> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("directories") || !config_data["directories"].contains(key) ||
-        !config_data["directories"][key].is_string()) {
-        return std::nullopt;
+auto checkPathWith(const json& j, const std::vector<std::string>& path, const std::function<bool(const json&)>& predicate)
+    -> bool {
+    const json* current = &j;
+    for (const auto& key : path) {
+        if (!current->is_object()) {
+            return false;
+        }
+        if (!current->contains(key)) {
+            return false;
+        }
+        current = &(current->at(key));
     }
-
-    return std::filesystem::path(config_data["directories"][key].get<std::string>());
+    return predicate(*current);
 }
 
-auto getDatabaseConfig() -> std::optional<DatabaseConfig> {
-    const auto& config_data = Config::config();
-    const auto& credentials_data = Config::credentials();
-
-    if (!credentials_data.contains("database") || !credentials_data["database"].contains("password") ||
-        !credentials_data["database"]["password"].is_string()) {
-
-        return std::nullopt;
-    }
-    if (!config_data.contains("database") || !config_data["database"].contains("host") ||
-        !config_data["database"]["host"].is_string() || !config_data["database"].contains("port") ||
-        !config_data["database"]["port"].is_number_integer() || !config_data["database"].contains("username") ||
-        !config_data["database"]["username"].is_string() || !config_data["database"].contains("dbname") ||
-        !config_data["database"]["dbname"].is_string()) {
-
-        return std::nullopt;
-    }
-
-    const auto& db_config = config_data["database"];
-    DatabaseConfig result;
-    result.host = db_config["host"].get<std::string>();
-    result.port = db_config["port"].get<int>();
-    result.username = db_config["username"].get<std::string>();
-    result.password = credentials_data["database"]["password"].get<std::string>();
-    result.database_name = db_config["dbname"].get<std::string>();
-
-    return result;
+auto checkPath(const json& j, const std::vector<std::string>& path, json::value_t type) -> bool {
+    return checkPathWith(j, path, [&](const json& j) -> bool { return j.type() == type; });
 }
 
-auto getServerPort(const std::string& server_name) -> std::optional<int> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("ports") || !config_data["ports"].contains(server_name) ||
-        !config_data["ports"][server_name].is_number_integer()) {
-        return std::nullopt;
-    }
-
-    return config_data["ports"][server_name].get<int>();
+auto checkObjectIsArray(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::array);
 }
 
-auto getServerHostname(const std::string& server_name) -> std::optional<std::string> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("hosts") || !config_data["hosts"].contains(server_name) ||
-        !config_data["hosts"][server_name].is_string()) {
-        return std::nullopt;
-    }
-
-    return config_data["hosts"][server_name].get<std::string>();
+auto checkObjectIsBinary(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::binary);
 }
 
-auto getSessionType(const std::string& session_for) -> std::optional<std::string> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("sessions") || !config_data["sessions"].contains(session_for) ||
-        !config_data["sessions"][session_for].is_string()) {
-        return std::nullopt;
-    }
-
-    return config_data["sessions"][session_for].get<std::string>();
+auto checkObjectIsBoolean(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::boolean);
 }
 
-auto getStartMessage(const std::string& session_for) -> std::optional<std::string> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("start_messages") || !config_data["start_messages"].contains(session_for) ||
-        !config_data["start_messages"][session_for].is_string()) {
-        return std::nullopt;
-    }
-
-    return config_data["start_messages"][session_for].get<std::string>();
+auto checkObjectIsDiscarded(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::discarded);
 }
 
-auto getTiming(const std::string& timing_name) -> std::optional<std::chrono::duration<double>> {
-    const auto& config_data = Config::config();
-    if (!config_data.contains("timings") || !config_data["timings"].contains(timing_name) ||
-        !config_data["timings"][timing_name].is_number()) {
-        return std::nullopt;
-    }
+auto checkObjectIsNull(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::null);
+}
 
-    double seconds = config_data["timings"][timing_name].get<double>();
-    return std::chrono::duration<double>(seconds);
+auto checkObjectIsNumber(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPathWith(j, path, [](const json& j) -> bool { return j.is_number(); });
+}
+
+auto checkObjectIsNumberFloat(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::number_float);
+}
+
+auto checkObjectIsNumberInteger(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPathWith(j, path, [](const json& j) -> bool { return j.is_number_integer(); });
+}
+
+auto checkObjectIsNumberUnsigned(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::number_unsigned);
+}
+
+auto checkObjectIsObject(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::object);
+}
+
+auto checkObjectIsPrimitive(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPathWith(j, path, [](const json& j) -> bool { return j.is_primitive(); });
+}
+
+auto checkObjectIsString(const json& j, const std::vector<std::string>& path) -> bool {
+    return checkPath(j, path, json::value_t::string);
 }
 
 } // namespace oink_judge::config

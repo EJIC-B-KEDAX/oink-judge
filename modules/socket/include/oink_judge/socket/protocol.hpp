@@ -1,8 +1,9 @@
 #pragma once
 #include "oink_judge/socket/session.hpp"
 
-#include <nlohmann/json.hpp>
 #include <oink_judge/factory/parameterized_type_factory.hpp>
+
+#include <nlohmann/json.hpp>
 
 namespace oink_judge::socket {
 
@@ -33,7 +34,7 @@ class Protocol {
     static auto callCallback(const callback_t& callback, std::error_code ec, std::decay_t<Args>... args) -> void;
 };
 
-using ProtocolFactory = factory::ParameterizedTypeFactory<std::unique_ptr<Protocol>>;
+using ProtocolFactory = factory::ParameterizedTypeFactory<std::unique_ptr<Protocol>, boost::asio::any_io_executor>;
 
 } // namespace oink_judge::socket
 

@@ -1,12 +1,13 @@
 #include "oink_judge/socket/boost_ssl_context.h"
 
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
+
 #include <stdexcept>
 
 namespace oink_judge::socket {
 
-using logger::requireHasValue;
+using config::requireHasValue;
 
 namespace fs = std::filesystem;
 

@@ -20,4 +20,6 @@ class VerdictBuilderMin : public VerdictBuilder {
     std::shared_ptr<VerdictBase> current_verdict_;
 };
 
+auto registerVerdictBuilderMinType() -> void;
+
 } // namespace oink_judge::test_node

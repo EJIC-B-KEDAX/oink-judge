@@ -1,0 +1,6 @@
+function(add_module_test TEST_NAME TEST_SOURCE LINK_TARGET)
+  add_executable(${TEST_NAME} ${TEST_SOURCE})
+  target_link_libraries(${TEST_NAME} PRIVATE ${LINK_TARGET} GTest::gtest_main)
+  include(GoogleTest)
+  gtest_discover_tests(${TEST_NAME})
+endfunction()

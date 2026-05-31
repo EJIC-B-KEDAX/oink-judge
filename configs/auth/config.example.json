@@ -6,6 +6,7 @@
     },
     "database": {
         "host": "127.0.0.1",
+        "port": 5432,
         "username": "my_username",
         "dbname": "my_dbname"
     },
@@ -13,11 +14,17 @@
         "FastAPI": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(ProtocolWithFastAPI)\"}))"
     },
     "directories": {
-        "certs": "certs"
+        "certs": "certs",
+        "plugins": "plugins/auth_service"
     },
     "timings": {
         "valid_session_time": 3600,
         "ping_interval": 5,
         "pong_timeout": 3
+    },
+    "logger": {
+        "log_levels": {
+            "default": 1
+        }
     }
 }

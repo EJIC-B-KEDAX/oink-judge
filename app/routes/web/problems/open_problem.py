@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Request, Form, UploadFile, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse, FileResponse
-from fastapi.templating import Jinja2Templates
-from app.config.problem_config import get_problem_statements
-from app.services.auth.auth_utils import get_current_user, require_current_user
-from app.database.tables.submissions import add_submission, SubmissionInfo, load_submissions_by_user_and_problem, update_submission_verdict
-from app.database.database import get_db
-from app.services.dispatcher.dispatcher_api import handle_submission
+import os
+import uuid
 from datetime import datetime
-import uuid, os
 
+from fastapi import APIRouter, Depends, Form, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
+from app.config import get_problem_statements
+from app.database.database import get_db
+from app.database.tables.submissions import (
+    SubmissionInfo,
+    add_submission,
+    load_submissions_by_user_and_problem,
+    update_submission_verdict,
+)
+from app.services.auth.auth_utils import require_current_user
+from app.services.dispatcher.dispatcher_api import handle_submission
 
 templates = Jinja2Templates(directory="templates/problems")
+
 
 class ProblemInfo:
     def __init__(self, problem_id: str, html_statements: str | None = None):
@@ -22,7 +29,9 @@ class ProblemInfo:
 class OpenProblem:
     def __init__(self, problem_id: str):
         self.id = problem_id
-        self.router = APIRouter(prefix=f"/problems/{problem_id}", tags=["default_problem"])
+        self.router = APIRouter(
+            prefix=f"/problems/{problem_id}", tags=["default_problem"]
+        )
         self._setup_routes()
 
     def _setup_routes(self):
@@ -35,17 +44,11 @@ class OpenProblem:
                 if statements is None:
                     statements = "<p>Problem statements are not available.</p>"
 
-            problem_info = ProblemInfo(
-                problem_id=self.id,
-                html_statements=statements
+            problem_info = ProblemInfo(problem_id=self.id, html_statements=statements)
+
+            return templates.TemplateResponse(
+                "default_statements.html", {"request": request, "problem": problem_info}
             )
-
-            return templates.TemplateResponse("default_statements.html", {
-                "request": request,
-                "problem": problem_info
-            })
-
-
 
         @self.router.get("/problem-statement.css", response_class=HTMLResponse)
         async def problem_statement_css():
@@ -58,9 +61,8 @@ class OpenProblem:
                 return FileResponse(russian_path, media_type="text/css")
             else:
                 from fastapi import HTTPException
+
                 raise HTTPException(status_code=404, detail="CSS file not found")
-
-
 
         @self.router.get("/submit", response_class=HTMLResponse)
         async def problem_submit_page(request: Request):
@@ -68,19 +70,18 @@ class OpenProblem:
                 problem_id=self.id,
             )
 
-            return templates.TemplateResponse("default_submit.html", {
-                "request": request,
-                "problem": problem_info
-            })
-
-
+            return templates.TemplateResponse(
+                "default_submit.html", {"request": request, "problem": problem_info}
+            )
 
         @self.router.post("/submit", response_class=HTMLResponse)
-        async def problem_submit(request: Request,
-                language: str = Form(...),
-                solution: UploadFile = Form(...),
-                username: str = Depends(require_current_user),
-                db = Depends(get_db)):
+        async def problem_submit(
+            request: Request,
+            language: str = Form(...),
+            solution: UploadFile = Form(...),
+            username: str = Depends(require_current_user),
+            db=Depends(get_db),
+        ):
 
             submission_id = str(uuid.uuid4())
 
@@ -98,7 +99,7 @@ class OpenProblem:
                 language=language,
                 verdict_type="TS",
                 score=0.0,
-                send_time=datetime.now().replace(microsecond=0)
+                send_time=datetime.now().replace(microsecond=0),
             )
 
             await add_submission(db, submission_info)
@@ -108,19 +109,26 @@ class OpenProblem:
             if not is_ok:
                 await update_submission_verdict(db, submission_id, "FAIL", 0.0)
 
-            return RedirectResponse(url=f"/problems/{self.id}/submissions", status_code=302)
-
-
-
-        @self.router.get("/submissions", response_class=HTMLResponse)
-        async def problem_submissions(request: Request, username: str = Depends(require_current_user), db = Depends(get_db)):
-            submissions = await load_submissions_by_user_and_problem(db, username, self.id)
-            problem_info = ProblemInfo(
-                problem_id=self.id
+            return RedirectResponse(
+                url=f"/problems/{self.id}/submissions", status_code=302
             )
 
-            return templates.TemplateResponse("default_submissions.html", {
-                "request": request,
-                "problem": problem_info,
-                "submissions": submissions
-            })
+        @self.router.get("/submissions", response_class=HTMLResponse)
+        async def problem_submissions(
+            request: Request,
+            username: str = Depends(require_current_user),
+            db=Depends(get_db),
+        ):
+            submissions = await load_submissions_by_user_and_problem(
+                db, username, self.id
+            )
+            problem_info = ProblemInfo(problem_id=self.id)
+
+            return templates.TemplateResponse(
+                "default_submissions.html",
+                {
+                    "request": request,
+                    "problem": problem_info,
+                    "submissions": submissions,
+                },
+            )

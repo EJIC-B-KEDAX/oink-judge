@@ -1,5 +1,7 @@
-from app.socket.connection_protocol import create_connection
 import asyncio
+
+from app.socket.connection_protocol import create_connection
+
 
 class StableConnection:
     def __init__(self, host: str, port: int, event_handler, start_message: str):
@@ -8,7 +10,7 @@ class StableConnection:
         self.event_handler = event_handler
         self.init_event_handler = event_handler
         self.start_message = start_message
-    
+
     async def connect(self) -> None:
         print(f"Establishing connection to {self.host}:{self.port}...")
         if not self.event_handler:
@@ -18,12 +20,13 @@ class StableConnection:
             host=self.host,
             port=self.port,
             event_handler=self.event_handler,
-            start_message=self.start_message)
-        
+            start_message=self.start_message,
+        )
+
         await self.event_handler.start(start_message=self.start_message)
-        
+
     def close(self) -> None:
-        if self.event_handler.session is not None:
+        if self.event_handler is not None and self.event_handler.session is not None:
             self.event_handler.session.transport.close()
             self.event_handler.session.connection_lost(None)
 
@@ -32,17 +35,20 @@ class StableConnection:
             try:
                 await self.connect()
             except Exception as e:
-                print(f"Failed to initialize connection to {self.host}:{self.port}: {e}")
+                print(
+                    f"Failed to initialize connection to {self.host}:{self.port}: {e}"
+                )
                 try:
+                    assert self.event_handler is not None
                     self.event_handler.close()
-                except:
+                except Exception:
                     self.event_handler = None
 
             if not self.event_handler or self.event_handler.is_closed():
                 await asyncio.sleep(1)
             else:
                 print(f"Connection to {self.host}:{self.port} established.")
-    
+
     async def get_connection(self):
         await self.ensure_connection()
         return self.event_handler

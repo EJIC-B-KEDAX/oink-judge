@@ -1,7 +1,6 @@
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
-
     "formatters": {
         "default": {
             "format": "%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -12,7 +11,6 @@ LOGGING_CONFIG = {
             "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
-
     "handlers": {
         "default": {
             "class": "logging.StreamHandler",
@@ -23,12 +21,10 @@ LOGGING_CONFIG = {
             "formatter": "access",
         },
     },
-
     "root": {
         "handlers": ["default"],
         "level": "INFO",
     },
-
     "loggers": {
         "uvicorn": {
             "handlers": ["default"],

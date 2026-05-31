@@ -21,4 +21,6 @@ class ProtocolWithFastAPI : public socket::ProtocolBase {
     std::map<std::string, std::shared_ptr<ProblemSubmissionManager>> submission_managers_;
 };
 
+auto registerProtocolWithFastAPIType() -> void;
+
 } // namespace oink_judge::dispatcher

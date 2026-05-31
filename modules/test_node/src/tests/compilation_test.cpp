@@ -4,7 +4,7 @@
 #include "oink_judge/test_node/problem_builders/enable_get_test_by_name.hpp"
 #include "oink_judge/test_node/verdicts/default_verdict.h"
 
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
 #include <oink_judge/database/table_submissions.h>
 #include <oink_judge/logger/logger.h>
@@ -13,22 +13,8 @@ namespace oink_judge::test_node {
 
 namespace fs = std::filesystem;
 
+using config::requireHasValue;
 using database::TableSubmissions;
-using logger::requireHasValue;
-
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    TestFactory::instance().registerType(
-        CompilationTest::REGISTERED_NAME,
-        [](ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name) -> std::shared_ptr<Test> {
-            return std::make_shared<CompilationTest>(problem_builder, problem_id, name);
-        });
-
-    return true;
-}();
-
-} // namespace
 
 CompilationTest::CompilationTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -66,6 +52,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         ((scripts_dir / "prepare_for_testing.sh").string() + " " + boxes[0] + " " + boxes[1] + " " + problem_id_).c_str());
 
     if (rc_prepare != 0) {
+        logger::logError("CompilationTest", "Failed to prepare environment for testing");
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -83,6 +70,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
                                          .c_str());
 
     if (rc_compilation != 0) {
+        logger::logInfo("CompilationTest", "Compilation failed for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::COMPILATION_ERROR;
@@ -100,6 +88,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
                                           .c_str());
 
     if (rc_copy_checker != 0) {
+        logger::logError("CompilationTest", "Failed to copy checker for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -117,6 +106,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
     int rc_clear = std::system(((scripts_dir / "end_testing.sh").string() + " " + boxes[0] + " " + boxes[1]).c_str());
 
     if (rc_clear != 0) {
+        logger::logError("CompilationTest", "Failed to clear environment after testing for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -137,5 +127,13 @@ auto CompilationTest::skip(const std::string& submission_id) -> std::shared_ptr<
 auto CompilationTest::boxesRequired() const -> size_t { return test_->boxesRequired(); }
 
 auto CompilationTest::getName() const -> const std::string& { return name_; }
+
+auto registerCompilationTestType() -> void {
+    TestFactory::instance().registerType(
+        CompilationTest::REGISTERED_NAME,
+        [](ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name) -> std::shared_ptr<Test> {
+            return std::make_shared<CompilationTest>(problem_builder, problem_id, name);
+        });
+}
 
 } // namespace oink_judge::test_node

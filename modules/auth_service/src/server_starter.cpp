@@ -1,18 +1,20 @@
-#include <iostream>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/config.h>
-#include <oink_judge/config/server_config_utils.h>
+#include <oink_judge/config/logger_utils.h>
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/plugin_manager/config_utils.h>
 #include <oink_judge/plugin_manager/plugin_manager.h>
 #include <oink_judge/socket/async_server.h>
-#include <oink_judge/socket/boost_io_context.h>
+#include <oink_judge/socket/server_config_utils.h>
+
+#include <iostream>
 
 using namespace oink_judge;
 
 using config::Config;
-using config::getConnectionHandlerType;
-using config::getMyPort;
-using logger::requireHasValue;
+using config::requireHasValue;
+using socket::getConnectionHandlerType;
+using socket::getMyPort;
 
 auto main(int argc, char* argv[]) -> int {
     if (argc < 3) {
@@ -23,7 +25,7 @@ auto main(int argc, char* argv[]) -> int {
     Config::setConfigFilePath(argv[1]);      // NOLINT
     Config::setCredentialsFilePath(argv[2]); // NOLINT
 
-    std::cout << "Loading configuration..." << std::endl; // NOLINT
+    config::configureLogger(requireHasValue(config::getLoggerConfig()));
 
     plugin_manager::PluginManager plugin_manager;
     logger::logInfo("server_starter", "Loading plugins...");
@@ -34,16 +36,20 @@ auto main(int argc, char* argv[]) -> int {
             logger::logSuccess("server_starter", "Successfully loaded plugin: " + plugin_path.string());
         }
     }
+    logger::logInfo("server_starter", "Finished loading plugins");
 
     int my_port = requireHasValue(getMyPort());
 
-    logger::logMessage("server_starter", "Starting server on port " + std::to_string(my_port));
+    logger::logInfo("server_starter", "Starting server on port " + std::to_string(my_port));
+
+    boost::asio::io_context io_context;
 
     auto server = std::make_shared<oink_judge::socket::AsyncServer>(
-        my_port, oink_judge::socket::ConnectionHandlerFactory::instance().create(requireHasValue(getConnectionHandlerType())));
+        my_port, oink_judge::socket::ConnectionHandlerFactory::instance().create(requireHasValue(getConnectionHandlerType())),
+        io_context);
 
     server->startAccept();
-    oink_judge::socket::BoostIOContext::instance().run();
+    io_context.run();
 
-    logger::logMessage("server_starter", "Server stopped");
+    logger::logInfo("server_starter", "Server stopped");
 }

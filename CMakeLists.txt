@@ -3,19 +3,35 @@ project(oink-judge)
 include(CTest)
 enable_testing()
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -g")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address,undefined -g")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+add_subdirectory(external/pybind11)
+
+find_package(
+  Python3
+  COMPONENTS Interpreter Development
+  REQUIRED)
+set(PATH_TO_INSTALL_PYBIND11_MODULES ${Python3_SITEARCH}/oink_judge)
+add_custom_target(
+  initialise_directory_for_pybind11_modules ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+          ${PATH_TO_INSTALL_PYBIND11_MODULES})
+message("PATH_TO_INSTALL_PYBIND11_MODULES: ${PATH_TO_INSTALL_PYBIND11_MODULES}")
+set(RPATH_FOR_PYBIND11_MODULES "../../../../../build/lib")
+
+add_subdirectory(external/googletest)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_subdirectory(modules/logger)
+add_subdirectory(modules/shared)
 add_subdirectory(modules/config)
-add_subdirectory(modules/factory)
-add_subdirectory(modules/utils)
 add_subdirectory(modules/plugin_manager)
 add_subdirectory(modules/database)
 add_subdirectory(modules/socket)

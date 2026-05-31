@@ -1,6 +1,7 @@
 #pragma once
-#include <boost/asio.hpp>
 #include <oink_judge/factory/parameterized_type_factory.hpp>
+
+#include <boost/asio.hpp>
 
 namespace oink_judge::socket {
 

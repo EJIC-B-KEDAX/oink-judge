@@ -1,6 +1,8 @@
-import ssl, asyncio
+import asyncio
+import ssl
 
 LENGTH_PREFIX_SIZE = 8
+
 
 class Session(asyncio.Protocol):
     def __init__(self, event_handler):
@@ -26,9 +28,9 @@ class Session(asyncio.Protocol):
             return
 
         if self.transport:
-            msg_len = len(msg).to_bytes(LENGTH_PREFIX_SIZE, 'big')
+            msg_len = len(msg).to_bytes(LENGTH_PREFIX_SIZE, "big")
             self.transport.write(msg_len + msg.encode())
-    
+
     def data_received(self, data: bytes):
         self.buffer += data
 
@@ -36,13 +38,15 @@ class Session(asyncio.Protocol):
             if self.expected_len is None:
                 if len(self.buffer) < LENGTH_PREFIX_SIZE:
                     break
-                self.expected_len = int.from_bytes(self.buffer[:LENGTH_PREFIX_SIZE], 'big')
+                self.expected_len = int.from_bytes(
+                    self.buffer[:LENGTH_PREFIX_SIZE], "big"
+                )
                 self.buffer = self.buffer[LENGTH_PREFIX_SIZE:]
 
             if len(self.buffer) >= self.expected_len:
-                msg = self.buffer[:self.expected_len].decode("utf-8")
+                msg = self.buffer[: self.expected_len].decode("utf-8")
                 asyncio.create_task(self.event_handler.receive_message(msg))
-                self.buffer = self.buffer[self.expected_len:]
+                self.buffer = self.buffer[self.expected_len :]
                 self.expected_len = None
             else:
                 break
@@ -60,10 +64,7 @@ class Session(asyncio.Protocol):
         ssl_context.verify_mode = ssl.CERT_NONE
 
         new_transport = await self.loop.start_tls(
-            self.transport,
-            self,
-            ssl_context,
-            server_side=False
+            self.transport, self, ssl_context, server_side=False
         )
         self.transport = new_transport
         print("Connection upgraded to SSL")

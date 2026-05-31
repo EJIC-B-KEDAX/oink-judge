@@ -23,4 +23,6 @@ class SingleTest : public Test {
     fs::path answer_path_;
 };
 
+auto registerSingleTestType() -> void;
+
 } // namespace oink_judge::test_node

@@ -13,10 +13,10 @@ auto asyncConnectToTheEndpoint(std::string host, short port, std::string session
 auto asyncScheduleConnectToTheEndpoint(std::string host, short port, std::string session_type, std::string request)
     -> awaitable<std::shared_ptr<Session>>;
 
-auto connectToTheEndpoint(std::string host, short port, std::string session_type, std::string request)
-    -> std::shared_ptr<Session>;
+auto connectToTheEndpoint(std::string host, short port, std::string session_type, std::string request,
+                          boost::asio::io_context& io_context) -> std::shared_ptr<Session>;
 
-auto scheduleConnectToTheEndpoint(std::string host, short port, std::string session_type, std::string request)
-    -> std::shared_ptr<Session>;
+auto scheduleConnectToTheEndpoint(std::string host, short port, std::string session_type, std::string request,
+                                  boost::asio::io_context& io_context) -> std::shared_ptr<Session>;
 
 } // namespace oink_judge::socket

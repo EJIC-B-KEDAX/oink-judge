@@ -5,29 +5,15 @@
 #include "oink_judge/test_node/problem_tables_storage.h"
 
 #include <fstream>
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
 #include <oink_judge/database/table_submissions.h>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
 
+using config::requireHasValue;
 using database::TableSubmissions;
-using logger::requireHasValue;
-
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    TestFactory::instance().registerType(
-        SyncResultTest::REGISTERED_NAME,
-        [](ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name) -> std::shared_ptr<Test> {
-            return std::make_shared<SyncResultTest>(problem_builder, problem_id, name);
-        });
-
-    return true;
-}();
-
-} // namespace
 
 SyncResultTest::SyncResultTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -75,5 +61,13 @@ auto SyncResultTest::skip(const std::string& submission_id) -> std::shared_ptr<V
 auto SyncResultTest::boxesRequired() const -> size_t { return test_->boxesRequired(); }
 
 auto SyncResultTest::getName() const -> const std::string& { return name_; }
+
+auto registerSyncResultTestType() -> void {
+    TestFactory::instance().registerType(
+        SyncResultTest::REGISTERED_NAME,
+        [](ProblemBuilder* problem_builder, const std::string& problem_id, const std::string& name) -> std::shared_ptr<Test> {
+            return std::make_shared<SyncResultTest>(problem_builder, problem_id, name);
+        });
+}
 
 } // namespace oink_judge::test_node

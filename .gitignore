@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 .cache/
+.clangd
 /venv/
 /build/
 /logs/

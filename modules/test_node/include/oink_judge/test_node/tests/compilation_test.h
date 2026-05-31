@@ -21,4 +21,6 @@ class CompilationTest : public Test {
     std::shared_ptr<Test> test_;
 };
 
+auto registerCompilationTestType() -> void;
+
 } // namespace oink_judge::test_node

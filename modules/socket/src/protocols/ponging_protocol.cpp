@@ -18,10 +18,12 @@ auto PongingProtocol::receiveMessage(std::string message) -> awaitable<void> {
 
 auto registerPongingProtocolType() -> void {
     ProtocolFactory::instance().registerType(
-        PongingProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
+        PongingProtocol::REGISTERED_NAME,
+        [](const std::string& params, const boost::asio::any_io_executor& executor) -> std::unique_ptr<Protocol> {
             const std::string& inner_type = params;
 
-            return std::make_unique<PongingProtocol>(ProtocolFactory::instance().create(inner_type));
+            return std::make_unique<PongingProtocol>(
+                ProtocolFactory::instance().create(inner_type, boost::asio::any_io_executor(executor)));
         });
 }
 

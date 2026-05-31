@@ -4,23 +4,18 @@
 
 namespace oink_judge::dispatcher {
 
-namespace {
+SendSubmissionToInvoker::SendSubmissionToInvoker(std::string problem_id) : problem_id_(std::move(problem_id)) {}
 
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
+auto SendSubmissionToInvoker::handleSubmission(const std::string& submission_id) -> void {
+    TestingQueue::instance().pushSubmission(submission_id);
+}
+
+auto registerSendSubmissionToInvokerType() -> void {
     ProblemSubmissionManagerFactory::instance().registerType(
         SendSubmissionToInvoker::REGISTERED_NAME,
         [](const std::string& params, const std::string& problem_id) -> std::shared_ptr<ProblemSubmissionManager> {
             return std::make_shared<SendSubmissionToInvoker>(problem_id);
         });
-    return true;
-}();
-
-} // namespace
-
-SendSubmissionToInvoker::SendSubmissionToInvoker(std::string problem_id) : problem_id_(std::move(problem_id)) {}
-
-auto SendSubmissionToInvoker::handleSubmission(const std::string& submission_id) -> void {
-    TestingQueue::instance().pushSubmission(submission_id);
 }
 
 } // namespace oink_judge::dispatcher

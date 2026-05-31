@@ -1,23 +1,23 @@
 #include "oink_judge/content_service/client/content_storage.h"
 
-#include "oink_judge/content_service/content_config_utils.h"
+#include "oink_judge/content_service/config_utils.h"
 #include "oink_judge/content_service/manifest_storage.h"
 
-#include <filesystem>
-#include <oink_judge/config/config.h>
-#include <oink_judge/config/server_config_utils.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
+#include <oink_judge/socket/client_config_utils.h>
 #include <oink_judge/socket/connection_protocol.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
+
+#include <filesystem>
 
 namespace oink_judge::content_service {
 
 using namespace utils::filesystem;
 namespace fs = std::filesystem;
 
-using config::Config;
-using logger::requireHasValue;
+using config::requireHasValue;
 
 auto ContentStorage::instance() -> ContentStorage& {
     static ContentStorage instance;
@@ -44,6 +44,9 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
         if (change.type == ContentChange::Type::ADDED || change.type == ContentChange::Type::MODIFIED) {
             std::string file = co_await getFileFromServer(content_type, content_id, change.file_path);
             storeFile(content_path / change.file_path, file);
+            setPermissions(content_path / change.file_path, getPermissionsFromManifest(server_manifest, change.file_path));
+        } else if (change.type == ContentChange::Type::ATTRIBUTES_CHANGED) {
+            setPermissions(content_path / change.file_path, getPermissionsFromManifest(server_manifest, change.file_path));
         } else if (change.type == ContentChange::Type::REMOVED) {
             removeFileOrDirectory(content_path / change.file_path);
         }
@@ -76,12 +79,20 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
 }
 
 ContentStorage::ContentStorage() {
-    auto connection_config = requireHasValue(config::getConnectionConfig("content_service"));
-    session_ = socket::connectToTheEndpoint(connection_config.host, connection_config.port, connection_config.session_type,
-                                            connection_config.start_message);
+    // auto connection_config = requireHasValue(socket::getConnectionConfig("content_service"));
+    // session_ = socket::connectToTheEndpoint(connection_config.host, connection_config.port, connection_config.session_type,
+    //                                         connection_config.start_message);
 
     if (!session_) {
         throw std::runtime_error("Failed to connect to the data sender endpoint.");
+    }
+}
+
+auto ContentStorage::ensureConnection() -> awaitable<void> {
+    if (!session_) {
+        auto connection_config = requireHasValue(socket::getConnectionConfig("content_service"));
+        session_ = co_await socket::asyncConnectToTheEndpoint(connection_config.host, connection_config.port,
+                                                              connection_config.session_type, connection_config.start_message);
     }
 }
 

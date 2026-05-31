@@ -1,31 +1,19 @@
 #include "oink_judge/content_service/server/content_server_protocol.h"
 
-#include "oink_judge/content_service/content_config_utils.h"
+#include "oink_judge/content_service/config_utils.h"
 #include "oink_judge/content_service/manifest_storage.h"
 
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
 namespace oink_judge::content_service {
 
-using logger::requireHasValue;
+using config::requireHasValue;
 using nlohmann::json;
 
 namespace fs = std::filesystem;
-
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    socket::ProtocolFactory::instance().registerType(ContentServerProtocol::REGISTERED_NAME,
-                                                     [](const std::string& params) -> std::unique_ptr<ContentServerProtocol> {
-                                                         return std::make_unique<ContentServerProtocol>();
-                                                     });
-
-    return true;
-}();
-
-} // namespace
 
 ContentServerProtocol::ContentServerProtocol() = default;
 
@@ -112,5 +100,13 @@ auto ContentServerProtocol::receiveMessage(std::string message) -> awaitable<voi
 }
 
 auto ContentServerProtocol::closeSession() -> void {}
+
+auto registerContentServerProtocolType() -> void {
+    socket::ProtocolFactory::instance().registerType(
+        ContentServerProtocol::REGISTERED_NAME,
+        [](const std::string& params, const boost::asio::any_io_executor& executor) -> std::unique_ptr<ContentServerProtocol> {
+            return std::make_unique<ContentServerProtocol>();
+        });
+}
 
 } // namespace oink_judge::content_service

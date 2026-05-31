@@ -1,19 +1,24 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
-from app.services.auth.auth_utils import get_current_user
 from pathlib import Path
+
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
+from app.services.auth.auth_utils import get_current_user
 
 router = APIRouter(tags=["main"])
 templates = Jinja2Templates(directory="templates")
 
 PROBLEMS_DIR = Path("problems")
 
+
 @router.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    username: str = await get_current_user(request)
+    username: str | None = await get_current_user(request)
 
-    return templates.TemplateResponse("index.html", {"request": request, "user": username})
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "user": username}
+    )
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -30,5 +35,5 @@ async def dashboard(request: Request):
         {
             "request": request,
             "problems": problems,
-        }
+        },
     )

@@ -19,4 +19,6 @@ class ProtocolWithInvoker : public socket::ProtocolBase {
     std::string invoker_id_;
 };
 
+auto registerProtocolWithInvokerType() -> void;
+
 } // namespace oink_judge::dispatcher

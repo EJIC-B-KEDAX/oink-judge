@@ -1,23 +1,24 @@
 #include "oink_judge/socket/async_server.h"
 
-#include "oink_judge/socket/boost_io_context.h"
 #include "oink_judge/socket/byte_order.h"
 #include "oink_judge/socket/session.hpp"
 
-#include <nlohmann/json.hpp>
 #include <oink_judge/logger/logger.h>
+
+#include <nlohmann/json.hpp>
+
 #include <utility>
 
 namespace oink_judge::socket {
 
 using json = nlohmann::json;
 
-AsyncServer::AsyncServer(short port, std::shared_ptr<ConnectionHandler> handler)
-    : acceptor_(BoostIOContext::instance(), tcp::endpoint(tcp::v4(), port)), handler_(std::move(handler)) {}
+AsyncServer::AsyncServer(short port, std::shared_ptr<ConnectionHandler> handler, boost::asio::io_context& io_context)
+    : acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), handler_(std::move(handler)) {}
 
 auto AsyncServer::startAccept() -> void { co_spawn(acceptor_.get_executor(), accept(), boost::asio::detached); }
 
-awaitable<void> AsyncServer::accept() {
+auto AsyncServer::accept() -> awaitable<void> {
     try {
         tcp::socket socket = co_await acceptor_.async_accept(boost::asio::use_awaitable);
         co_spawn(co_await boost::asio::this_coro::executor, accept(), boost::asio::detached);

@@ -1,7 +1,7 @@
 {
     "logger": {
         "output_stream": "stdout",
-        "log_level": {
+        "log_levels": {
             "moduleA": 2,
             "moduleB": 5,
             "default": 3

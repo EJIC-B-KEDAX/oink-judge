@@ -2,20 +2,6 @@
 
 namespace oink_judge::test_node {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    VerdictBuilderFactory::instance().registerType(
-        VerdictBuilderSum::REGISTERED_NAME,
-        [](const std::string& params, const std::string& test_name) -> std::unique_ptr<VerdictBuilderSum> {
-            return std::make_unique<VerdictBuilderSum>(test_name);
-        });
-
-    return true;
-}();
-
-} // namespace
-
 VerdictBuilderSum::VerdictBuilderSum(std::string test_name)
     : test_name_(std::move(test_name)), current_verdict_(std::make_shared<VerdictBase>(test_name_)) {
     clear();
@@ -72,5 +58,13 @@ auto VerdictBuilderSum::addVerdict(std::shared_ptr<VerdictBase> verdict) -> void
 auto VerdictBuilderSum::canScoreChange() const -> bool { return current_verdict_->getInfo().score != 0.0; }
 
 auto VerdictBuilderSum::finalize() -> std::shared_ptr<VerdictBase> { return current_verdict_; }
+
+auto registerVerdictBuilderSumType() -> void {
+    VerdictBuilderFactory::instance().registerType(
+        VerdictBuilderSum::REGISTERED_NAME,
+        [](const std::string& params, const std::string& test_name) -> std::unique_ptr<VerdictBuilderSum> {
+            return std::make_unique<VerdictBuilderSum>(test_name);
+        });
+}
 
 } // namespace oink_judge::test_node

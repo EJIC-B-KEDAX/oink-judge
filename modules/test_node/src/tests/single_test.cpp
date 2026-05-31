@@ -1,30 +1,16 @@
 #include "oink_judge/test_node/tests/single_test.h"
 
-#include "oink_judge/test_node/test_node_config_utils.h"
+#include "oink_judge/test_node/config_utils.h"
 #include "oink_judge/test_node/verdict_utils.h"
 #include "oink_judge/test_node/verdicts/default_verdict.h"
 
 #include <format>
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
 
-using logger::requireHasValue;
-
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    TestFactory::instance().registerType(SingleTest::REGISTERED_NAME,
-                                         [](ProblemBuilder* problem_builder, const std::string& problem_id,
-                                            const std::string& test_name) -> std::shared_ptr<SingleTest> {
-                                             return std::make_shared<SingleTest>(problem_id, test_name);
-                                         });
-
-    return true;
-}();
-
-} // namespace
+using config::requireHasValue;
 
 SingleTest::SingleTest(const std::string& problem_id, std::string name) : name_(std::move(name)) {
     int test_number = 0;
@@ -82,5 +68,13 @@ auto SingleTest::skip(const std::string& submission_id) -> std::shared_ptr<Verdi
 auto SingleTest::boxesRequired() const -> size_t { return 2; }
 
 auto SingleTest::getName() const -> const std::string& { return name_; }
+
+auto registerSingleTestType() -> void {
+    TestFactory::instance().registerType(SingleTest::REGISTERED_NAME,
+                                         [](ProblemBuilder* problem_builder, const std::string& problem_id,
+                                            const std::string& test_name) -> std::shared_ptr<SingleTest> {
+                                             return std::make_shared<SingleTest>(problem_id, test_name);
+                                         });
+}
 
 } // namespace oink_judge::test_node

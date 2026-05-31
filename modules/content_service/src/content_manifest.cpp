@@ -1,17 +1,17 @@
 #include "oink_judge/content_service/content_manifest.h"
 
+#include "oink_judge/content_service/config_utils.h"
+
 #include <ctime>
 #include <filesystem>
-#include <oink_judge/config/config.h>
-#include <oink_judge/content_service/content_config_utils.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
 namespace oink_judge::content_service {
 
-using config::Config;
-using logger::requireHasValue;
+using config::requireHasValue;
 
 using namespace oink_judge::utils;
 
@@ -66,6 +66,7 @@ auto ContentManifest::fullRescanContent() const -> void {
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(content_directory)) {
         if (entry.is_regular_file()) {
+            logger::logInfo("content_manifest", "Processing file: " + entry.path().string());
             std::string relative_path = std::filesystem::relative(entry.path(), content_directory).string();
             if (relative_path == "manifest.json") {
                 continue;
@@ -74,6 +75,7 @@ auto ContentManifest::fullRescanContent() const -> void {
             cur_file_json["size"] = entry.file_size();
             cur_file_json["last_modified"] =
                 std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch()).count();
+            cur_file_json["permissions"] = static_cast<uint32_t>(entry.status().permissions());
             cur_file_json["sha256"] = crypto::sha256(filesystem::loadFile(entry.path()));
             manifest_json["files"][relative_path] = cur_file_json;
         }
@@ -91,6 +93,7 @@ auto ContentManifest::fastRescanContent() const -> void {
 
     for (const auto& entry : std::filesystem::recursive_directory_iterator(content_directory)) {
         if (entry.is_regular_file()) {
+            logger::logInfo("content_manifest", "Processing file: " + entry.path().string());
             std::string relative_path = std::filesystem::relative(entry.path(), content_directory).string();
             if (relative_path == "manifest.json") {
                 continue;
@@ -99,6 +102,7 @@ auto ContentManifest::fastRescanContent() const -> void {
             cur_file_json["size"] = entry.file_size();
             cur_file_json["last_modified"] =
                 std::chrono::duration_cast<std::chrono::seconds>(entry.last_write_time().time_since_epoch()).count();
+            cur_file_json["permissions"] = static_cast<uint32_t>(entry.status().permissions());
             if (stored_manifest.contains("files") && stored_manifest["files"].contains(relative_path) &&
                 stored_manifest["files"][relative_path]["size"] == cur_file_json["size"] &&
                 stored_manifest["files"][relative_path]["last_modified"] == cur_file_json["last_modified"]) {
@@ -144,6 +148,8 @@ auto compareManifests(const json& old_manifest, const json& new_manifest) -> std
                 const auto& old_file_info = old_manifest["files"][file_path];
                 if (old_file_info["sha256"] != new_file_info["sha256"]) {
                     changes.push_back({ContentChange::Type::MODIFIED, file_path});
+                } else if (old_file_info["permissions"] != new_file_info["permissions"]) {
+                    changes.push_back({ContentChange::Type::ATTRIBUTES_CHANGED, file_path});
                 }
             }
         }
@@ -159,6 +165,14 @@ auto compareManifests(const json& old_manifest, const json& new_manifest) -> std
     }
 
     return changes;
+}
+
+auto getPermissionsFromManifest(const json& manifest, const fs::path& file_path) -> fs::perms {
+    if (manifest.contains("files") && manifest["files"].contains(file_path.string()) &&
+        manifest["files"][file_path.string()].contains("permissions")) {
+        return static_cast<fs::perms>(manifest["files"][file_path.string()]["permissions"].get<uint32_t>());
+    }
+    return fs::perms::unknown;
 }
 
 } // namespace oink_judge::content_service

@@ -23,7 +23,9 @@ auto ProtocolWithFastAPI::closeSession() -> void {}
 auto registerProtocolWithFastAPIType() -> void {
     socket::ProtocolFactory::instance().registerType(
         ProtocolWithFastAPI::REGISTERED_NAME,
-        [](const std::string& params) -> std::unique_ptr<socket::Protocol> { return std::make_unique<ProtocolWithFastAPI>(); });
+        [](const std::string& params, const boost::asio::any_io_executor& executors) -> std::unique_ptr<socket::Protocol> {
+            return std::make_unique<ProtocolWithFastAPI>();
+        });
 }
 
 } // namespace oink_judge::auth_service

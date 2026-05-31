@@ -1,141 +1,98 @@
 #include "oink_judge/config/config.h"
-#include "oink_judge/config/logger_config_utils.h"
+#include "oink_judge/config/logger_utils.h"
 
-#include <filesystem>
-#include <oink_judge/logger/logger.h>
-#include <source_location>
-#include <string>
-#include <sys/types.h>
+#include <gtest/gtest.h>
 
 using namespace oink_judge::config;
-using namespace oink_judge::logger;
-namespace fs = std::filesystem;
 
-static auto expectTrue(bool cond, const std::string& msg, std::source_location location = std::source_location::current())
-    -> bool {
-    if (!cond) {
-        logMessage("TestLoggerConfig", msg, LogType::CRITICAL, 1, 2, location);
-        return false;
+class LoggerConfigTest : public ::testing::Test {
+  protected:
+    auto SetUp() -> void override {
+        resources_ = std::filesystem::path("resources") / "test_logger_config";
+        LoggerConfigTest::loadConfig(resources_ / "good_config.json", resources_ / "good_credentials.json");
+    }
+    auto getResourcesPath() -> const std::filesystem::path& { return resources_; }
+
+    static auto loadConfig(const std::filesystem::path& config, const std::filesystem::path& credentials) -> void {
+        Config::setConfigFilePath(config);
+        Config::setCredentialsFilePath(credentials);
+        Config::reloadData();
     }
 
-    logMessage("TestLoggerConfig", msg, LogType::SUCCESS, 1, 2, location);
-    return true;
-}
+  private:
+    std::filesystem::path resources_;
+};
 
-const fs::path RESOURCES = fs::path("resources") / "test_logger_config";
-
-static auto setConfig(const fs::path& config_path, const fs::path& credentials_path) -> void {
-    Config::setConfigFilePath(config_path);
-    Config::setCredentialsFilePath(credentials_path);
-    Config::reloadData();
-}
-
-static auto testOutputStream() -> bool;
-static auto testLogLevelsAndDefault() -> bool;
-static auto testColorMap() -> bool;
-static auto testMinLengths() -> bool;
-static auto testMissingLogger() -> bool;
-
-int main() {
-    fs::path test_dir = fs::path(__FILE__).parent_path();
-    fs::current_path(test_dir);
-
-    Logger::instance().setLogLevel("TestLoggerConfig", 1);
-
-    bool success = true;
-    success &= testOutputStream();
-    success &= testLogLevelsAndDefault();
-    success &= testColorMap();
-    success &= testMinLengths();
-    success &= testMissingLogger();
-
-    return success ? 0 : 1;
-}
-
-static auto testOutputStream() -> bool {
-    bool success = true;
-
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
+TEST_F(LoggerConfigTest, OutputStreamReturnsStdout) {
     auto out = getLoggerOutputStream();
-    success &= expectTrue(out.has_value() && *out == "stdout", "getLoggerOutputStream returns stdout");
-
-    return success;
+    ASSERT_TRUE(out.has_value());
+    EXPECT_EQ(*out, "stdout");
 }
 
-static auto testLogLevelsAndDefault() -> bool {
-    bool success = true;
-
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
+TEST_F(LoggerConfigTest, AllLogLevelsSize) {
     auto all = getAllLoggerLogLevels();
-    if (!expectTrue(all.has_value() && all->size() == 3, "getAllLoggerLogLevels size")) {
-        return false;
-    }
+    ASSERT_TRUE(all.has_value());
+    EXPECT_EQ(all->size(), 3);
+}
 
-    const uint32_t EXPECTED_DEFAULT_LEVEL = 3;
-    const uint32_t EXPECTED_MODULE_A_LEVEL = 2;
-    const uint32_t EXPECTED_MODULE_B_LEVEL = 5;
+TEST_F(LoggerConfigTest, LogLevelValues) {
+    auto all = getAllLoggerLogLevels();
+    ASSERT_TRUE(all.has_value());
+    EXPECT_EQ(all->at("moduleA"), 2);
+    EXPECT_EQ(all->at("moduleB"), 5);
+    EXPECT_EQ(all->at("default"), 3);
+}
 
-    success &= expectTrue(all->at("moduleA") == EXPECTED_MODULE_A_LEVEL, "moduleA level");
-    success &= expectTrue(all->at("moduleB") == EXPECTED_MODULE_B_LEVEL, "moduleB level");
-    success &= expectTrue(all->at("default") == EXPECTED_DEFAULT_LEVEL, "default level");
-
+TEST_F(LoggerConfigTest, GetLogLevelForExistingModule) {
     auto lvl = getLoggerLogLevel("moduleA");
-    success &= expectTrue(lvl.has_value() && *lvl == EXPECTED_MODULE_A_LEVEL, "getLoggerLogLevel for moduleA");
-
-    lvl = getLoggerLogLevel("nonexistent");
-    success &= expectTrue(!lvl.has_value(), "getLoggerLogLevel falls back to default");
-
-    return success;
+    ASSERT_TRUE(lvl.has_value());
+    EXPECT_EQ(*lvl, 2);
 }
 
-static auto testColorMap() -> bool {
-    bool success = true;
+TEST_F(LoggerConfigTest, GetLogLevelForNonexistentModuleReturnsNullopt) {
+    auto lvl = getLoggerLogLevel("nonexistent");
+    EXPECT_FALSE(lvl.has_value());
+}
 
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
+TEST_F(LoggerConfigTest, ColorMapSize) {
     auto cmap = getLoggerColorMap();
-    if (!expectTrue(cmap.has_value() && cmap->size() == 2, "getLoggerColorMap size")) {
-        return false;
-    }
-
-    success &= expectTrue(cmap->at("INFO") == "green", "color for INFO");
-    success &= expectTrue(cmap->at("ERROR") == "red", "color for ERROR");
-
-    return success;
+    ASSERT_TRUE(cmap.has_value());
+    EXPECT_EQ(cmap->size(), 2);
 }
 
-static auto testMinLengths() -> bool {
-    bool success = true;
+TEST_F(LoggerConfigTest, ColorMapValues) {
+    auto cmap = getLoggerColorMap();
+    ASSERT_TRUE(cmap.has_value());
+    EXPECT_EQ(cmap->at("INFO"), "green");
+    EXPECT_EQ(cmap->at("ERROR"), "red");
+}
 
-    setConfig(RESOURCES / "good_config.json", RESOURCES / "good_credentials.json");
-
-    const uint32_t EXPECTED_MIN_LOCATION_LENGTH = 10;
-    const uint32_t EXPECTED_MIN_MODULE_LENGTH = 8;
-
+TEST_F(LoggerConfigTest, MinLocationLength) {
     auto min_loc = getLoggerMinLocationLength();
-    success &= expectTrue(min_loc.has_value() && *min_loc == EXPECTED_MIN_LOCATION_LENGTH, "min_location_length");
-
-    auto min_mod = getLoggerMinModuleLength();
-    success &= expectTrue(min_mod.has_value() && *min_mod == EXPECTED_MIN_MODULE_LENGTH, "min_module_length");
-
-    return success;
+    ASSERT_TRUE(min_loc.has_value());
+    EXPECT_EQ(*min_loc, 10);
 }
 
-static auto testMissingLogger() -> bool {
-    bool success = true;
+TEST_F(LoggerConfigTest, MinModuleLength) {
+    auto min_mod = getLoggerMinModuleLength();
+    ASSERT_TRUE(min_mod.has_value());
+    EXPECT_EQ(*min_mod, 8);
+}
 
-    setConfig(RESOURCES / "no_logger.json", RESOURCES / "good_credentials.json");
-
+TEST_F(LoggerConfigTest, MissingLoggerOutputStreamReturnsNullopt) {
+    LoggerConfigTest::loadConfig(getResourcesPath() / "no_logger.json", getResourcesPath() / "good_credentials.json");
     auto out = getLoggerOutputStream();
-    success &= expectTrue(!out.has_value(), "getLoggerOutputStream returns nullopt when logger missing");
+    EXPECT_FALSE(out.has_value());
+}
 
+TEST_F(LoggerConfigTest, MissingLoggerLogLevelsReturnsNullopt) {
+    LoggerConfigTest::loadConfig(getResourcesPath() / "no_logger.json", getResourcesPath() / "good_credentials.json");
     auto all = getAllLoggerLogLevels();
-    success &= expectTrue(!all.has_value(), "getAllLoggerLogLevels returns nullopt when logger missing");
+    EXPECT_FALSE(all.has_value());
+}
 
+TEST_F(LoggerConfigTest, MissingLoggerConfigReturnsNullopt) {
+    LoggerConfigTest::loadConfig(getResourcesPath() / "no_logger.json", getResourcesPath() / "good_credentials.json");
     auto cfg = getLoggerConfig();
-    success &= expectTrue(!cfg.has_value(), "getLoggerConfig returns nullopt when logger missing");
-
-    return success;
+    EXPECT_FALSE(cfg.has_value());
 }

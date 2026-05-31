@@ -1,11 +1,11 @@
 #include "oink_judge/plugin_manager/config_utils.h"
 
-#include <oink_judge/config/config.h>
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::plugin_manager {
 
-using logger::requireHasValue;
+using config::requireHasValue;
 
 auto getAllPluginPaths() -> std::vector<fs::path> {
     std::vector<fs::path> plugin_paths;

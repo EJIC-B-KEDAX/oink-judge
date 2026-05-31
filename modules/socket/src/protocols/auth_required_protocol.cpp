@@ -43,7 +43,8 @@ auto AuthRequiredProtocol::requestInternal(const std::string& message, const cal
 
 auto registerAuthRequiredProtocolType() -> void {
     ProtocolFactory::instance().registerType(
-        AuthRequiredProtocol::REGISTERED_NAME, [](const std::string& params) -> std::unique_ptr<Protocol> {
+        AuthRequiredProtocol::REGISTERED_NAME,
+        [](const std::string& params, const boost::asio::any_io_executor& executor) -> std::unique_ptr<Protocol> {
             auto json_params = nlohmann::json::parse(params);
             if (!json_params.contains("inner_type") || !json_params.contains("auth_token_path")) {
                 throw std::runtime_error("AuthRequiredProtocol requires 'inner_type' and 'auth_token_path' parameters");
@@ -75,8 +76,9 @@ auto registerAuthRequiredProtocolType() -> void {
                 throw std::runtime_error("Auth token path '" + auth_token_path + "' does not exist in credentials");
             }
 
-            return std::make_unique<AuthRequiredProtocol>(ProtocolFactory::instance().create(inner_type),
-                                                          now_part[now_transition].get<std::string>());
+            return std::make_unique<AuthRequiredProtocol>(
+                ProtocolFactory::instance().create(inner_type, boost::asio::any_io_executor(executor)),
+                now_part[now_transition].get<std::string>());
         });
 }
 

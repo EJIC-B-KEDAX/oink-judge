@@ -6,22 +6,30 @@
     },
     "database": {
         "host": "127.0.0.1",
+        "port": 5432,
         "username": "my_username",
         "dbname": "my_dbname"
     },
     "directories": {
-        "submissions": ".submissions",
+        "submissions": "submissions",
         "submissions_zip": "submissions/.zips",
         "problems": "problems",
         "problems_zip": "problems/.zips",
         "scripts": "scripts",
-        "certs": "certs"
+        "certs": "certs",
+        "plugins": "plugins/content_service"
     },
     "sessions": {
-        "content_storage": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(DataSenderProtocol)\"}))"
+        "content_storage": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(ContentServerProtocol)\"}))"
     },
     "timings": {
         "ping_interval": 5,
-        "pong_timeout": 3
+        "pong_timeout": 3,
+        "full_rescan_interval": 3600
+    },
+    "logger": {
+        "log_levels": {
+            "default": 1
+        }
     }
 }

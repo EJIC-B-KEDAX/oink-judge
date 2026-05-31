@@ -18,4 +18,6 @@ class ContentServerProtocol : public socket::ProtocolBase {
     constexpr static auto REGISTERED_NAME = "ContentServerProtocol";
 };
 
+auto registerContentServerProtocolType() -> void;
+
 } // namespace oink_judge::content_service

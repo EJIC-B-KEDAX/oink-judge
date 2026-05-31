@@ -14,7 +14,7 @@ auto ConnectionStorage::insertConnection(const std::shared_ptr<Session>& session
 auto ConnectionStorage::removeConnection(const std::shared_ptr<Session>& session) -> void {
     auto it = std::ranges::find(connections_, session);
     if (it != connections_.end()) {
-        connections_.erase(it, connections_.end());
+        connections_.erase(it);
     }
 }
 

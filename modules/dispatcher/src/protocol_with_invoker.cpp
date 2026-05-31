@@ -6,19 +6,6 @@
 
 namespace oink_judge::dispatcher {
 
-namespace {
-
-[[maybe_unused]] const bool REGISTERED = []() -> bool {
-    socket::ProtocolFactory::instance().registerType(ProtocolWithInvoker::REGISTERED_NAME,
-                                                     [](const std::string& params) -> std::unique_ptr<ProtocolWithInvoker> {
-                                                         return std::make_unique<ProtocolWithInvoker>();
-                                                     });
-
-    return true;
-}();
-
-} // namespace
-
 using json = nlohmann::json;
 
 ProtocolWithInvoker::ProtocolWithInvoker() = default;
@@ -57,4 +44,11 @@ void ProtocolWithInvoker::closeSession() {
     invoker_id_.clear();
 }
 
+auto registerProtocolWithInvokerType() -> void {
+    socket::ProtocolFactory::instance().registerType(
+        ProtocolWithInvoker::REGISTERED_NAME,
+        [](const std::string& params, const boost::asio::any_io_executor& executor) -> std::unique_ptr<ProtocolWithInvoker> {
+            return std::make_unique<ProtocolWithInvoker>();
+        });
+}
 } // namespace oink_judge::dispatcher

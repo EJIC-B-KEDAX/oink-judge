@@ -1,22 +1,18 @@
 #include "oink_judge/logger/logger.h"
 
+#include "oink_judge/logger/python_logger.h"
+
+#include <Python.h>
+
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 
 namespace oink_judge::logger {
-
-namespace {
-
-auto safeGetColor(const std::map<std::string, std::string>& color_map, const std::string& key) -> std::string {
-    auto iter = color_map.find(key);
-    if (iter != color_map.end()) {
-        return iter->second;
-    }
-    return "";
-}
-
-} // namespace
 
 Logger::~Logger() = default;
 
@@ -25,18 +21,23 @@ auto Logger::instance() -> Logger& {
     return instance;
 }
 
-auto Logger::setOutputStream(std::ostream& out) -> void { out_stream_ = &out; }
-
-auto Logger::log(const std::string& module, int level, const std::string& message) -> void {
-    auto it = log_levels_.find(module);
-    if (it == log_levels_.end() || level > it->second) {
-        // return; // Log level too big, ignore message
-    }
-
-    (*out_stream_) << message;
+auto Logger::isLoggingEnabled(const std::string& module, uint32_t level) const -> bool {
+    return (level <= getLogLevel("default") && !log_levels_.contains(module)) || level <= getLogLevel(module);
 }
 
-auto Logger::setLogLevel(const std::string& module, int level) -> void { log_levels_[module] = level; }
+auto Logger::log(const std::string& module, const std::string& message, LogType type, uint32_t level,
+                 std::source_location location) -> void {
+    if (!isLoggingEnabled(module, level)) {
+        return;
+    }
+    print(formatEntry(module, message, type, level, location));
+}
+
+auto Logger::print(const std::string& message) -> void { (*out_stream_) << message; }
+
+auto Logger::setOutputStream(std::ostream& out) -> void { out_stream_ = &out; }
+
+auto Logger::setLogLevel(const std::string& module, uint32_t level) -> void { log_levels_[module] = level; }
 
 auto Logger::setColorMap(const std::map<std::string, std::string>& color_map) -> void { color_map_ = color_map; }
 
@@ -44,12 +45,22 @@ auto Logger::setMinLocationLength(uint32_t length) -> void { min_location_length
 
 auto Logger::setMinModuleLength(uint32_t length) -> void { min_module_length_ = length; }
 
-auto Logger::getLogLevel(const std::string& module) const -> int {
+auto Logger::setTimestampFormat(const std::string& format) -> void { timestamp_format_ = format; }
+
+auto Logger::setLocationFormatOptions(const std::string& module, const LocationFormatOptions& options) -> void {
+    location_format_options_[module] = options;
+}
+
+auto Logger::getLogLevel(const std::string& module) const -> uint32_t {
     auto it = log_levels_.find(module);
     if (it != log_levels_.end()) {
         return it->second;
     }
-    return 0; // Default log level if not set
+    auto default_it = log_levels_.find("default");
+    if (default_it != log_levels_.end()) {
+        return default_it->second;
+    }
+    return 0;
 }
 
 auto Logger::getColorMap() const -> const std::map<std::string, std::string>& { return color_map_; }
@@ -58,26 +69,35 @@ auto Logger::getMinLocationLength() const -> uint32_t { return min_location_leng
 
 auto Logger::getMinModuleLength() const -> uint32_t { return min_module_length_; }
 
-Logger::Logger()
-    : out_stream_(&std::cerr), min_location_length_(DEFAULT_MIN_LOCATION_LENGTH), min_module_length_(DEFAULT_MIN_MODULE_LENGTH),
-      color_map_(DEFAULT_COLOR_MAP) {}
+auto Logger::getTimestampFormat() const -> const std::string& { return timestamp_format_; }
 
-auto disableColors() -> void {
-    auto& logger = Logger::instance();
-    std::map<std::string, std::string> no_color_map;
-    for (const auto& [key, value] : logger.getColorMap()) {
-        no_color_map[key] = "";
+auto Logger::getLocationFormatOptions(const std::string& module) const -> LocationFormatOptions {
+    auto it = location_format_options_.find(module);
+    if (it != location_format_options_.end()) {
+        return it->second;
     }
-    logger.setColorMap(no_color_map);
+    auto default_it = location_format_options_.find("default");
+    if (default_it != location_format_options_.end()) {
+        return default_it->second;
+    }
+    return {};
 }
 
-auto enableColors(const std::map<std::string, std::string>& color_map) -> void { Logger::instance().setColorMap(color_map); }
+Logger::Logger()
+    : out_stream_(&std::cerr), min_location_length_(DEFAULT_MIN_LOCATION_LENGTH), min_module_length_(DEFAULT_MIN_MODULE_LENGTH),
+      color_map_(DEFAULT_COLOR_MAP), timestamp_format_(DEFAULT_TIMESTAMP_FORMAT) {}
 
-auto logMessage(const std::string& module, const std::string& message, LogType type, int level,
-                uint32_t full_function_name_on_level, std::source_location location) -> void {
+// --- private formatting methods ---
 
-    const std::map<std::string, std::string>& color_map = Logger::instance().getColorMap();
+auto Logger::safeGetColor(const std::string& key) const -> std::string {
+    auto iter = color_map_.find(key);
+    if (iter != color_map_.end()) {
+        return iter->second;
+    }
+    return "";
+}
 
+auto Logger::formatTimestamp() const -> std::string {
     auto now = std::chrono::system_clock::now();
     auto time_t_now = std::chrono::system_clock::to_time_t(now);
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000; // NOLINT
@@ -86,31 +106,30 @@ auto logMessage(const std::string& module, const std::string& message, LogType t
     localtime_r(&time_t_now, &tm_now);
 
     std::ostringstream timestamp;
-    timestamp << std::put_time(&tm_now, "%Y-%m-%d %H:%M:%S") << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    timestamp << std::put_time(&tm_now, timestamp_format_.c_str()) << '.' << std::setfill('0') << std::setw(3) << ms.count();
+    return timestamp.str();
+}
 
-    std::string log_entry =
-        safeGetColor(color_map, "TIMESTAMP") + "[" + timestamp.str() + "]" + safeGetColor(color_map, "RESET") + " | ";
-
+auto Logger::formatLogType(LogType type) const -> std::string {
     switch (type) {
     case LogType::DEBUG:
-        log_entry += safeGetColor(color_map, "DEBUG") + "DEBUG" + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("DEBUG") + "DEBUG" + safeGetColor("RESET");
     case LogType::INFO:
-        log_entry += safeGetColor(color_map, "INFO") + "INFO " + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("INFO") + "INFO " + safeGetColor("RESET");
     case LogType::SUCCESS:
-        log_entry += safeGetColor(color_map, "SUCCESS") + "SUCC " + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("SUCCESS") + "SUCC " + safeGetColor("RESET");
     case LogType::WARNING:
-        log_entry += safeGetColor(color_map, "WARNING") + "WARN " + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("WARNING") + "WARN " + safeGetColor("RESET");
     case LogType::ERROR:
-        log_entry += safeGetColor(color_map, "ERROR") + "ERROR" + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("ERROR") + "ERROR" + safeGetColor("RESET");
     case LogType::CRITICAL:
-        log_entry += safeGetColor(color_map, "CRITICAL") + "CRIT " + safeGetColor(color_map, "RESET") + " | ";
-        break;
+        return safeGetColor("CRITICAL") + "CRIT " + safeGetColor("RESET");
     }
+    return "";
+}
+
+auto Logger::formatLocation(const std::string& module, std::source_location location, uint32_t level) const -> std::string {
+    LocationFormatOptions options = getLocationFormatOptions(module);
 
     std::string file_name = location.file_name();
     size_t last_slash_pos = file_name.find_last_of("/\\");
@@ -123,54 +142,97 @@ auto logMessage(const std::string& module, const std::string& message, LogType t
     }
 
     std::string function_name = location.function_name();
-    if (level < full_function_name_on_level) {
+    if (level < options.strip_params_on_level) {
         size_t paren_pos = function_name.find_first_of('(');
         if (paren_pos != std::string::npos) {
             function_name = function_name.substr(0, paren_pos);
         }
+    }
+    if (level < options.strip_return_type_on_level) {
         size_t space_pos = function_name.find_last_of(' ');
         if (space_pos != std::string::npos) {
             function_name = function_name.substr(space_pos + 1);
         }
-        size_t colons_pos = function_name.find_last_of("::");
+    }
+    if (level < options.strip_namespace_on_level) {
+        size_t colons_pos = function_name.rfind("::");
         if (colons_pos != std::string::npos) {
-            function_name = function_name.substr(colons_pos + 1);
+            function_name = function_name.substr(colons_pos + 2);
         }
     }
 
-    std::string location_str = file_name + "." + function_name + ":" + std::to_string(location.line());
-    while (static_cast<int>(location_str.length()) < Logger::instance().getMinLocationLength()) {
+    std::string location_str =
+        file_name + "." + function_name + ":" + std::to_string(location.line()); // TODO: make configurable format
+    while (static_cast<uint32_t>(location_str.length()) < min_location_length_) {
         location_str += " ";
     }
 
-    log_entry += safeGetColor(color_map, "LOCATION") + location_str + safeGetColor(color_map, "RESET") + " | ";
+    return safeGetColor("LOCATION") + location_str + safeGetColor("RESET");
+}
 
+auto Logger::formatModule(const std::string& module) const -> std::string {
     std::string mod = module;
-    while (static_cast<int>(mod.length()) < Logger::instance().getMinModuleLength()) {
+    while (static_cast<uint32_t>(mod.length()) < min_module_length_) {
         mod += " ";
     }
-
-    log_entry += mod + " | ";
-
-    log_entry += type == LogType::CRITICAL ? safeGetColor(color_map, "CRITICAL") : "";
-
-    log_entry += message + "\n" + (type == LogType::CRITICAL ? safeGetColor(color_map, "RESET") : "");
-    Logger::instance().log(module, level, log_entry);
+    return mod;
 }
 
-auto logError(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
-              std::source_location location) -> void {
-    logMessage(module, message, LogType::ERROR, level, full_function_name_on_level, location);
+auto Logger::formatEntry(const std::string& module, const std::string& message, LogType type, uint32_t level,
+                         std::source_location location) const -> std::string {
+    std::string entry = safeGetColor("TIMESTAMP") + "[" + formatTimestamp() + "]" + safeGetColor("RESET") + " | ";
+    entry += formatLogType(type) + " | ";
+    entry += formatLocation(module, location, level) + " | ";
+    entry += formatModule(module) + " | ";
+    entry += type == LogType::CRITICAL ? safeGetColor("CRITICAL") : "";
+    entry += message + (type == LogType::CRITICAL ? safeGetColor("RESET") : "") + "\n";
+    return entry;
 }
 
-auto logInfo(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
-             std::source_location location) -> void {
-    logMessage(module, message, LogType::INFO, level, full_function_name_on_level, location);
+// --- free functions ---
+
+auto disableColors() -> void {
+    auto& logger = Logger::instance();
+    std::map<std::string, std::string> no_color_map;
+    for (const auto& [key, value] : logger.getColorMap()) {
+        no_color_map[key] = "";
+    }
+    logger.setColorMap(no_color_map);
 }
 
-auto logSuccess(const std::string& module, const std::string& message, int level, uint32_t full_function_name_on_level,
+auto enableColors(const std::map<std::string, std::string>& color_map) -> void { Logger::instance().setColorMap(color_map); }
+
+auto logMessage(const std::string& module, const std::string& message, LogType type, uint32_t level,
                 std::source_location location) -> void {
-    logMessage(module, message, LogType::SUCCESS, level, full_function_name_on_level, location);
+    if (Py_IsInitialized() != 0) {
+        PythonLogger::log(module, message, type, level, location);
+    } else {
+        Logger::instance().log(module, message, type, level, location);
+    }
+}
+
+auto logDebug(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::DEBUG, level, location);
+}
+
+auto logInfo(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::INFO, level, location);
+}
+
+auto logSuccess(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::SUCCESS, level, location);
+}
+
+auto logWarning(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::WARNING, level, location);
+}
+
+auto logError(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::ERROR, level, location);
+}
+
+auto logCritical(const std::string& module, const std::string& message, uint32_t level, std::source_location location) -> void {
+    logMessage(module, message, LogType::CRITICAL, level, location);
 }
 
 } // namespace oink_judge::logger

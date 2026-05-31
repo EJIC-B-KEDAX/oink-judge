@@ -2,4 +2,4 @@
 
 using namespace oink_judge::auth_service;
 
-extern "C" void registerTypes() { registerProtocolWithFastAPIType(); }
+extern "C" auto registerTypes() -> void { registerProtocolWithFastAPIType(); }

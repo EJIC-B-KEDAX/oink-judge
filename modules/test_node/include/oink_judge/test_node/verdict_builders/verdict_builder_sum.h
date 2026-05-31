@@ -19,4 +19,6 @@ class VerdictBuilderSum : public VerdictBuilder {
     std::shared_ptr<VerdictBase> current_verdict_;
 };
 
+auto registerVerdictBuilderSumType() -> void;
+
 } // namespace oink_judge::test_node

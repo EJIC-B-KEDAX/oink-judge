@@ -1,6 +1,8 @@
 #pragma once
-#include <nlohmann/json.hpp>
 #include <oink_judge/socket/session.hpp>
+
+#include <nlohmann/json.hpp>
+
 #include <string>
 
 namespace oink_judge::content_service {
@@ -26,6 +28,8 @@ class ContentStorage {
     ContentStorage();
 
     std::shared_ptr<Session> session_;
+
+    auto ensureConnection() -> awaitable<void>;
 
     auto getManifestFromServer(std::string content_type, std::string content_id) -> awaitable<json>;
 

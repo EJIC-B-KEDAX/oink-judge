@@ -15,9 +15,7 @@
         "serverA": "localhost"
     },
     "sessions": {
-        "testSession": {
-            "type": "interactive"
-        }
+        "testSession": "interactive"
     },
     "start_messages": {
         "testSession": "Welcome"
