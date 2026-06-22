@@ -26,7 +26,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBPQXX REQUIRED IMPORTED_TARGET libpqxx)
 pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)
 find_package(libzip REQUIRED)
-find_package(Boost 1.56 CONFIG REQUIRED COMPONENTS filesystem process)
+find_package(Boost 1.56 REQUIRED)
 
 # ------------------------------------------------------------------------------
 # External dependencies
