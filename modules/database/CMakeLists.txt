@@ -37,9 +37,9 @@ target_include_directories(
             $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(
-  oink_judge_database_headers INTERFACE oink_judge_logger_headers
-                                        oink_judge_config_headers
-                                        oink_judge::boost_asio)
+  oink_judge_database_headers
+  INTERFACE oink_judge_logger_headers oink_judge_config_headers
+            oink_judge::boost_asio)
 
 # ------------------------------------------------------------------------------
 # Database
@@ -50,7 +50,7 @@ add_library(oink_judge::database ALIAS oink_judge_database)
 
 target_link_libraries(
   oink_judge_database
-  PUBLIC oink_judge_database_headers PkgConfig::LIBPQXX oink_judge::logger
+  PUBLIC oink_judge_database_headers PkgConfig::LIBPQXX pq oink_judge::logger
          oink_judge::config oink_judge::boost_asio)
 
 add_subdirectory(python_binding)
