@@ -32,7 +32,7 @@ auto QueueManagerServiceStub::connect(std::string test_node_id, std::string test
     handshake->set_node_type(std::move(test_node_type));
 
     auto rpc = ConnectRPC(grpc_context);
-    co_await rpc.start(*stub_);
+    co_await rpc.start(*stub_, boost::asio::use_awaitable);
     co_await rpc.write(handshake_message, boost::asio::use_awaitable);
 
     while (true) {

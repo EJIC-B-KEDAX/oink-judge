@@ -53,7 +53,8 @@ auto connectHandler(ConnectRPC& rpc) -> awaitable<void> {
     ClientMessage handshake_message;
     co_await rpc.read(handshake_message, boost::asio::use_awaitable);
     if (!handshake_message.has_handshake()) {
-        co_await rpc.finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Handshake message is required"));
+        co_await rpc.finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Handshake message is required"),
+                            boost::asio::use_awaitable);
         co_return;
     }
     const Handshake& handshake = handshake_message.handshake();
@@ -73,7 +74,7 @@ auto connectHandler(ConnectRPC& rpc) -> awaitable<void> {
         .async_wait(boost::asio::experimental::wait_for_one(), boost::asio::use_awaitable);
 
     TestingQueue::instance().disconnectInvoker(node_id);
-    co_await rpc.finish(grpc::Status::OK);
+    co_await rpc.finish(grpc::Status::OK, boost::asio::use_awaitable);
 }
 
 } // namespace oink_judge::dispatcher

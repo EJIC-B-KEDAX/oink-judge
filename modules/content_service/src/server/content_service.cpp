@@ -7,6 +7,8 @@
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/utils/filesystem.h>
 
+#include <boost/asio/use_awaitable.hpp>
+
 #include <algorithm>
 #include <filesystem>
 #include <ios>
@@ -96,14 +98,14 @@ auto getManifestHandler(GetManifestRPC& rpc, GetManifestRequest& request) -> awa
     if (request.content_type().empty() || request.content_id().empty()) {
         error_message = "Content type and content id must be provided";
         logger::logWarning("content_service", error_message);
-        co_await rpc.finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message));
+        co_await rpc.finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message), boost::asio::use_awaitable);
         co_return;
     }
     std::optional<fs::path> content_path_opt = getPathToContent(request.content_type(), request.content_id());
     if (!content_path_opt) {
         error_message = "Content not found";
         logger::logWarning("content_service", error_message + ": " + request.content_type() + "/" + request.content_id());
-        co_await rpc.finish(grpc::Status(grpc::StatusCode::NOT_FOUND, error_message));
+        co_await rpc.finish(grpc::Status(grpc::StatusCode::NOT_FOUND, error_message), boost::asio::use_awaitable);
         co_return;
     }
 
@@ -122,17 +124,17 @@ auto getManifestHandler(GetManifestRPC& rpc, GetManifestRequest& request) -> awa
             if (bytes_read > 0) {
                 GetManifestResponse response_chunk;
                 response_chunk.set_manifest(std::string(buffer.data(), static_cast<size_t>(bytes_read)));
-                co_await rpc.write(response_chunk);
+                co_await rpc.write(response_chunk, boost::asio::use_awaitable);
             }
         }
-        co_await rpc.finish(grpc::Status::OK);
+        co_await rpc.finish(grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("content_service", "Failed to get manifest for " + request.content_type() + "/" + request.content_id() +
                                                 ": " + error_message);
     }
-    co_await rpc.finish(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
@@ -140,7 +142,7 @@ auto getFileHandler(GetFileRPC& rpc, GetFileRequest& request) -> awaitable<void>
     grpc::Status check_status = checkFullFilePath(request.content_type(), request.content_id(), request.file_path());
     if (!check_status.ok()) {
         logger::logWarning("content_service", check_status.error_message());
-        co_await rpc.finish(check_status);
+        co_await rpc.finish(check_status, boost::asio::use_awaitable);
         co_return;
     }
 
@@ -161,17 +163,17 @@ auto getFileHandler(GetFileRPC& rpc, GetFileRequest& request) -> awaitable<void>
                 GetFileResponse response_chunk;
                 auto& file_chunk = *response_chunk.mutable_file_chunk();
                 file_chunk.set_data(std::string(buffer.data(), static_cast<size_t>(bytes_read)));
-                co_await rpc.write(response_chunk);
+                co_await rpc.write(response_chunk, boost::asio::use_awaitable);
             }
         }
-        co_await rpc.finish(grpc::Status::OK);
+        co_await rpc.finish(grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("content_service", "Failed to get file " + request.file_path() + " for " + request.content_type() + "/" +
                                                 request.content_id() + ": " + error_message);
     }
-    co_await rpc.finish(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
@@ -182,7 +184,8 @@ auto createFileHandler(CreateFileRPC& rpc) -> awaitable<void> {
     if (!info_request.has_file_info()) {
         std::string error_message = "First message must contain file info";
         logger::logWarning("content_service", error_message);
-        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message));
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
         co_return;
     }
     const FileInfo& info = info_request.file_info();
@@ -190,7 +193,7 @@ auto createFileHandler(CreateFileRPC& rpc) -> awaitable<void> {
     grpc::Status check_status = checkFullFilePath(info.content_type(), info.content_id(), info.file_path(), false);
     if (!check_status.ok()) {
         logger::logWarning("content_service", check_status.error_message());
-        co_await rpc.finish_with_error(check_status);
+        co_await rpc.finish_with_error(check_status, boost::asio::use_awaitable);
         co_return;
     }
 
@@ -200,15 +203,17 @@ auto createFileHandler(CreateFileRPC& rpc) -> awaitable<void> {
         if (fs::exists(full_file_path)) {
             error_message = "File already exists";
             logger::logWarning("content_service", error_message + ": " + info.file_path());
-            co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::ALREADY_EXISTS, error_message));
+            co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::ALREADY_EXISTS, error_message),
+                                           boost::asio::use_awaitable);
             co_return;
         }
         std::ostringstream file_content_stream(std::ios::binary);
         CreateFileRequest chunk_request;
-        while (co_await rpc.read(chunk_request)) {
+        while (co_await rpc.read(chunk_request, boost::asio::use_awaitable)) {
             if (!chunk_request.has_file_chunk()) {
                 error_message = "Subsequent messages must contain file chunks";
-                co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message));
+                co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                               boost::asio::use_awaitable);
                 co_return;
             }
             const FileChunk& chunk = chunk_request.file_chunk();
@@ -217,30 +222,31 @@ auto createFileHandler(CreateFileRPC& rpc) -> awaitable<void> {
         utils::filesystem::storeFile(full_file_path, file_content_stream.str());
         logger::logInfo("content_service",
                         "Created file " + info.file_path() + " for " + info.content_type() + "/" + info.content_id(), 2);
-        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("content_service", "Failed to create file: " + error_message);
     }
-    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
 auto updateFileHandler(UpdateFileRPC& rpc) -> awaitable<void> {
     UpdateFileRequest info_request;
-    co_await rpc.read(info_request);
+    co_await rpc.read(info_request, boost::asio::use_awaitable);
     if (!info_request.has_file_info()) {
         std::string error_message = "First message must contain file info";
         logger::logWarning("content_service", error_message);
-        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message));
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
         co_return;
     }
     const FileInfo& info = info_request.file_info();
     grpc::Status check_status = checkFullFilePath(info.content_type(), info.content_id(), info.file_path());
     if (!check_status.ok()) {
         logger::logWarning("content_service", check_status.error_message());
-        co_await rpc.finish_with_error(check_status);
+        co_await rpc.finish_with_error(check_status, boost::asio::use_awaitable);
         co_return;
     }
 
@@ -249,10 +255,11 @@ auto updateFileHandler(UpdateFileRPC& rpc) -> awaitable<void> {
         fs::path full_file_path = *getPathToContent(info.content_type(), info.content_id()) / info.file_path();
         std::ostringstream file_content_stream(std::ios::binary);
         UpdateFileRequest chunk_request;
-        while (co_await rpc.read(chunk_request)) {
+        while (co_await rpc.read(chunk_request, boost::asio::use_awaitable)) {
             if (!chunk_request.has_file_chunk()) {
                 error_message = "Subsequent messages must contain file chunks";
-                co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message));
+                co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                               boost::asio::use_awaitable);
                 co_return;
             }
             const FileChunk& chunk = chunk_request.file_chunk();
@@ -261,13 +268,13 @@ auto updateFileHandler(UpdateFileRPC& rpc) -> awaitable<void> {
         utils::filesystem::storeFile(full_file_path, file_content_stream.str());
         logger::logInfo("content_service",
                         "Updated file " + info.file_path() + " for " + info.content_type() + "/" + info.content_id(), 2);
-        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("content_service", "Failed to update file: " + error_message);
     }
-    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
@@ -275,7 +282,7 @@ auto deleteFileHandler(DeleteFileRPC& rpc, DeleteFileRequest& request) -> awaita
     grpc::Status check_status = checkFullFilePath(request.content_type(), request.content_id(), request.file_path());
     if (!check_status.ok()) {
         logger::logWarning("content_service", check_status.error_message());
-        co_await rpc.finish_with_error(check_status);
+        co_await rpc.finish_with_error(check_status, boost::asio::use_awaitable);
         co_return;
     }
 
@@ -285,13 +292,13 @@ auto deleteFileHandler(DeleteFileRPC& rpc, DeleteFileRequest& request) -> awaita
         fs::remove(full_file_path);
         logger::logInfo("content_service",
                         "Deleted file " + request.file_path() + " for " + request.content_type() + "/" + request.content_id(), 2);
-        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("content_service", "Failed to delete file: " + error_message);
     }
-    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 } // namespace oink_judge::content_service

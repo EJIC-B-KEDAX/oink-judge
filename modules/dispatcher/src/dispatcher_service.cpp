@@ -6,6 +6,8 @@
 #include <oink_judge/database/async_table_submissions.h>
 #include <oink_judge/logger/logger.h>
 
+#include <boost/asio/use_awaitable.hpp>
+
 namespace oink_judge::dispatcher {
 
 using AsyncTableSubmissions = database::AsyncTableSubmissions;
@@ -26,13 +28,13 @@ auto handleSubmissionHandler(HandleSubmissionRPC& rpc, HandleSubmissionRequest& 
 
         logger::logInfo("dispatcher_service", "Handled submission " + submission_id + " for problem " + problem_id);
 
-        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
         co_return;
     } catch (const std::exception& e) {
         error_message = e.what();
         logger::logError("dispatcher_service", "Failed to handle submission " + request.submission_id() + ": " + error_message);
     }
-    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message));
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
 } // namespace oink_judge::dispatcher
