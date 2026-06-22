@@ -1,4 +1,3 @@
-cd /home/KuZneZov/projects/oink-judge
 mkdir -p certs && cp -a certs certs.backup.$(date +%Y%m%d) 2>/dev/null || true
 
 cat > certs/server_ext.cnf <<'EOF'
