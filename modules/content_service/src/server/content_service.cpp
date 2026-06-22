@@ -179,7 +179,7 @@ auto getFileHandler(GetFileRPC& rpc, GetFileRequest& request) -> awaitable<void>
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
 auto createFileHandler(CreateFileRPC& rpc) -> awaitable<void> {
     CreateFileRequest info_request;
-    co_await rpc.read(info_request);
+    co_await rpc.read(info_request, boost::asio::use_awaitable);
 
     if (!info_request.has_file_info()) {
         std::string error_message = "First message must contain file info";
