@@ -1,18 +1,20 @@
 {
+    "grpc": {
+        "channel_arguments_configurations": {
+            "cdefault": {
+                "grpc.keepalive_time_ms": 10000,
+                "grpc.keepalive_timeout_ms": 5000,
+                "grpc.keepalive_permit_without_calls": 1,
+                "grpc.http2.max_pings_without_data": 0
+            }
+        }
+    },
     "my_port": 8000,
-    "ping_interval": 5,
-    "pong_timeout": 3,
-    "ports": {
-        "auth": 9001,
-        "dispatcher": 9101
-    },
-    "hosts": {
-        "auth": "127.0.0.1",
-        "dispatcher": "127.0.0.1"
-    },
-    "use_ssl": {
-        "auth": false,
-        "dispatcher": false
+    "logger": {
+        "output_stream": "stderr",
+        "log_levels": {
+            "default": 1
+        }
     },
     "database": {
         "host": "127.0.0.1",
@@ -22,24 +24,18 @@
         "pool_min": 2,
         "pool_max": 10
     },
-    "logger": {
-        "output_stream": "stderr",
-        "log_levels": {
-            "default": 1,
-            "database": 2
-        }
-    },
     "directories": {
         "submissions": "submissions",
         "submissions_zip": "submissions/.zips",
         "problems": "problems",
         "problems_zip": "problems/.zips",
-        "scripts": "scripts"
+        "scripts": "scripts",
+        "plugins": "build/plugins/app"
+    },
+    "content_storage": {
+        "stub_type": "content_service_stub(channel(127.0.0.1:9102, ssl_client(certs/ca.pem), auth(auth_token)))"
     },
     "dispatcher": {
-        "stub_type": "dispatcher_service_stub(insecure(127.0.0.1:9101))"
-    },
-    "timings": {
-        "valid_session_time": 3600
+        "stub_type": "dispatcher_service_stub(custom_channel(127.0.0.1:9101, cdefault, ssl_client(certs/ca.pem), auth(auth_token)))"
     }
 }

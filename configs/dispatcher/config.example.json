@@ -1,18 +1,35 @@
 {
-    "my_port": 9101,
-    "connection_handler_type": "SimpleConnectionHandler",
-    "ports": {
-        "database": 5432,
-        "content_service": 9102
-    },
-    "hosts": {
-        "content_service": "127.0.0.1"
+    "grpc": {
+        "my_endpoint": "0.0.0.0:9101",
+        "server_credentials": "ssl_server(certs/server.crt, certs/server.key)",
+        "server_interceptors": [
+            "auth_req(auth_token)"
+        ],
+        "server_channel_configuration": "sdefault",
+        "channel_arguments_configurations": {
+            "sdefault": {
+                "grpc.keepalive_time_ms": 10000,
+                "grpc.keepalive_timeout_ms": 5000,
+                "grpc.keepalive_permit_without_calls": 1,
+                "grpc.http2.max_pings_without_data": 0,
+                "grpc.http2.min_time_between_pings_ms": 1000,
+                "grpc.http2.min_ping_interval_without_data_ms": 500
+            },
+            "cdefault": {
+                "grpc.keepalive_time_ms": 10000,
+                "grpc.keepalive_timeout_ms": 5000,
+                "grpc.keepalive_permit_without_calls": 1,
+                "grpc.http2.max_pings_without_data": 0
+            }
+        }
     },
     "database": {
         "host": "127.0.0.1",
         "port": 5432,
         "username": "my_username",
-        "dbname": "my_dbname"
+        "dbname": "my_dbname",
+        "pool_min": 2,
+        "pool_max": 10
     },
     "directories": {
         "submissions": "submissions",
@@ -23,22 +40,15 @@
         "certs": "certs",
         "plugins": "build/plugins/dispatcher"
     },
-    "sessions": {
-        "FastAPI": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(ProtocolWithFastAPI)\"}))",
-        "content_service": "SSLSessionClient(Authorizing({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Pinging(ContentClientProtocol)\"}))",
-        "test_node": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(ProtocolWithInvoker)\"}))"
-    },
-    "start_messages": {
-        "content_service": "{\"connection_type\": \"content_storage\"}"
-    },
     "timings": {
-        "ping_interval": 5,
-        "pong_timeout": 3,
         "full_rescan_interval": 3600
     },
     "logger": {
         "log_levels": {
             "default": 1
         }
+    },
+    "content_storage": {
+        "stub_type": "content_service_stub(channel(127.0.0.1:9102, ssl_client(certs/ca.pem), auth(auth_token)))"
     }
 }
