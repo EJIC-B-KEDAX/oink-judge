@@ -8,6 +8,7 @@
 
 #include <boost/asio/as_tuple.hpp>
 #include <boost/asio/co_spawn.hpp>
+#include <boost/asio/deferred.hpp>
 #include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/asio/use_awaitable.hpp>
 
@@ -19,7 +20,7 @@ namespace {
 auto readLoop(ConnectRPC& rpc, std::string node_id) -> awaitable<void> {
     while (true) {
         ClientMessage client_message;
-        auto res = co_await rpc.read(client_message);
+        auto res = co_await rpc.read(client_message, boost::asio::use_awaitable);
         if (!res) {
             logger::logError("queue_manager_service", "Failed to read client message from " + node_id);
             co_return;
@@ -50,7 +51,7 @@ auto writeLoop(ConnectRPC& rpc, std::shared_ptr<channel_t> channel) -> awaitable
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
 auto connectHandler(ConnectRPC& rpc) -> awaitable<void> {
     ClientMessage handshake_message;
-    co_await rpc.read(handshake_message);
+    co_await rpc.read(handshake_message, boost::asio::use_awaitable);
     if (!handshake_message.has_handshake()) {
         co_await rpc.finish(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Handshake message is required"));
         co_return;
