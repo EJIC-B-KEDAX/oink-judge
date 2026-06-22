@@ -38,7 +38,6 @@ Each test file gets its own resource subdirectory named `test_<feature>` under `
 ### Test CMakeLists.txt (`modules/<module>/tests/CMakeLists.txt`)
 
 ```cmake
-include(AddModuleTest)
 add_module_test(<test_target_name> <test_source>.cpp oink_judge::<module>)
 
 # Only if the test uses resource files:
@@ -84,12 +83,11 @@ endif()
 | `oink_judge::config`                 | Configuration            |
 | `oink_judge::plugin_manager`         | Plugin manager           |
 | `oink_judge::database`               | Database                 |
-| `oink_judge::socket`                 | Socket                   |
 | `oink_judge::content_service_common` | Content service (common) |
 | `oink_judge::content_service_client` | Content service (client) |
 | `oink_judge::content_service_server` | Content service (server) |
 | `oink_judge::dispatcher`             | Dispatcher               |
-| `oink_judge::auth_service`           | Auth service             |
+| `oink_judge::test_node`              | Test node                |
 
 ## Writing a Test File
 

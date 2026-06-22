@@ -61,4 +61,16 @@ PYBIND11_MODULE(pybind11_logger, m) {
         "log_success",
         [](const std::string& module, const std::string& message, uint32_t level) -> void { logSuccess(module, message, level); },
         py::arg("module"), py::arg("message"), py::arg("level") = 1);
+    m.def(
+        "log_debug",
+        [](const std::string& module, const std::string& message, uint32_t level) -> void { logDebug(module, message, level); },
+        py::arg("module"), py::arg("message"), py::arg("level") = 1);
+    m.def(
+        "log_warning",
+        [](const std::string& module, const std::string& message, uint32_t level) -> void { logWarning(module, message, level); },
+        py::arg("module"), py::arg("message"), py::arg("level") = 1);
+    m.def(
+        "log_critical",
+        [](const std::string& module, const std::string& message, uint32_t level) -> void { logCritical(module, message, level); },
+        py::arg("module"), py::arg("message"), py::arg("level") = 1);
 }

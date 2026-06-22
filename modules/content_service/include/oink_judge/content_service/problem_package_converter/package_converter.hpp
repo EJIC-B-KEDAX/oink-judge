@@ -1,6 +1,7 @@
 #pragma once
-#include <filesystem>
 #include <oink_judge/factory/parameterized_type_factory.hpp>
+
+#include <filesystem>
 
 namespace oink_judge::content_service::problem_package_converter {
 
@@ -14,7 +15,7 @@ class PackageConverter {
     auto operator=(PackageConverter&&) -> PackageConverter& = delete;
     virtual ~PackageConverter() = default;
 
-    virtual void convertPackage(const fs::path& path_to_package) = 0;
+    virtual auto convertPackage(const fs::path& path_to_package) -> void = 0;
 
   protected:
     PackageConverter() = default;

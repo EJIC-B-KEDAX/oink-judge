@@ -2,18 +2,19 @@
 
 #include "oink_judge/test_node/problem_builder.hpp"
 #include "oink_judge/test_node/problem_builders/enable_get_test_by_name.hpp"
-#include "oink_judge/test_node/problem_tables_storage.h"
+// #include "oink_judge/test_node/problem_tables_storage.h"
 
-#include <fstream>
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
-#include <oink_judge/database/table_submissions.h>
+#include <oink_judge/database/async_table_submissions.h>
 #include <oink_judge/logger/logger.h>
+
+#include <fstream>
 
 namespace oink_judge::test_node {
 
 using config::requireHasValue;
-using database::TableSubmissions;
+using database::AsyncTableSubmissions;
 
 SyncResultTest::SyncResultTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -30,33 +31,33 @@ SyncResultTest::SyncResultTest(ProblemBuilder* problem_builder, std::string prob
     }
 }
 
-auto SyncResultTest::run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-    -> std::shared_ptr<Verdict> {
+auto SyncResultTest::run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+    -> awaitable<std::shared_ptr<Verdict>> {
     if (boxes.size() < boxesRequired()) {
         throw std::runtime_error("Not enough boxes provided");
     }
 
-    std::shared_ptr<Verdict> verdict = test_->run(submission_id, boxes, additional_params);
+    std::shared_ptr<Verdict> verdict = co_await test_->run(submission_id, boxes, additional_params);
 
     double score = verdict->getScore();
     std::string verdict_type = verdict->getType().short_name;
-    ProblemTable& table = ProblemTablesStorage::instance().getTable(problem_id_);
-    std::string username = TableSubmissions::instance().whoseSubmission(submission_id);
+    // ProblemTable& table = ProblemTablesStorage::instance().getTable(problem_id_);
+    // std::string username = co_await AsyncTableSubmissions::instance().whoseSubmission(submission_id);
 
     std::ofstream testing_protocol_file(requireHasValue(config::getDirectoryPath("submissions")) / submission_id /
                                         "protocol.json");
     testing_protocol_file << verdict->toJson(2).dump(4);
     testing_protocol_file.close();
 
-    TableSubmissions::instance().setScore(submission_id, score);
-    TableSubmissions::instance().setVerdictType(submission_id, verdict_type);
-    score = std::max(score, table.getTotalScore(username));
-    table.setTotalScore(username, score);
+    co_await AsyncTableSubmissions::instance().setScore(submission_id, score);
+    co_await AsyncTableSubmissions::instance().setVerdictType(submission_id, verdict_type);
+    // score = std::max(score, table.getTotalScore(username));
+    // table.setTotalScore(username, score);
 
-    return verdict;
+    co_return verdict;
 }
 
-auto SyncResultTest::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> { return test_->skip(submission_id); }
+auto SyncResultTest::skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> { return test_->skip(submission_id); }
 
 auto SyncResultTest::boxesRequired() const -> size_t { return test_->boxesRequired(); }
 

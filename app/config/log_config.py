@@ -46,5 +46,60 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "propagate": False,
         },
+        "database": {
+            "handlers": ["default"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "app": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "auth": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "dispatcher_api": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "content_storage": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "content_service": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "dispatcher_service": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "testing_queue": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "queue_manager_service": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "test_node": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "plugin_manager": {
+            "handlers": ["default"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }

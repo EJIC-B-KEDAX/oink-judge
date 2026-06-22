@@ -12,7 +12,9 @@ templates = Jinja2Templates(directory="templates/auth")
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def show_login_page(request: Request, username: str = Depends(get_current_user)):
+async def show_login_page(
+    request: Request, username: str | None = Depends(get_current_user)
+):
     if username is not None:
         return RedirectResponse(url="/dashboard", status_code=302)
 
@@ -32,7 +34,7 @@ async def handle_logout(request: Request):
 
 @router.get("/register", response_class=HTMLResponse)
 async def show_register_page(
-    request: Request, username: str = Depends(get_current_user)
+    request: Request, username: str | None = Depends(get_current_user)
 ):
     if username is not None:
         return RedirectResponse(url="/dashboard", status_code=302)
@@ -84,7 +86,7 @@ async def show_delete_account_page(
 async def handle_delete_account(
     request: Request, username: str = Depends(require_current_user)
 ):
-    auth_response = delete_account(username)
+    auth_response = await delete_account(username)
 
     if auth_response:
         response = RedirectResponse(url="/login", status_code=302)

@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package oink_judge.dispatcher;
+
+message HandleSubmissionRequest {
+    string submission_id = 1;
+}
+
+service DispatcherService {
+    rpc HandleSubmission(HandleSubmissionRequest) returns (google.protobuf.Empty);
+}

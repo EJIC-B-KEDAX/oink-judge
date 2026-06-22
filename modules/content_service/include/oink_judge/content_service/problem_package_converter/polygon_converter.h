@@ -7,12 +7,12 @@ class PolygonConverter : public PackageConverter {
   public:
     PolygonConverter();
 
-    void convertPackage(const fs::path& path_to_package) override;
+    auto convertPackage(const fs::path& path_to_package) -> void override;
 
     constexpr static auto REGISTERED_NAME = "polygon";
 
   private:
-    void convertICPCProblemPackage(const fs::path& path_to_package);
+    auto convertICPCProblemPackage(const fs::path& path_to_package) -> void;
 };
 
 } // namespace oink_judge::content_service::problem_package_converter

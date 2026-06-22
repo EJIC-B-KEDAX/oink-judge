@@ -18,6 +18,8 @@ auto getDirectoryPath(const std::string& key) -> std::optional<fs::path>;
 
 auto getTiming(const std::string& timing_name) -> std::optional<std::chrono::duration<double>>;
 
+auto getTokenFromCredentials(const std::string& path_to_token) -> std::optional<std::string>;
+
 } // namespace oink_judge::config
 
 #include "oink_judge/config/common_utils.inl"

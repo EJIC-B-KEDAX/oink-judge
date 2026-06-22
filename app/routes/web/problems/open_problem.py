@@ -7,15 +7,10 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import get_problem_statements
-from app.database.database import get_db
-from app.database.tables.submissions import (
-    SubmissionInfo,
-    add_submission,
-    load_submissions_by_user_and_problem,
-    update_submission_verdict,
-)
+from app.database import AsyncTableSubmissions, SubmissionRow
 from app.services.auth.auth_utils import require_current_user
 from app.services.dispatcher.dispatcher_api import handle_submission
+from oink_judge.pybind11_logger import log_error, log_info
 
 templates = Jinja2Templates(directory="templates/problems")
 
@@ -80,7 +75,6 @@ class OpenProblem:
             language: str = Form(...),
             solution: UploadFile = Form(...),
             username: str = Depends(require_current_user),
-            db=Depends(get_db),
         ):
 
             submission_id = str(uuid.uuid4())
@@ -92,22 +86,25 @@ class OpenProblem:
             with open(source_path, "wb") as f:
                 f.write(await solution.read())
 
-            submission_info = SubmissionInfo(
-                id=submission_id,
-                username=username,
-                problem_id=self.id,
-                language=language,
-                verdict_type="TS",
-                score=0.0,
-                send_time=datetime.now().replace(microsecond=0),
-            )
+            submission_info = SubmissionRow()
+            submission_info.id = submission_id
+            submission_info.username = username
+            submission_info.problem_id = self.id
+            submission_info.language = language
+            submission_info.verdict_type = "TS"
+            submission_info.score = 0.0
+            submission_info.send_time = datetime.now().replace(microsecond=0)
 
-            await add_submission(db, submission_info)
+            await AsyncTableSubmissions.instance().async_add_submission(submission_info)
 
+            log_info("app", f"Submission {submission_id} created by {username} for problem {self.id}")
             is_ok = await handle_submission(submission_id)
 
             if not is_ok:
-                await update_submission_verdict(db, submission_id, "FAIL", 0.0)
+                log_error("app", f"Dispatcher failed to handle submission {submission_id}")
+                await AsyncTableSubmissions.instance().async_update_submission_verdict(
+                    submission_id, "FAIL", 0.0
+                )
 
             return RedirectResponse(
                 url=f"/problems/{self.id}/submissions", status_code=302
@@ -117,10 +114,9 @@ class OpenProblem:
         async def problem_submissions(
             request: Request,
             username: str = Depends(require_current_user),
-            db=Depends(get_db),
         ):
-            submissions = await load_submissions_by_user_and_problem(
-                db, username, self.id
+            submissions = await AsyncTableSubmissions.instance().async_load_submissions_by_user_and_problem(
+                username, self.id
             )
             problem_info = ProblemInfo(problem_id=self.id)
 

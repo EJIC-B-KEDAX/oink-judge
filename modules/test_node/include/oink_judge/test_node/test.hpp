@@ -2,10 +2,15 @@
 #include "oink_judge/test_node/verdict.hpp"
 
 #include <oink_judge/factory/type_factory.hpp>
+
+#include <boost/asio/awaitable.hpp>
+
 #include <string>
 #include <vector>
 
 namespace oink_judge::test_node {
+
+using boost::asio::awaitable;
 
 class ProblemBuilder;
 
@@ -17,9 +22,9 @@ class Test {
     auto operator=(Test&&) -> Test& = delete;
     virtual ~Test() = default;
 
-    virtual auto run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-        -> std::shared_ptr<Verdict> = 0;
-    virtual auto skip(const std::string& submission_id) -> std::shared_ptr<Verdict> = 0;
+    virtual auto run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+        -> awaitable<std::shared_ptr<Verdict>> = 0;
+    virtual auto skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> = 0;
     [[nodiscard]] virtual auto boxesRequired() const -> size_t = 0;
     [[nodiscard]] virtual auto getName() const -> const std::string& = 0;
 

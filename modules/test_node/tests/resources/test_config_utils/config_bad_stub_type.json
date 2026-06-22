@@ -1,0 +1,7 @@
+{
+    "my_id": "test_node_1",
+    "my_type": "default",
+    "queue_manager_service": {
+        "stub_type": 42
+    }
+}

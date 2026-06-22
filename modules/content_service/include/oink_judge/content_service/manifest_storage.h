@@ -1,6 +1,10 @@
 #pragma once
 #include "oink_judge/content_service/content_manifest.h"
 
+#include <map>
+#include <string>
+#include <mutex>
+
 namespace oink_judge::content_service {
 
 class ManifestStorage {
@@ -19,6 +23,7 @@ class ManifestStorage {
     ManifestStorage();
 
     std::map<std::string, ContentManifest> manifests_;
+    std::mutex mutex_;
 };
 
 } // namespace oink_judge::content_service

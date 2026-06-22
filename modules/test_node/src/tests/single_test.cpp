@@ -4,9 +4,10 @@
 #include "oink_judge/test_node/verdict_utils.h"
 #include "oink_judge/test_node/verdicts/default_verdict.h"
 
-#include <format>
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
+
+#include <format>
 
 namespace oink_judge::test_node {
 
@@ -30,8 +31,8 @@ SingleTest::SingleTest(const std::string& problem_id, std::string name) : name_(
     // TODO get it out of problem config
 }
 
-auto SingleTest::run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-    -> std::shared_ptr<Verdict> {
+auto SingleTest::run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+    -> awaitable<std::shared_ptr<Verdict>> {
     fs::path scripts_path = requireHasValue(config::getDirectoryPath("scripts"));
 
     const std::string& box_id_to_run = boxes[0];
@@ -46,23 +47,23 @@ auto SingleTest::run(const std::string& submission_id, const std::vector<std::st
                              .c_str());
 
     if (rc != 0) {
-        return loadVerdictFromMeta(getName(), requireHasValue(getTestingLogFilePath("meta_file")));
+        co_return loadVerdictFromMeta(getName(), requireHasValue(getTestingLogFilePath("meta_file")));
     }
 
     std::system(((scripts_path / "check.sh").string() + " " + answer_path_.string() + " " + box_id_to_run + " " + box_id_to_check)
                     .c_str());
 
-    return loadVerdictFromCheckerOutput(getName(), requireHasValue(getTestingLogFilePath("meta_file")),
-                                        requireHasValue(getTestingLogFilePath("checker_err_file")));
+    co_return loadVerdictFromCheckerOutput(getName(), requireHasValue(getTestingLogFilePath("meta_file")),
+                                           requireHasValue(getTestingLogFilePath("checker_err_file")));
 }
 
-auto SingleTest::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> {
+auto SingleTest::skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> {
     auto verdict = std::make_shared<DefaultVerdict>(getName());
     VerdictType type = VerdictType::SKIPPED;
 
     verdict->setInfo({.type = type, .score = 0, .time_used = 0, .memory_used = 0, .real_time_used = 0});
 
-    return verdict;
+    co_return verdict;
 }
 
 auto SingleTest::boxesRequired() const -> size_t { return 2; }

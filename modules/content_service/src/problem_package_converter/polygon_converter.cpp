@@ -1,7 +1,8 @@
 #include "oink_judge/content_service/problem_package_converter/polygon_converter.h"
 
-#include <algorithm>
 #include <pugixml.hpp>
+
+#include <algorithm>
 
 namespace oink_judge::content_service::problem_package_converter {
 
@@ -14,19 +15,6 @@ namespace {
 
     return true;
 }();
-
-auto getProblemIdFromPath(const std::string& path_to_package) -> std::string {
-    std::string problem_id;
-    for (int i = static_cast<int>(path_to_package.size()) - 1; i >= 0; --i) {
-        if ((path_to_package[i] == '/' || path_to_package[i] == '\\') && !problem_id.empty()) {
-            break;
-        }
-        problem_id.push_back(path_to_package[i]);
-    }
-    std::ranges::reverse(problem_id);
-
-    return problem_id;
-}
 
 } // namespace
 

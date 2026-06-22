@@ -1,4 +1,0 @@
-{
-    "my_port": 9000,
-    "connection_handler_type": "epoll"
-}

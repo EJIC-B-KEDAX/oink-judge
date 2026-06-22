@@ -3,7 +3,6 @@
     "ping_interval": 5,
     "pong_timeout": 3,
     "ports": {
-        "database": 5432,
         "auth": 9001,
         "dispatcher": 9101
     },
@@ -11,14 +10,24 @@
         "auth": "127.0.0.1",
         "dispatcher": "127.0.0.1"
     },
-    "use_ssl": { // now useless, SSL is always used
+    "use_ssl": {
         "auth": false,
         "dispatcher": false
     },
     "database": {
         "host": "127.0.0.1",
+        "port": 5432,
         "username": "my_username",
-        "dbname": "my_dbname"
+        "dbname": "my_dbname",
+        "pool_min": 2,
+        "pool_max": 10
+    },
+    "logger": {
+        "output_stream": "stderr",
+        "log_levels": {
+            "default": 1,
+            "database": 2
+        }
     },
     "directories": {
         "submissions": "submissions",
@@ -26,5 +35,11 @@
         "problems": "problems",
         "problems_zip": "problems/.zips",
         "scripts": "scripts"
+    },
+    "dispatcher": {
+        "stub_type": "dispatcher_service_stub(insecure(127.0.0.1:9101))"
+    },
+    "timings": {
+        "valid_session_time": 3600
     }
 }

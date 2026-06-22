@@ -2,6 +2,7 @@
 #include <oink_judge/config/config.h>
 #include <oink_judge/config/logger_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
+
 #include <pybind11/chrono.h>
 #include <pybind11/detail/common.h>
 #include <pybind11/pybind11.h>
@@ -15,6 +16,7 @@ PYBIND11_MODULE(pybind11_config, m) {
     // common_utils
     m.def("get_directory_path", &config::getDirectoryPath);
     m.def("get_timing", &config::getTiming);
+    m.def("get_token_from_credentials", &config::getTokenFromCredentials);
     m.def("set_config_file_path", &config::Config::setConfigFilePath);
     m.def("set_credentials_file_path", &config::Config::setCredentialsFilePath);
 

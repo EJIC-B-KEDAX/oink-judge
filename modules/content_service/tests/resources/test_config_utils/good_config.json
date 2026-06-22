@@ -1,0 +1,8 @@
+{
+    "directories": {
+        "problems": "resources/test_config_utils/problems"
+    },
+    "timings": {
+        "full_rescan_interval": 0.0
+    }
+}

@@ -1,29 +1,27 @@
-from app.config.config import *
-from app.socket.authorizing_event_handler import AuthorizingEventHandler
-from app.socket.default_event_handler import DefaultEventHandler
-from app.socket.ping_event_handler import PingEventHandler
-from app.socket.stable_connection import StableConnection
+import grpc.aio
+from oink_judge.pybind11_logger import log_error, log_info
 
-dispatcher_connection_event_handler = AuthorizingEventHandler(
-    Credentials["database"]["password"],
-    PingEventHandler(
-        Config["ping_interval"], Config["pong_timeout"], DefaultEventHandler()
-    ),
+from app.config import require_has_value
+from app.services.dispatcher.dispatcher_service_stub import (
+    DispatcherServiceStub,
+    get_dispatcher_stub,
 )
 
-stable_connection = StableConnection(
-    host=Config["hosts"]["dispatcher"],
-    port=Config["ports"]["dispatcher"],
-    event_handler=dispatcher_connection_event_handler,
-    start_message='{"connection_type":"FastAPI"}',
-)
+_stub: DispatcherServiceStub | None = None
+
+
+def _get_stub() -> DispatcherServiceStub:
+    global _stub
+    if _stub is None:
+        _stub = require_has_value(get_dispatcher_stub())
+    return _stub
 
 
 async def handle_submission(submission_id: str) -> bool:
-    global stable_connection
-    connection = await stable_connection.get_connection()
-
-    request = {"request": "handle_submission", "submission_id": submission_id}
-    response = await connection.send_request(request)
-    print("Dispatcher response:", response)
-    return response["status"] == "success"
+    try:
+        await _get_stub().handle_submission(submission_id)
+        log_info("dispatcher_api", f"Handled submission {submission_id}")
+        return True
+    except grpc.aio.AioRpcError as e:
+        log_error("dispatcher_api", f"Failed to handle submission {submission_id}: {e}")
+        return False

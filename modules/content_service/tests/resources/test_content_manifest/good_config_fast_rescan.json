@@ -1,0 +1,9 @@
+{
+    "directories": {
+        "problems": "resources/test_content_manifest/problems",
+        "submissions": "resources/test_content_manifest/submissions"
+    },
+    "timings": {
+        "full_rescan_interval": 3600.0
+    }
+}

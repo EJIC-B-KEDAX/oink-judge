@@ -8,9 +8,9 @@ class Testset : public Test {
   public:
     Testset(ProblemBuilder* problem_builder, const std::string& problem_id, std::string testset_name);
 
-    auto run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-        -> std::shared_ptr<Verdict> override;
-    auto skip(const std::string& submission_id) -> std::shared_ptr<Verdict> override;
+    auto run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+        -> awaitable<std::shared_ptr<Verdict>> override;
+    auto skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> override;
     [[nodiscard]] auto boxesRequired() const -> size_t override;
     [[nodiscard]] auto getName() const -> const std::string& override;
 

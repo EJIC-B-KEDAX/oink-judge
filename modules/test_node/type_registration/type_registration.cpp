@@ -1,5 +1,5 @@
-#include <oink_judge/test_node/invoker_protocol.h>
 #include <oink_judge/test_node/problem_builders/default_problem_builder.h>
+#include <oink_judge/test_node/queue_manager_service_stub.h>
 #include <oink_judge/test_node/tests/compilation_test.h>
 #include <oink_judge/test_node/tests/single_test.h>
 #include <oink_judge/test_node/tests/sync_result_test.h>
@@ -21,5 +21,5 @@ extern "C" void registerTypes() {
     registerAggregateMaxType();
     registerVerdictBuilderMinType();
     registerVerdictBuilderSumType();
-    registerInvokerProtocolType();
+    registerQueueManagerServiceStubType();
 }

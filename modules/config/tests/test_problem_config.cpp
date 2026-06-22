@@ -1,8 +1,9 @@
 #include "oink_judge/config/config.h"
 #include "oink_judge/config/problem_config_utils.h"
 
-#include <filesystem>
 #include <gtest/gtest.h>
+
+#include <filesystem>
 #include <string>
 
 using namespace oink_judge::config;

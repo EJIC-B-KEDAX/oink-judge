@@ -1,5 +1,3 @@
-#include <oink_judge/content_service/client/content_client_protocol.h>
+#include <oink_judge/content_service/client/content_service_stub.h>
 
-using namespace oink_judge::content_service;
-
-extern "C" auto registerTypes() -> void { registerContentClientProtocolType(); }
+extern "C" auto registerTypes() -> void { oink_judge::content_service::registerContentServiceChannelStubType(); }

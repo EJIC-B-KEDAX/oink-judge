@@ -1,7 +1,8 @@
 #include "oink_judge/plugin_manager/plugin_manager.h"
 
-#include <dlfcn.h>
 #include <oink_judge/logger/logger.h>
+
+#include <dlfcn.h>
 
 namespace oink_judge::plugin_manager {
 

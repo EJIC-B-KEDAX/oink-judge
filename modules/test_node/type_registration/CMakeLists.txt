@@ -1,0 +1,2 @@
+add_library(test_node_type_registration SHARED type_registration.cpp)
+target_link_libraries(test_node_type_registration PRIVATE oink_judge::test_node)

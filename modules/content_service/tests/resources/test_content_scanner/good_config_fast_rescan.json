@@ -1,0 +1,8 @@
+{
+    "directories": {
+        "problems": "resources/test_content_scanner/problems"
+    },
+    "timings": {
+        "full_rescan_interval": 3600.0
+    }
+}

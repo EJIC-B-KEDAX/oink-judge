@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-int main(int argc, char** argv) {
+auto main(int argc, char** argv) -> int {
     if (argc != 3) {
         std::cout << "Invalid parameters" << '\n';
         return 1;

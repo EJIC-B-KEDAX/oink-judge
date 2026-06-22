@@ -30,8 +30,8 @@ Testset::Testset(ProblemBuilder* problem_builder, const std::string& problem_id,
     }
 }
 
-auto Testset::run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-    -> std::shared_ptr<Verdict> {
+auto Testset::run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+    -> awaitable<std::shared_ptr<Verdict>> {
     if (boxes.size() < boxesRequired()) {
         throw std::runtime_error("Not enough boxes provided");
     }
@@ -46,25 +46,25 @@ auto Testset::run(const std::string& submission_id, const std::vector<std::strin
         std::shared_ptr<Verdict> test_verdict = nullptr;
 
         if (!verdict_builder_->canScoreChange()) {
-            test_verdict = test->skip(submission_id);
+            test_verdict = co_await test->skip(submission_id);
         } else {
-            test_verdict = test->run(submission_id, boxes, additional_params);
+            test_verdict = co_await test->run(submission_id, boxes, additional_params);
         }
         verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
 
-    return verdict_builder_->finalize();
+    co_return verdict_builder_->finalize();
 }
 
-auto Testset::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> {
+auto Testset::skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> {
     verdict_builder_->clear();
 
     for (auto& test : tests_) {
-        std::shared_ptr<Verdict> test_verdict = test->skip(submission_id);
+        std::shared_ptr<Verdict> test_verdict = co_await test->skip(submission_id);
         verdict_builder_->addVerdict(std::dynamic_pointer_cast<VerdictBase>(test_verdict));
     }
 
-    return verdict_builder_->finalize();
+    co_return verdict_builder_->finalize();
 }
 
 auto Testset::boxesRequired() const -> size_t {

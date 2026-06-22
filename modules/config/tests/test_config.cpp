@@ -38,3 +38,19 @@ TEST_F(ConfigTest, MissingConfigThrows) {
     Config::setConfigFilePath(getResourcesPath() / "non_existent.json");
     EXPECT_ANY_THROW(Config::reloadData());
 }
+
+TEST_F(ConfigTest, CheckPathWithNestedIntermediateNonObject) {
+    nlohmann::json j = {{"a", 42}}; // NOLINT
+    EXPECT_FALSE(checkObjectIsString(j, {"a", "b"}));
+    EXPECT_FALSE(checkObjectIsNumber(j, {"a", "b"}));
+}
+
+TEST_F(ConfigTest, GetTokenFromCredentialsValidAndInvalid) {
+    auto token_opt = getTokenFromCredentials("database.password");
+    ASSERT_TRUE(token_opt.has_value());
+    EXPECT_EQ(*token_opt, "secret");
+
+    EXPECT_FALSE(getTokenFromCredentials("database.non_existent").has_value());
+    EXPECT_FALSE(getTokenFromCredentials("database.password.nested").has_value());
+    EXPECT_FALSE(getTokenFromCredentials("non_existent").has_value());
+}

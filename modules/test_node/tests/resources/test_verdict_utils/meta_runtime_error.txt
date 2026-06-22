@@ -1,0 +1,4 @@
+status: RE
+time: 0.3
+max-rss: 512
+exitcode: 1

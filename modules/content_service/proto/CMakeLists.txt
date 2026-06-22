@@ -1,0 +1,1 @@
+add_oink_grpc_proto(content_service oink_judge/content_service.proto)

@@ -1,0 +1,16 @@
+{
+    "files": {
+        "input.txt": {
+            "last_modified": -4656623804,
+            "permissions": 420,
+            "sha256": "f3a6a58edb49a9d30ddabb33f1894d89c6545ee848e36aadfe7b5a25a8274e2b",
+            "size": 23
+        },
+        "subdir/nested.txt": {
+            "last_modified": -4656623804,
+            "permissions": 420,
+            "sha256": "e68db4521d8c341f11de6231fabd41ac8e35655934b7dced82db76465047c04b",
+            "size": 20
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "my_id": "test_node_1",
+    "my_type": "default",
+    "testing": {
+        "meta_file": "logs/meta.txt",
+        "checker_out_file": "logs/checker_out.txt"
+    },
+    "queue_manager_service": {
+        "stub_type": "queue_manager_service_stub"
+    }
+}

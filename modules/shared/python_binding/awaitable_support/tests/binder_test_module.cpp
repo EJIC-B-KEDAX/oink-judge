@@ -54,6 +54,27 @@ class Counter {
     int value_;
 };
 
+// Default pybind11 holder (std::unique_ptr) — tests Class& member-function bindings.
+class ValueStore {
+  public:
+    explicit ValueStore(int initial) : value_(initial) {}
+
+    auto add(int delta) -> awaitable<int> {
+        value_ += delta;
+        co_return value_;
+    }
+
+    auto peek() const -> awaitable<int> { co_return value_; }
+
+    auto clear() -> awaitable<void> {
+        value_ = 0;
+        co_return;
+    }
+
+  private:
+    int value_;
+};
+
 // =============================================================================
 // Module definition
 // =============================================================================
@@ -73,11 +94,19 @@ PYBIND11_MODULE(binder_test_module, m) {
     m.def("async_timer", as::bindAwaitable(&freeTimer), py::arg("delay_ms"), py::arg("value"),
           "Waits delay_ms milliseconds then returns value.");
 
-    // Counter class with member functions wrapped with bindAwaitable
+    // Counter uses std::shared_ptr holder.
     py::class_<Counter, std::shared_ptr<Counter>>(m, "Counter")
         .def(py::init<int>(), py::arg("initial"))
         .def("increment", as::bindAwaitable(&Counter::increment), py::arg("delta"),
              "Non-const method: adds delta to counter and returns new value.")
         .def("get_value_const", as::bindAwaitable(&Counter::getValueConst), "Const method: returns current counter value.")
         .def("reset", as::bindAwaitable(&Counter::reset), "Non-const void method: resets counter to 0.");
+
+    // ValueStore uses the default unique_ptr holder — tests Class& bindings.
+    py::class_<ValueStore>(m, "ValueStore")
+        .def(py::init<int>(), py::arg("initial"))
+        .def("add", as::bindAwaitable(&ValueStore::add), py::arg("delta"),
+             "Non-const method: adds delta and returns new value.")
+        .def("peek", as::bindAwaitable(&ValueStore::peek), "Const method: returns current value.")
+        .def("clear", as::bindAwaitable(&ValueStore::clear), "Non-const void method: resets value to 0.");
 }

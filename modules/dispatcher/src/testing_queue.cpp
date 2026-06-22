@@ -1,7 +1,8 @@
 #include "oink_judge/dispatcher/testing_queue.h"
 
-#include <cstddef>
 #include <oink_judge/logger/logger.h>
+
+#include <cstddef>
 
 namespace oink_judge::dispatcher {
 
@@ -11,7 +12,7 @@ auto TestingQueue::instance() -> TestingQueue& {
 }
 
 auto TestingQueue::pushSubmission(const std::string& submission_id) -> void {
-    logger::logInfo("TestingQueue", "Received submission_id: " + submission_id + " for testing.");
+    logger::logInfo("testing_queue", "Received submission " + submission_id + " for testing");
     if (trySubmission(submission_id)) {
         return;
     }
@@ -25,12 +26,12 @@ auto TestingQueue::freeInvoker(const std::string& invoker_id) -> void {
     }
 
     connected_invokers_[findInvokerIndexById(invoker_id)].second = "";
-    logger::logInfo("TestingQueue", "Freed invoker_id: " + invoker_id);
+    logger::logDebug("testing_queue", "Freed invoker " + invoker_id, 2);
 }
 
 auto TestingQueue::connectInvoker(std::unique_ptr<Invoker> invoker_ptr) -> void {
     connected_invokers_.emplace_back(std::move(invoker_ptr), "");
-    logger::logInfo("TestingQueue", "Connected invoker_id: " + connected_invokers_.back().first->getId());
+    logger::logInfo("testing_queue", "Connected invoker " + connected_invokers_.back().first->getId());
 
     tryInvoker(*connected_invokers_.back().first);
 }
@@ -43,7 +44,7 @@ auto TestingQueue::disconnectInvoker(const std::string& invoker_id) -> void {
     }
 
     connected_invokers_.erase(connected_invokers_.begin() + static_cast<long>(index));
-    logger::logInfo("TestingQueue", "Disconnected invoker_id: " + invoker_id);
+    logger::logInfo("testing_queue", "Disconnected invoker " + invoker_id);
 }
 
 TestingQueue::TestingQueue() = default;
@@ -74,9 +75,8 @@ auto TestingQueue::trySubmission(const std::string& submission_id) -> bool {
 
 auto TestingQueue::sendSubmissionForTesting(const std::string& submission_id, Invoker& invoker) -> void {
     connected_invokers_[findInvokerIndexById(invoker.getId())].second = submission_id;
-    std::string message = R"({"request": "test_submission","submission_id": ")" + submission_id + "\"}";
-    invoker.sendMessage(message);
-    logger::logInfo("TestingQueue", "Sent submission_id: " + submission_id + " for testing to invoker_id: " + invoker.getId());
+    invoker.testSubmission(submission_id);
+    logger::logInfo("testing_queue", "Sent submission " + submission_id + " to invoker " + invoker.getId());
 }
 
 auto TestingQueue::findInvokerIndexById(const std::string& invoker_id) const -> size_t {
@@ -86,7 +86,7 @@ auto TestingQueue::findInvokerIndexById(const std::string& invoker_id) const -> 
         }
     }
 
-    logger::logMessage("TestingQueue", "Invoker with ID " + invoker_id + " not found.", logger::LogType::ERROR);
+    logger::logError("testing_queue", "Invoker " + invoker_id + " not found");
     throw std::runtime_error("Invoker with ID " + invoker_id + " not found.");
 }
 

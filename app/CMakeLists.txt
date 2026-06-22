@@ -1,0 +1,3 @@
+configure_service_plugins(
+  configure_app_plugins app TYPE_REGISTRATIONS
+  content_service_client_type_registration utils_grpc_type_registration)

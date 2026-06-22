@@ -1,14 +1,15 @@
 #pragma once
+#include <boost/asio/experimental/channel.hpp>
+
 #include <memory>
-#include <oink_judge/socket/session.hpp>
 
 namespace oink_judge::dispatcher {
 
-using Session = socket::Session;
+using channel_t = boost::asio::experimental::channel<void(boost::system::error_code, std::string)>;
 
 class Invoker {
   public:
-    Invoker(std::string id, std::shared_ptr<Session> session);
+    Invoker(std::string id, std::shared_ptr<channel_t> channel);
 
     Invoker(const Invoker&) = delete;
     auto operator=(const Invoker&) -> Invoker& = delete;
@@ -18,13 +19,13 @@ class Invoker {
 
     [[nodiscard]] auto getId() const -> const std::string&;
 
-    auto sendMessage(const std::string& message) -> void;
+    auto testSubmission(const std::string& submission_id) -> void;
 
     [[nodiscard]] virtual auto canTestSubmission(const std::string& submission_id) const -> bool;
 
   private:
     std::string id_;
-    std::shared_ptr<Session> session_;
+    std::shared_ptr<channel_t> channel_;
 };
 
 } // namespace oink_judge::dispatcher

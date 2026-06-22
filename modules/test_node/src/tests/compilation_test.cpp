@@ -6,7 +6,7 @@
 
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
-#include <oink_judge/database/table_submissions.h>
+#include <oink_judge/database/async_table_submissions.h>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
@@ -14,7 +14,7 @@ namespace oink_judge::test_node {
 namespace fs = std::filesystem;
 
 using config::requireHasValue;
-using database::TableSubmissions;
+using database::AsyncTableSubmissions;
 
 CompilationTest::CompilationTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -31,8 +31,8 @@ CompilationTest::CompilationTest(ProblemBuilder* problem_builder, std::string pr
     }
 }
 
-auto CompilationTest::run(const std::string& submission_id, const std::vector<std::string>& boxes, json additional_params)
-    -> std::shared_ptr<Verdict> {
+auto CompilationTest::run(std::string submission_id, std::vector<std::string> boxes, json additional_params)
+    -> awaitable<std::shared_ptr<Verdict>> {
     if (boxes.size() < boxesRequired()) {
         throw std::runtime_error("Not enough boxes provided");
     }
@@ -41,7 +41,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
     fs::path submissions_dir = requireHasValue(config::getDirectoryPath("submissions"));
     fs::path problems_dir = requireHasValue(config::getDirectoryPath("problems"));
 
-    std::string language = TableSubmissions::instance().languageOfSubmission(submission_id);
+    std::string language = co_await AsyncTableSubmissions::instance().languageOfSubmission(submission_id);
 
     fs::path compilation_script = scripts_dir / "compilation" / (language + ".sh"); // TODO change type to fs::path
     fs::path output_executale_name = fs::path("/var/local/lib/isolate") / boxes[0] / "box/solution";
@@ -52,7 +52,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         ((scripts_dir / "prepare_for_testing.sh").string() + " " + boxes[0] + " " + boxes[1] + " " + problem_id_).c_str());
 
     if (rc_prepare != 0) {
-        logger::logError("CompilationTest", "Failed to prepare environment for testing");
+        logger::logError("compilation_test", "Failed to prepare environment for testing");
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -62,7 +62,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         info.real_time_used = 0.0;
         verdict->setInfo(info);
 
-        return verdict;
+        co_return verdict;
     }
 
     int rc_compilation = std::system((compilation_script.string() + " " + output_executale_name.string() + " " +
@@ -70,7 +70,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
                                          .c_str());
 
     if (rc_compilation != 0) {
-        logger::logInfo("CompilationTest", "Compilation failed for submission: " + submission_id);
+        logger::logInfo("compilation_test", "Compilation failed for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::COMPILATION_ERROR;
@@ -80,7 +80,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         info.real_time_used = 0.0;
         verdict->setInfo(info);
 
-        return verdict;
+        co_return verdict;
     }
 
     int rc_copy_checker = std::system(("cp " + (problems_dir / problem_id_ / "checker").string() + " " +
@@ -88,7 +88,7 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
                                           .c_str());
 
     if (rc_copy_checker != 0) {
-        logger::logError("CompilationTest", "Failed to copy checker for submission: " + submission_id);
+        logger::logError("compilation_test", "Failed to copy checker for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -98,15 +98,15 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         info.real_time_used = 0.0;
         verdict->setInfo(info);
 
-        return verdict;
+        co_return verdict;
     }
 
-    std::shared_ptr<Verdict> result = test_->run(submission_id, boxes, additional_params);
+    std::shared_ptr<Verdict> result = co_await test_->run(submission_id, boxes, additional_params);
 
     int rc_clear = std::system(((scripts_dir / "end_testing.sh").string() + " " + boxes[0] + " " + boxes[1]).c_str());
 
     if (rc_clear != 0) {
-        logger::logError("CompilationTest", "Failed to clear environment after testing for submission: " + submission_id);
+        logger::logError("compilation_test", "Failed to clear environment after testing for submission: " + submission_id);
         auto verdict = std::make_shared<DefaultVerdict>(name_);
         DefaultVerdict::VerdictInfo info;
         info.type = VerdictType::FAILED;
@@ -116,13 +116,15 @@ auto CompilationTest::run(const std::string& submission_id, const std::vector<st
         info.real_time_used = 0.0;
         verdict->setInfo(info);
 
-        return verdict;
+        co_return verdict;
     }
 
-    return result;
+    co_return result;
 }
 
-auto CompilationTest::skip(const std::string& submission_id) -> std::shared_ptr<Verdict> { return test_->skip(submission_id); }
+auto CompilationTest::skip(std::string submission_id) -> awaitable<std::shared_ptr<Verdict>> {
+    return test_->skip(submission_id);
+}
 
 auto CompilationTest::boxesRequired() const -> size_t { return test_->boxesRequired(); }
 

@@ -1,7 +1,9 @@
+#include <oink_judge/content_service/client/config_utils.h>
 #include <oink_judge/content_service/config_utils.h>
 #include <oink_judge/content_service/content_manifest.h>
 #include <oink_judge/content_service/manifest_storage.h>
 #include <oink_judge/python_binding/json_type_caster.hpp>
+#include <oink_judge/python_binding/perms_type_caster.hpp>
 
 #include <pybind11/cast.h>
 #include <pybind11/detail/common.h>
@@ -15,6 +17,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(pybind11_content_service, m) {
     // config_utils
     m.def("get_content_directory", &content_service::getContentDirectory, py::arg("content_type"));
+    m.def("get_content_storage_stub_type", &content_service::getContentStorageStubType);
 
     // content_manifest
     py::class_<content_service::ContentManifest>(m, "ContentManifest")
@@ -44,6 +47,8 @@ PYBIND11_MODULE(pybind11_content_service, m) {
     m.def("_compare_manifests_json_json",
           py::overload_cast<const nlohmann::json&, const nlohmann::json&>(&content_service::compareManifests),
           py::arg("old_manifest"), py::arg("new_manifest"));
+    m.def("get_permissions_from_manifest", &content_service::getPermissionsFromManifest, py::arg("manifest"),
+          py::arg("file_path"));
 
     // manifest_storage
     py::class_<content_service::ManifestStorage>(m, "ManifestStorage")

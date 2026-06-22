@@ -1,3 +1,5 @@
-add_subdirectory(utils)
+add_subdirectory(boost_asio)
 add_subdirectory(factory)
 add_subdirectory(python_binding)
+add_subdirectory(utils)
+add_subdirectory(proto)

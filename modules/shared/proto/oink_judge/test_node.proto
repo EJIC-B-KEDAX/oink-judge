@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package oink_judge.test_node;
+
+message Handshake {
+    string node_id = 1;
+    string node_type = 2;
+}
+
+message TestSubmissionRequest {
+    string submission_id = 1;
+}
+
+message TestSubmissionResponse {
+    google.protobuf.Empty empty = 1;
+}
+
+message ServerMessage {
+    oneof message {
+        TestSubmissionRequest test_submission_request = 1;
+    }
+}
+
+message ClientMessage {
+    oneof message {
+        Handshake handshake = 1;
+        TestSubmissionResponse test_submission_response = 2;
+    }
+}
+
+
+service QueueManagerService {
+    rpc Connect(stream ClientMessage) returns (stream ServerMessage);
+}

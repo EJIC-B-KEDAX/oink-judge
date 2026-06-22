@@ -4,9 +4,13 @@
 #include <oink_judge/logger/logger.h>
 #include <oink_judge/plugin_manager/config_utils.h>
 #include <oink_judge/plugin_manager/plugin_manager.h>
-#include <oink_judge/socket/client_config_utils.h>
-#include <oink_judge/socket/connection_protocol.h>
+#include <oink_judge/test_node/config_utils.h>
+#include <oink_judge/test_node/queue_manager_service_stub.h>
 
+#include <agrpc/grpc_context.hpp>
+#include <agrpc/grpc_executor.hpp>
+#include <boost/asio/co_spawn.hpp>
+#include <boost/asio/detached.hpp>
 #include <boost/asio/io_context.hpp>
 
 #include <iostream>
@@ -15,7 +19,6 @@ using namespace oink_judge;
 
 using config::Config;
 using config::requireHasValue;
-using socket::getConnectionConfig;
 
 auto main(int argc, char* argv[]) -> int {
     if (argc < 3) {
@@ -39,17 +42,19 @@ auto main(int argc, char* argv[]) -> int {
     }
     logger::logInfo("test_node_starter", "Finished loading plugins");
 
-    socket::ConnectionConfig connection_config = requireHasValue(getConnectionConfig("dispatcher"));
+    auto queue_manager_service_stub_type = requireHasValue(test_node::getQueueManagerServiceStubType());
 
-    logger::logInfo("test_node_starter", "Starting test node and connecting to dispatcher at " + connection_config.host + ":" +
-                                             std::to_string(connection_config.port));
+    auto queue_manager_service_stub =
+        test_node::QueueManagerServiceStubFactory::instance().create(queue_manager_service_stub_type);
 
-    boost::asio::io_context io_context;
+    agrpc::GrpcContext grpc_ctx;
 
-    co_spawn(io_context,
-             oink_judge::socket::asyncConnectToTheEndpoint(connection_config.host, connection_config.port,
-                                                           connection_config.session_type, connection_config.start_message),
-             boost::asio::detached);
+    std::string test_node_id = requireHasValue(test_node::getMyTestNodeId());
+    std::string test_node_type = requireHasValue(test_node::getMyTestNodeType());
 
-    io_context.run();
+    logger::logInfo("test_node_starter", "Connecting to queue manager as " + test_node_id);
+    boost::asio::co_spawn(grpc_ctx, queue_manager_service_stub->connect(test_node_id, test_node_type), boost::asio::detached);
+
+    grpc_ctx.run();
+    logger::logInfo("test_node_starter", "Disconnected from queue manager");
 }

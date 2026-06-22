@@ -1,0 +1,1 @@
+add_oink_grpc_proto(dispatcher oink_judge/dispatcher.proto)

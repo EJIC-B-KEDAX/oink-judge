@@ -25,4 +25,26 @@ auto getTiming(const std::string& timing_name) -> std::optional<std::chrono::dur
     return std::chrono::duration<double>(seconds);
 }
 
+auto getTokenFromCredentials(const std::string& path_to_token) -> std::optional<std::string> {
+    nlohmann::json now_part = Config::credentials();
+
+    std::string now_transition;
+    for (char c : path_to_token) {
+        if (c == '.') {
+            if (!now_part.is_object() || !now_part.contains(now_transition)) {
+                return std::nullopt;
+            }
+            now_part = now_part[now_transition];
+            now_transition.clear();
+        } else {
+            now_transition += c;
+        }
+    }
+
+    if (!now_part.is_object() || !now_part.contains(now_transition) || !now_part[now_transition].is_string()) {
+        return std::nullopt;
+    }
+    return now_part[now_transition].get<std::string>();
+}
+
 } // namespace oink_judge::config

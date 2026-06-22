@@ -1,12 +1,12 @@
 #include "oink_judge/content_service/client/content_storage.h"
 
+#include "oink_judge/content_service/client/config_utils.h"
+#include "oink_judge/content_service/client/content_service_stub.h"
 #include "oink_judge/content_service/config_utils.h"
 #include "oink_judge/content_service/manifest_storage.h"
 
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
-#include <oink_judge/socket/client_config_utils.h>
-#include <oink_judge/socket/connection_protocol.h>
 #include <oink_judge/utils/crypto.h>
 #include <oink_judge/utils/filesystem.h>
 
@@ -25,10 +25,6 @@ auto ContentStorage::instance() -> ContentStorage& {
 }
 
 auto ContentStorage::ensureContentExists(std::string content_type, std::string content_id) -> awaitable<void> {
-    if (!session_) {
-        throw std::runtime_error("Session is not initialized.");
-    }
-
     fs::path content_path = requireHasValue(getContentDirectory(content_type)) / content_id;
 
     json server_manifest = co_await getManifestFromServer(content_type, content_id);
@@ -39,6 +35,9 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
     if (changes.empty()) {
         co_return;
     }
+
+    logger::logInfo("content_storage", "Syncing " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" +
+                                        content_id);
 
     for (const auto& change : changes) {
         if (change.type == ContentChange::Type::ADDED || change.type == ContentChange::Type::MODIFIED) {
@@ -54,10 +53,6 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
 }
 
 auto ContentStorage::updateContentOnServer(std::string content_type, std::string content_id) -> awaitable<void> {
-    if (!session_) {
-        throw std::runtime_error("Session is not initialized.");
-    }
-
     fs::path content_path = requireHasValue(getContentDirectory(content_type)) / content_id;
     if (!std::filesystem::exists(content_path)) {
         throw std::runtime_error("Content path does not exist: " + content_path.string());
@@ -68,8 +63,18 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
     std::vector<ContentChange> changes =
         compareManifests(server_manifest, ManifestStorage::instance().getManifest(content_type, content_id).toJson());
 
+    if (changes.empty()) {
+        co_return;
+    }
+
+    logger::logInfo("content_storage", "Uploading " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" +
+                                        content_id);
+
     for (const auto& change : changes) {
-        if (change.type == ContentChange::Type::ADDED || change.type == ContentChange::Type::MODIFIED) {
+        if (change.type == ContentChange::Type::ADDED) {
+            std::string file_content = loadFile(content_path / change.file_path);
+            co_await createFileOnServer(content_type, content_id, change.file_path, file_content);
+        } else if (change.type == ContentChange::Type::MODIFIED) {
             std::string file_content = loadFile(content_path / change.file_path);
             co_await updateFileOnServer(content_type, content_id, change.file_path, file_content);
         } else if (change.type == ContentChange::Type::REMOVED) {
@@ -79,50 +84,55 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
 }
 
 ContentStorage::ContentStorage() {
-    // auto connection_config = requireHasValue(socket::getConnectionConfig("content_service"));
-    // session_ = socket::connectToTheEndpoint(connection_config.host, connection_config.port, connection_config.session_type,
-    //                                         connection_config.start_message);
-
-    if (!session_) {
-        throw std::runtime_error("Failed to connect to the data sender endpoint.");
+    auto stub_opt = getContentStorageStub();
+    if (!stub_opt.has_value()) {
+        throw std::runtime_error("Failed to create ContentServiceStub: optional expected with value");
     }
+    stub_ = std::move(*stub_opt);
 }
 
-auto ContentStorage::ensureConnection() -> awaitable<void> {
-    if (!session_) {
-        auto connection_config = requireHasValue(socket::getConnectionConfig("content_service"));
-        session_ = co_await socket::asyncConnectToTheEndpoint(connection_config.host, connection_config.port,
-                                                              connection_config.session_type, connection_config.start_message);
+ContentStorage::ContentStorage(std::unique_ptr<ContentServiceStub> stub) : stub_(std::move(stub)) {}
+
+auto ContentStorage::getManifestFromServer(std::string content_type, std::string content_id) -> awaitable<json> { // NOLINT
+    auto manifest_exp = co_await stub_->getManifest(content_type, content_id);
+    if (!manifest_exp.has_value()) {
+        throw std::runtime_error("Failed to get manifest from server: " + manifest_exp.error().error_message());
     }
+
+    co_return *manifest_exp;
 }
 
-auto ContentStorage::getManifestFromServer(std::string content_type, std::string content_id) -> awaitable<json> {
-    json manifest = co_await session_->request<json>(R"({"request": "get_manifest", "content_type": ")" + content_type +
-                                                     "\", \"" + content_type + "_id\": \"" + content_id + "\"}");
-    co_return manifest;
-}
-
-auto ContentStorage::getFileFromServer(std::string content_type, std::string content_id, std::string file_path)
+auto ContentStorage::getFileFromServer(std::string content_type, std::string content_id, std::string file_path) // NOLINT
     -> awaitable<std::string> {
-    std::string file_content = co_await session_->request<std::string>(R"({"request": "get_file", "content_type": ")" +
-                                                                       content_type + "\", \"" + content_type + "_id\": \"" +
-                                                                       content_id + R"(", "file_path": ")" + file_path + "\"}");
-    co_return file_content;
+    auto file_exp = co_await stub_->getFile(content_type, content_id, file_path);
+    if (!file_exp.has_value()) {
+        throw std::runtime_error("Failed to get file from server: " + file_exp.error().error_message());
+    }
+    co_return *file_exp;
 }
 
-auto ContentStorage::updateFileOnServer(std::string content_type, std::string content_id, std::string file_path,
+auto ContentStorage::createFileOnServer(std::string content_type, std::string content_id, std::string file_path, // NOLINT
                                         std::string file_content) -> awaitable<void> {
-    co_await session_->request<>(R"({"request": "update_file", "content_type": ")" + content_type + "\", \"" + content_type +
-                                 "_id\": \"" + content_id + R"(", "file_path": ")" + file_path + R"(", "file_content": ")" +
-                                 utils::crypto::toBase64(file_content) + "\"}");
-    co_return;
+    auto update_exp = co_await stub_->createFile(content_type, content_id, file_path, file_content);
+    if (!update_exp.has_value()) {
+        throw std::runtime_error("Failed to create file on server: " + update_exp.error().error_message());
+    }
 }
 
-auto ContentStorage::removeFileOnServer(std::string content_type, std::string content_id, std::string file_path)
+auto ContentStorage::updateFileOnServer(std::string content_type, std::string content_id, std::string file_path, // NOLINT
+                                        std::string file_content) -> awaitable<void> {
+    auto update_exp = co_await stub_->updateFile(content_type, content_id, file_path, file_content);
+    if (!update_exp.has_value()) {
+        throw std::runtime_error("Failed to update file on server: " + update_exp.error().error_message());
+    }
+}
+
+auto ContentStorage::removeFileOnServer(std::string content_type, std::string content_id, std::string file_path) // NOLINT
     -> awaitable<void> {
-    co_await session_->request<>(R"({"request": "remove_file", "content_type": ")" + content_type + "\", \"" + content_type +
-                                 "_id\": \"" + content_id + R"(", "file_path": ")" + file_path + "\"}");
-    co_return;
+    auto delete_exp = co_await stub_->deleteFile(content_type, content_id, file_path);
+    if (!delete_exp.has_value()) {
+        throw std::runtime_error("Failed to delete file on server: " + delete_exp.error().error_message());
+    }
 }
 
 } // namespace oink_judge::content_service

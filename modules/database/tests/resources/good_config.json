@@ -1,0 +1,11 @@
+{
+    "database": {
+        "host": "127.0.0.1",
+        "port": 5432,
+        "username": "my_username",
+        "dbname": "my_dbname",
+        "pool_min": 1,
+        "pool_max": 3,
+        "connect_timeout_sec": 3
+    }
+}

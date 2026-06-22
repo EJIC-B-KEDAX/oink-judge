@@ -169,7 +169,7 @@ auto getColorMap() const -> const std::map<std::string, std::string>&;
 
 ## File Naming
 
-- Headers: `lower_case.h` in `include/oink_judge/<module>/`
+- Headers: `lower_case.h`  or `lower_case.hpp` (if there are no `lower_case.cpp` file for this header) in`include/oink_judge/<module>/`
 - Sources: `lower_case.cpp` in `src/`
 - Template implementations: `lower_case.inl` in `include/oink_judge/<module>/`
 - Tests: `test_<feature>.cpp` in `tests/`

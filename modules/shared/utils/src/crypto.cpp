@@ -9,14 +9,12 @@
 namespace oink_judge::utils::crypto {
 
 auto sha256(const std::string& input) -> std::string {
-    std::array<unsigned char, crypto_generichash_BYTES> password_hash{};
-    crypto_generichash(password_hash.data(), crypto_generichash_BYTES,
-                       reinterpret_cast<const unsigned char*>(input.data()), // NOLINT
-                       input.size(), nullptr, 0);
+    std::array<unsigned char, crypto_hash_sha256_BYTES> digest{};
+    crypto_hash_sha256(digest.data(), reinterpret_cast<const unsigned char*>(input.data()), input.size()); // NOLINT
 
     std::ostringstream result;
-    for (size_t byte_idx = 0; byte_idx < crypto_generichash_BYTES; ++byte_idx) {
-        result << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(password_hash[byte_idx]); // NOLINT
+    for (size_t byte_idx = 0; byte_idx < crypto_hash_sha256_BYTES; ++byte_idx) {
+        result << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(digest[byte_idx]); // NOLINT
     }
     return result.str();
 }

@@ -22,7 +22,7 @@
         "problems_zip": "problems/.zips",
         "scripts": "scripts",
         "certs": "certs",
-        "plugins": "plugins/test_node"
+        "plugins": "build/plugins/test_node"
     },
     "sessions": {
         "dispatcher": "SSLSessionClient(Authorizing({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Pinging(InvokerProtocol)\"}))",

@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package oink_judge.content_service;
+
+message FileChunk {
+    bytes data = 1;
+}
+
+message FileInfo {
+    string content_type = 1;
+    string content_id = 2;
+    string file_path = 3;
+}
+
+service ContentService {
+    rpc GetManifest(GetManifestRequest) returns (stream GetManifestResponse);
+    rpc GetFile(GetFileRequest) returns (stream GetFileResponse);
+    rpc CreateFile(stream CreateFileRequest) returns (google.protobuf.Empty);
+    rpc UpdateFile(stream UpdateFileRequest) returns (google.protobuf.Empty);
+    rpc DeleteFile(DeleteFileRequest) returns (google.protobuf.Empty);
+}
+
+message GetManifestRequest {
+    string content_type = 1;
+    string content_id = 2;
+}
+
+message GetManifestResponse {
+    string manifest = 1;
+}
+
+message GetFileRequest {
+    string content_type = 1;
+    string content_id = 2;
+    string file_path = 3;
+}
+
+message GetFileResponse {
+    FileChunk file_chunk = 1;
+}
+
+message CreateFileRequest {
+    oneof payload {
+        FileInfo file_info = 1;
+        FileChunk file_chunk = 2;
+    }
+}
+
+message UpdateFileRequest {
+    oneof payload {
+        FileInfo file_info = 1;
+        FileChunk file_chunk = 2;
+    }
+}
+
+message DeleteFileRequest {
+    string content_type = 1;
+    string content_id = 2;
+    string file_path = 3;
+}

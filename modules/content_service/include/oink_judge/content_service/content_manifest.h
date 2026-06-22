@@ -1,8 +1,11 @@
 #pragma once
-#include <chrono>
-#include <ctime>
+#include "oink_judge/content_service/content_scanner.h"
+
 #include <nlohmann/json.hpp>
+
+#include <filesystem>
 #include <string>
+#include <vector>
 
 namespace oink_judge::content_service {
 
@@ -13,26 +16,21 @@ namespace fs = std::filesystem;
 class ContentManifest {
   public:
     ContentManifest(std::string content_type, std::string content_id);
-    auto getContentType() const -> const std::string&;
-    auto getContentId() const -> const std::string&;
+    [[nodiscard]] auto getContentType() const -> const std::string&;
+    [[nodiscard]] auto getContentId() const -> const std::string&;
 
-    auto toString() const -> std::string;
-    auto toJson() const -> json;
+    [[nodiscard]] auto toString() const -> std::string;
+    [[nodiscard]] auto toJson() const -> json;
 
-    auto getPathToManifestFile() const -> fs::path;
+    [[nodiscard]] auto getPathToManifestFile() const -> fs::path;
+
+    auto updateManifest() const -> void;
 
   private:
     std::string content_type_;
     std::string content_id_;
 
-    std::chrono::duration<double> full_rescan_interval_;
-    mutable time_t last_updated_;
-    mutable time_t last_full_rescan_;
-
-    auto updateManifest() const -> void;
-    auto fullRescanContent() const -> void;
-    auto fastRescanContent() const -> void;
-    auto storedManifestToJson() const -> json;
+    std::unique_ptr<ContentScanner> content_scanner_;
 };
 
 auto getManifestSignature(const std::string& content_type, const std::string& content_id) -> std::string;

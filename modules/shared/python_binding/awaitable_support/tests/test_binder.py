@@ -19,7 +19,7 @@ import asyncio
 
 import oink_judge.binder_test_module as bm
 import pytest
-from oink_judge.binder_test_module import Counter
+from oink_judge.binder_test_module import Counter, ValueStore
 from oink_judge.pybind11_awaitable_support import AwaitableBridge
 
 # =============================================================================
@@ -125,6 +125,46 @@ def test_member_function_void():
             c = Counter(99)
             none_val = await c.reset()
             value_after = await c.get_value_const()
+            return none_val, value_after
+
+    none_val, value_after = asyncio.run(run())
+    assert none_val is None
+    assert value_after == 0
+
+
+# =============================================================================
+# Default-holder class (unique_ptr) — bindAwaitable with Class& self
+# =============================================================================
+
+
+def test_default_holder_member_function_nonconst():
+    async def run():
+        async with AwaitableBridge():
+            store = ValueStore(10)
+            v1 = await store.add(5)  # 10 + 5 = 15
+            v2 = await store.add(3)  # 15 + 3 = 18
+            return v1, v2
+
+    r1, r2 = asyncio.run(run())
+    assert r1 == 15
+    assert r2 == 18
+
+
+def test_default_holder_member_function_const():
+    async def run():
+        async with AwaitableBridge():
+            store = ValueStore(7)
+            return await store.peek()
+
+    assert asyncio.run(run()) == 7
+
+
+def test_default_holder_member_function_void():
+    async def run():
+        async with AwaitableBridge():
+            store = ValueStore(99)
+            none_val = await store.clear()
+            value_after = await store.peek()
             return none_val, value_after
 
     none_val, value_after = asyncio.run(run())

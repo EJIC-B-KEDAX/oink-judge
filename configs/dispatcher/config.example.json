@@ -21,7 +21,7 @@
         "problems_zip": "problems/.zips",
         "scripts": "scripts",
         "certs": "certs",
-        "plugins": "plugins/dispatcher"
+        "plugins": "build/plugins/dispatcher"
     },
     "sessions": {
         "FastAPI": "SSLSessionServer(AuthRequired({\"auth_token_path\": \"my_auth_token_path, in credentials\", \"inner_type\": \"Ponging(ProtocolWithFastAPI)\"}))",
