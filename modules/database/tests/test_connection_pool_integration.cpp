@@ -1,5 +1,5 @@
 #include <oink_judge/config/config.h>
-#include <oink_judge/database/async_table_submissions.h>
+#include <oink_judge/database/table_submissions.h>
 #include <oink_judge/database/connection_pool.h>
 #include <oink_judge/database/query.h>
 
@@ -16,7 +16,7 @@
 using boost::asio::awaitable;
 using boost::asio::use_awaitable;
 using oink_judge::config::Config;
-using oink_judge::database::AsyncTableSubmissions;
+using oink_judge::database::TableSubmissions;
 using oink_judge::database::ConnectionPool;
 using oink_judge::database::executeReadOnly;
 
@@ -50,7 +50,9 @@ auto runIntegrationCase() -> awaitable<void> {
         throw std::runtime_error("expected query results");
     }
 
-    co_await AsyncTableSubmissions::instance().initialize();
+    if (!co_await TableSubmissions::instance().initialize()) {
+        throw std::runtime_error("failed to initialize submissions table");
+    }
 }
 
 } // namespace

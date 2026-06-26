@@ -1,4 +1,4 @@
-#include <oink_judge/database/async_table_submissions.h>
+#include <oink_judge/database/table_submissions.h>
 #include <oink_judge/database/connection_pool.h>
 #include <oink_judge/database/query.h>
 #include <oink_judge/database/query_param.h>
@@ -152,26 +152,24 @@ PYBIND11_MODULE(pybind11_database, m) {
     m.def("async_execute_sql", &spawnAsyncExecuteSQL, py::arg("sql"), py::arg("params"));
     m.def("async_execute_sql_read_only", &spawnAsyncExecuteSQLReadOnly, py::arg("sql"), py::arg("params"));
 
-    py::class_<db::AsyncTableSubmissions>(m, "AsyncTableSubmissions")
-        .def_static("instance", &db::AsyncTableSubmissions::instance, py::return_value_policy::reference)
-        .def("async_initialize", as::bindAwaitable(&db::AsyncTableSubmissions::initialize))
-        .def("async_add_submission", as::bindAwaitable(&db::AsyncTableSubmissions::addSubmission), py::arg("row"))
-        .def("async_load_submissions_by_user_and_problem",
-             as::bindAwaitable(&db::AsyncTableSubmissions::loadSubmissionsByUserAndProblem), py::arg("username"),
+    py::class_<db::TableSubmissions>(m, "TableSubmissions")
+        .def_static("instance", &db::TableSubmissions::instance, py::return_value_policy::reference)
+        .def("initialize", as::bindAwaitable(&db::TableSubmissions::initialize))
+        .def("add_submission", as::bindAwaitable(&db::TableSubmissions::addSubmission), py::arg("row"))
+        .def("load_submissions_by_user_and_problem",
+             as::bindAwaitable(&db::TableSubmissions::loadSubmissionsByUserAndProblem), py::arg("username"),
              py::arg("problem_id"))
-        .def("async_update_submission_verdict", as::bindAwaitable(&db::AsyncTableSubmissions::updateSubmissionVerdict),
+        .def("update_submission_verdict", as::bindAwaitable(&db::TableSubmissions::updateSubmissionVerdict),
              py::arg("submission_id"), py::arg("verdict_type"), py::arg("score"))
-        .def("async_whose_submission", as::bindAwaitable(&db::AsyncTableSubmissions::whoseSubmission), py::arg("submission_id"))
-        .def("async_problem_of_submission", as::bindAwaitable(&db::AsyncTableSubmissions::problemOfSubmission),
+        .def("whose_submission", as::bindAwaitable(&db::TableSubmissions::whoseSubmission), py::arg("submission_id"))
+        .def("problem_of_submission", as::bindAwaitable(&db::TableSubmissions::problemOfSubmission),
              py::arg("submission_id"))
-        .def("async_language_of_submission", as::bindAwaitable(&db::AsyncTableSubmissions::languageOfSubmission),
+        .def("language_of_submission", as::bindAwaitable(&db::TableSubmissions::languageOfSubmission),
              py::arg("submission_id"))
-        .def("async_verdict_type_of_submission", as::bindAwaitable(&db::AsyncTableSubmissions::verdictTypeOfSubmission),
+        .def("verdict_type_of_submission", as::bindAwaitable(&db::TableSubmissions::verdictTypeOfSubmission),
              py::arg("submission_id"))
-        .def("async_score_of_submission", as::bindAwaitable(&db::AsyncTableSubmissions::scoreOfSubmission),
-             py::arg("submission_id"))
-        .def("async_set_verdict_type", as::bindAwaitable(&db::AsyncTableSubmissions::setVerdictType), py::arg("submission_id"),
+        .def("score_of_submission", as::bindAwaitable(&db::TableSubmissions::scoreOfSubmission), py::arg("submission_id"))
+        .def("set_verdict_type", as::bindAwaitable(&db::TableSubmissions::setVerdictType), py::arg("submission_id"),
              py::arg("verdict_type"))
-        .def("async_set_score", as::bindAwaitable(&db::AsyncTableSubmissions::setScore), py::arg("submission_id"),
-             py::arg("score"));
+        .def("set_score", as::bindAwaitable(&db::TableSubmissions::setScore), py::arg("submission_id"), py::arg("score"));
 }

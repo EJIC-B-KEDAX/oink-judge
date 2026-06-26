@@ -6,7 +6,7 @@
 
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
-#include <oink_judge/database/async_table_submissions.h>
+#include <oink_judge/database/table_submissions.h>
 #include <oink_judge/logger/logger.h>
 
 #include <fstream>
@@ -14,7 +14,7 @@
 namespace oink_judge::test_node {
 
 using config::requireHasValue;
-using database::AsyncTableSubmissions;
+using database::TableSubmissions;
 
 SyncResultTest::SyncResultTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -42,15 +42,15 @@ auto SyncResultTest::run(std::string submission_id, std::vector<std::string> box
     double score = verdict->getScore();
     std::string verdict_type = verdict->getType().short_name;
     // ProblemTable& table = ProblemTablesStorage::instance().getTable(problem_id_);
-    // std::string username = co_await AsyncTableSubmissions::instance().whoseSubmission(submission_id);
+    // std::string username = co_await TableSubmissions::instance().whoseSubmission(submission_id);
 
     std::ofstream testing_protocol_file(requireHasValue(config::getDirectoryPath("submissions")) / submission_id /
                                         "protocol.json");
     testing_protocol_file << verdict->toJson(2).dump(4);
     testing_protocol_file.close();
 
-    co_await AsyncTableSubmissions::instance().setScore(submission_id, score);
-    co_await AsyncTableSubmissions::instance().setVerdictType(submission_id, verdict_type);
+    co_await TableSubmissions::instance().setScore(submission_id, score);
+    co_await TableSubmissions::instance().setVerdictType(submission_id, verdict_type);
     // score = std::max(score, table.getTotalScore(username));
     // table.setTotalScore(username, score);
 

@@ -38,6 +38,7 @@ class ConnectionPool {
 
     ConnectionPool();
 
+    auto requireInitialized() -> awaitable<void>;
     auto connectionAt(std::size_t slot_index) -> LibpqConnection&;
     auto releaseSlot(std::size_t slot_index) -> void;
     auto createSlot() -> awaitable<std::size_t>;

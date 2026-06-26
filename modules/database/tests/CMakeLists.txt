@@ -6,8 +6,10 @@ add_module_test(oink_judge_database_config_utils_tests test_config_utils.cpp
                 oink_judge::database)
 add_module_test(oink_judge_database_statement_action_log_tests
                 test_statement_action_log.cpp oink_judge::database)
-add_module_test(oink_judge_database_async_table_submissions_tests
-                test_async_table_submissions.cpp oink_judge::database)
+add_module_test(oink_judge_database_table_submissions_tests test_table_submissions.cpp
+                oink_judge::database)
+add_module_test(oink_judge_database_connection_pool_tests test_connection_pool.cpp
+                oink_judge::database)
 
 # ------------------------------------------------------------------------------
 # Database integration tests

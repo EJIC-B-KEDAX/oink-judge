@@ -6,7 +6,7 @@
 
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
-#include <oink_judge/database/async_table_submissions.h>
+#include <oink_judge/database/table_submissions.h>
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::test_node {
@@ -14,7 +14,7 @@ namespace oink_judge::test_node {
 namespace fs = std::filesystem;
 
 using config::requireHasValue;
-using database::AsyncTableSubmissions;
+using database::TableSubmissions;
 
 CompilationTest::CompilationTest(ProblemBuilder* problem_builder, std::string problem_id, std::string name)
     : name_(std::move(name)), problem_id_(std::move(problem_id)) {
@@ -41,9 +41,12 @@ auto CompilationTest::run(std::string submission_id, std::vector<std::string> bo
     fs::path submissions_dir = requireHasValue(config::getDirectoryPath("submissions"));
     fs::path problems_dir = requireHasValue(config::getDirectoryPath("problems"));
 
-    std::string language = co_await AsyncTableSubmissions::instance().languageOfSubmission(submission_id);
+    const auto language = co_await TableSubmissions::instance().languageOfSubmission(submission_id);
+    if (!language) {
+        throw std::runtime_error("Submission not found: " + submission_id);
+    }
 
-    fs::path compilation_script = scripts_dir / "compilation" / (language + ".sh"); // TODO change type to fs::path
+    fs::path compilation_script = scripts_dir / "compilation" / (*language + ".sh"); // TODO change type to fs::path
     fs::path output_executale_name = fs::path("/var/local/lib/isolate") / boxes[0] / "box/solution";
     fs::path error_file_name = submissions_dir / submission_id / "compilation_error.txt";
     fs::path source_file_name = submissions_dir / submission_id / "source.cpp";

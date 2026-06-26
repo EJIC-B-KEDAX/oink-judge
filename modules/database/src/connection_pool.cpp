@@ -35,6 +35,13 @@ auto ConnectionPool::copyStatementActions() const -> std::vector<StatementAction
     return statement_log_.actions();
 }
 
+auto ConnectionPool::requireInitialized() -> awaitable<void> {
+    if (!initialized_) {
+        co_await initialize();
+    }
+    co_return;
+}
+
 auto ConnectionPool::initialize() -> awaitable<void> {
     if (initialized_) {
         logDebug(K_LOG_MODULE, "Connection pool already initialized");
@@ -108,10 +115,7 @@ auto ConnectionPool::waitForAvailableSlot() -> awaitable<std::size_t> {
 }
 
 auto ConnectionPool::acquire() -> awaitable<PooledConnection> {
-    if (!initialized_) {
-        logDebug(K_LOG_MODULE, "ConnectionPool is not initialized", 2);
-        throw std::runtime_error("ConnectionPool is not initialized");
-    }
+    co_await requireInitialized();
 
     logDebug(K_LOG_MODULE, "Acquiring connection from pool", 2);
 

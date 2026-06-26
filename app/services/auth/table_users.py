@@ -20,6 +20,10 @@ class TableUsers:
             cls._instance = cls()
         return cls._instance
 
+    async def _require_initialized(self) -> None:
+        if not self._initialized:
+            await self.initialize()
+
     async def initialize(self) -> None:
         if self._initialized:
             return
@@ -51,7 +55,8 @@ class TableUsers:
         self._initialized = True
 
     async def authenticate(self, username: str, password: str) -> bool:
-        password_hash = hashlib.sha256(password.encode("latin1")).hexdigest()
+        await self._require_initialized()
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
         result = await async_execute_read_only("users__select_password", [username])
 
         if result.empty():
@@ -63,6 +68,7 @@ class TableUsers:
         return stored_password_hash == password_hash
 
     async def register_user(self, username: str, password: str) -> bool:
+        await self._require_initialized()
         if await self.user_exists(username):
             return False
 
@@ -71,10 +77,12 @@ class TableUsers:
         return True
 
     async def user_exists(self, username: str) -> bool:
+        await self._require_initialized()
         result = await async_execute_read_only("users__select_password", [username])
         return not result.empty()
 
     async def delete_user(self, username: str) -> bool:
+        await self._require_initialized()
         if not await self.user_exists(username):
             return False
 
@@ -82,6 +90,7 @@ class TableUsers:
         return True
 
     async def update_password(self, username: str, new_password: str) -> bool:
+        await self._require_initialized()
         if not await self.user_exists(username):
             return False
 

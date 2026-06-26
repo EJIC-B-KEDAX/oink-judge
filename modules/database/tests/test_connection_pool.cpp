@@ -1,4 +1,4 @@
-#include <oink_judge/database/async_table_submissions.h>
+#include <oink_judge/database/connection_pool.h>
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
@@ -8,7 +8,7 @@
 #include <utility>
 
 using boost::asio::awaitable;
-using oink_judge::database::AsyncTableSubmissions;
+using oink_judge::database::ConnectionPool;
 
 namespace {
 
@@ -34,7 +34,6 @@ auto expectRuntimeErrorContaining(awaitable<Result> task, const std::string& exp
 
 } // namespace
 
-TEST(AsyncTableSubmissionsTest, LoadAutoInitializesWithoutConfig) {
-    expectRuntimeErrorContaining(AsyncTableSubmissions::instance().loadSubmissionsByUserAndProblem("user", "problem"),
-                                 "Could not open config file:");
+TEST(ConnectionPoolTest, AcquireAutoInitializesWithoutConfig) {
+    expectRuntimeErrorContaining(ConnectionPool::instance().acquire(), "Could not open config file:");
 }

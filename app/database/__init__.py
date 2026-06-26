@@ -1,10 +1,10 @@
 from oink_judge.pybind11_database import (
-    AsyncTableSubmissions,
     ConnectionPool,
     QueryField,
     QueryResult,
     QueryRow,
     SubmissionRow,
+    TableSubmissions,
     async_execute,
     async_execute_read_only,
     async_execute_sql,
@@ -12,12 +12,12 @@ from oink_judge.pybind11_database import (
 )
 
 __all__ = [
-    "AsyncTableSubmissions",
     "ConnectionPool",
     "QueryField",
     "QueryResult",
     "QueryRow",
     "SubmissionRow",
+    "TableSubmissions",
     "async_execute",
     "async_execute_read_only",
     "async_execute_sql",

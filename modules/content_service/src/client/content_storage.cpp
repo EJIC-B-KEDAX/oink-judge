@@ -36,8 +36,8 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
         co_return;
     }
 
-    logger::logInfo("content_storage", "Syncing " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" +
-                                        content_id);
+    logger::logInfo("content_storage",
+                    "Syncing " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" + content_id);
 
     for (const auto& change : changes) {
         if (change.type == ContentChange::Type::ADDED || change.type == ContentChange::Type::MODIFIED) {
@@ -53,9 +53,11 @@ auto ContentStorage::ensureContentExists(std::string content_type, std::string c
 }
 
 auto ContentStorage::updateContentOnServer(std::string content_type, std::string content_id) -> awaitable<void> {
+    logger::logInfo("content_storage", "Updating content on server for " + content_type + "/" + content_id);
     fs::path content_path = requireHasValue(getContentDirectory(content_type)) / content_id;
     if (!std::filesystem::exists(content_path)) {
-        throw std::runtime_error("Content path does not exist: " + content_path.string());
+        throw std::runtime_error("Content path does not exist: " + content_path.string() + " for " + content_type + "/" +
+                                 content_id);
     }
 
     json server_manifest = co_await getManifestFromServer(content_type, content_id);
@@ -67,8 +69,8 @@ auto ContentStorage::updateContentOnServer(std::string content_type, std::string
         co_return;
     }
 
-    logger::logInfo("content_storage", "Uploading " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" +
-                                        content_id);
+    logger::logInfo("content_storage",
+                    "Uploading " + std::to_string(changes.size()) + " change(s) for " + content_type + "/" + content_id);
 
     for (const auto& change : changes) {
         if (change.type == ContentChange::Type::ADDED) {
@@ -96,6 +98,7 @@ ContentStorage::ContentStorage(std::unique_ptr<ContentServiceStub> stub) : stub_
 auto ContentStorage::getManifestFromServer(std::string content_type, std::string content_id) -> awaitable<json> { // NOLINT
     auto manifest_exp = co_await stub_->getManifest(content_type, content_id);
     if (!manifest_exp.has_value()) {
+        logger::logError("content_storage", "Failed to get manifest from server: " + manifest_exp.error().error_message());
         throw std::runtime_error("Failed to get manifest from server: " + manifest_exp.error().error_message());
     }
 

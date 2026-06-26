@@ -21,6 +21,10 @@ class TableSessions:
             cls._instance = cls()
         return cls._instance
 
+    async def _require_initialized(self) -> None:
+        if not self._initialized:
+            await self.initialize()
+
     async def initialize(self) -> None:
         if self._initialized:
             return
@@ -53,6 +57,7 @@ class TableSessions:
         self._initialized = True
 
     async def add_session(self, session: Session) -> bool:
+        await self._require_initialized()
         await async_execute(
             "sessions__add_session",
             [session.session_id, session.username, session.expire_at],
@@ -60,10 +65,12 @@ class TableSessions:
         return True
 
     async def remove_session(self, session_id: str) -> bool:
+        await self._require_initialized()
         await async_execute("sessions__remove_session", [session_id])
         return True
 
     async def whose_session(self, session_id: str) -> str:
+        await self._require_initialized()
         result = await async_execute("sessions__select_session", [session_id])
 
         if result.empty():

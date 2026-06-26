@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import get_problem_statements
-from app.database import AsyncTableSubmissions, SubmissionRow
+from app.database import SubmissionRow, TableSubmissions
 from app.services.auth.auth_utils import require_current_user
 from app.services.dispatcher.dispatcher_api import handle_submission
 from oink_judge.pybind11_logger import log_error, log_info
@@ -95,16 +95,18 @@ class OpenProblem:
             submission_info.score = 0.0
             submission_info.send_time = datetime.now().replace(microsecond=0)
 
-            await AsyncTableSubmissions.instance().async_add_submission(submission_info)
+            if not await TableSubmissions.instance().add_submission(submission_info):
+                log_error("app", f"Failed to create submission {submission_id} in database")
+                from fastapi import HTTPException
+
+                raise HTTPException(status_code=500, detail="Failed to save submission")
 
             log_info("app", f"Submission {submission_id} created by {username} for problem {self.id}")
             is_ok = await handle_submission(submission_id)
 
             if not is_ok:
                 log_error("app", f"Dispatcher failed to handle submission {submission_id}")
-                await AsyncTableSubmissions.instance().async_update_submission_verdict(
-                    submission_id, "FAIL", 0.0
-                )
+                await TableSubmissions.instance().update_submission_verdict(submission_id, "FAIL", 0.0)
 
             return RedirectResponse(
                 url=f"/problems/{self.id}/submissions", status_code=302
@@ -115,9 +117,9 @@ class OpenProblem:
             request: Request,
             username: str = Depends(require_current_user),
         ):
-            submissions = await AsyncTableSubmissions.instance().async_load_submissions_by_user_and_problem(
-                username, self.id
-            )
+            submissions = await TableSubmissions.instance().load_submissions_by_user_and_problem(username, self.id)
+            if submissions is None:
+                submissions = []
             problem_info = ProblemInfo(problem_id=self.id)
 
             return templates.TemplateResponse(

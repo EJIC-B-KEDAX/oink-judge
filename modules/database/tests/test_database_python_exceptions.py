@@ -2,17 +2,14 @@
 
 import asyncio
 
-import pytest
 from oink_judge.pybind11_awaitable_support import AwaitableBridge
-from oink_judge.pybind11_database import AsyncTableSubmissions
+from oink_judge.pybind11_database import TableSubmissions
 
 
 def test_load_submissions_auto_initializes_without_config():
     async def run() -> None:
         async with AwaitableBridge():
-            with pytest.raises(RuntimeError, match="Could not open config file:"):
-                await AsyncTableSubmissions.instance().async_load_submissions_by_user_and_problem(
-                    "user", "problem"
-                )
+            submissions = await TableSubmissions.instance().load_submissions_by_user_and_problem("user", "problem")
+            assert submissions is None
 
     asyncio.run(run())

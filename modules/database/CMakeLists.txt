@@ -12,7 +12,7 @@ set(DATABASE_PUBLIC_HEADERS
     include/oink_judge/database/connection_pool.h
     include/oink_judge/database/query.h
     include/oink_judge/database/query.inl
-    include/oink_judge/database/async_table_submissions.h)
+    include/oink_judge/database/table_submissions.h)
 
 set(DATABASE_SOURCES
     src/config_utils.cpp
@@ -23,7 +23,7 @@ set(DATABASE_SOURCES
     src/pooled_connection.cpp
     src/connection_pool.cpp
     src/query.cpp
-    src/async_table_submissions.cpp)
+    src/table_submissions.cpp)
 
 # ------------------------------------------------------------------------------
 # Database headers
