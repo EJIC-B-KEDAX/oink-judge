@@ -12,16 +12,20 @@
 #include <grpcpp/grpcpp.h>
 
 #include <string>
+#include <vector>
 
 namespace oink_judge::content_service {
 
 namespace {
 
 using GetManifestRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncGetManifest>;
+using SetPermissionsRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncSetPermissions>;
 using GetFileRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncGetFile>;
 using CreateFileRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncCreateFile>;
 using UpdateFileRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncUpdateFile>;
 using DeleteFileRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncDeleteFile>;
+using CreateContentRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncCreateContent>;
+using ListContentRPC = agrpc::ClientRPC<&ContentService::Stub::PrepareAsyncListContent>;
 
 } // namespace
 
@@ -51,6 +55,27 @@ auto ContentServiceChannelStub::getManifest(std::string content_type, std::strin
     }
     json manifest_json = json::parse(manifest_stream.str());
     co_return manifest_json;
+}
+
+auto ContentServiceChannelStub::setPermissions(std::string content_type, std::string content_id, std::string file_path,
+                                               uint32_t permissions) -> awaitable<tl::expected<void, grpc::Status>> {
+    auto& grpc_context = static_cast<agrpc::GrpcContext&>((co_await boost::asio::this_coro::executor).context()); // NOLINT
+
+    SetPermissionsRequest request;
+    request.set_content_type(std::move(content_type));
+    request.set_content_id(std::move(content_id));
+    request.set_file_path(std::move(file_path));
+    request.set_permissions(permissions);
+
+    google::protobuf::Empty response;
+    grpc::ClientContext context;
+    grpc::Status status =
+        co_await SetPermissionsRPC::request(grpc_context, *stub_, context, request, response, boost::asio::use_awaitable);
+
+    if (!status.ok()) {
+        co_return tl::unexpected(status);
+    }
+    co_return tl::expected<void, grpc::Status>{};
 }
 
 auto ContentServiceChannelStub::getFile(std::string content_type, std::string content_id, std::string file_path)
@@ -187,6 +212,49 @@ auto ContentServiceChannelStub::deleteFile(std::string content_type, std::string
         co_return tl::unexpected(status);
     }
     co_return tl::expected<void, grpc::Status>{};
+}
+
+auto ContentServiceChannelStub::createContent(std::string content_type, std::string content_id)
+    -> awaitable<tl::expected<void, grpc::Status>> {
+    auto& grpc_context = static_cast<agrpc::GrpcContext&>((co_await boost::asio::this_coro::executor).context()); // NOLINT
+
+    CreateContentRequest request;
+    request.set_content_type(std::move(content_type));
+    request.set_content_id(std::move(content_id));
+
+    google::protobuf::Empty response;
+    grpc::ClientContext context;
+    grpc::Status status =
+        co_await CreateContentRPC::request(grpc_context, *stub_, context, request, response, boost::asio::use_awaitable);
+
+    if (!status.ok()) {
+        co_return tl::unexpected(status);
+    }
+    co_return tl::expected<void, grpc::Status>{};
+}
+
+auto ContentServiceChannelStub::listContent(std::string content_type)
+    -> awaitable<tl::expected<std::vector<std::string>, grpc::Status>> {
+    auto& grpc_context = static_cast<agrpc::GrpcContext&>((co_await boost::asio::this_coro::executor).context()); // NOLINT
+
+    ListContentRequest request;
+    request.set_content_type(std::move(content_type));
+
+    ListContentResponse response;
+    grpc::ClientContext context;
+    grpc::Status status =
+        co_await ListContentRPC::request(grpc_context, *stub_, context, request, response, boost::asio::use_awaitable);
+
+    if (!status.ok()) {
+        co_return tl::unexpected(status);
+    }
+
+    std::vector<std::string> content_ids;
+    content_ids.reserve(static_cast<size_t>(response.content_ids_size()));
+    for (const auto& content_id : response.content_ids()) {
+        content_ids.push_back(content_id);
+    }
+    co_return content_ids;
 }
 
 ContentServiceChannelStub::ContentServiceChannelStub(std::shared_ptr<grpc::Channel> channel) : channel_(std::move(channel)) {

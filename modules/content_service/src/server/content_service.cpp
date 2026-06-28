@@ -301,4 +301,112 @@ auto deleteFileHandler(DeleteFileRPC& rpc, DeleteFileRequest& request) -> awaita
     co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
+auto setPermissionsHandler(SetPermissionsRPC& rpc, SetPermissionsRequest& request) -> awaitable<void> {
+    grpc::Status check_status = checkFullFilePath(request.content_type(), request.content_id(), request.file_path());
+    if (!check_status.ok()) {
+        logger::logWarning("content_service", check_status.error_message());
+        co_await rpc.finish_with_error(check_status, boost::asio::use_awaitable);
+        co_return;
+    }
+
+    std::string error_message;
+    try {
+        fs::path full_file_path = *getFullPath(request.content_type(), request.content_id(), request.file_path());
+        utils::filesystem::setPermissions(full_file_path, static_cast<fs::perms>(request.permissions()));
+        logger::logInfo("content_service",
+                        "Set permissions on " + request.file_path() + " for " + request.content_type() + "/" +
+                            request.content_id(),
+                        2);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
+        co_return;
+    } catch (const std::exception& e) {
+        error_message = e.what();
+        logger::logError("content_service", "Failed to set permissions: " + error_message);
+    }
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
+auto createContentHandler(CreateContentRPC& rpc, CreateContentRequest& request) -> awaitable<void> {
+    std::string error_message;
+    if (request.content_type().empty() || request.content_id().empty()) {
+        error_message = "Content type and content id must be provided";
+        logger::logWarning("content_service", error_message);
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
+        co_return;
+    }
+
+    std::optional<fs::path> base_directory_opt = getContentDirectory(request.content_type());
+    if (!base_directory_opt) {
+        error_message = "Unknown content type";
+        logger::logWarning("content_service", error_message + ": " + request.content_type());
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
+        co_return;
+    }
+
+    fs::path content_path = *base_directory_opt / request.content_id();
+    if (fs::exists(content_path)) {
+        error_message = "Content already exists";
+        logger::logWarning("content_service",
+                           error_message + ": " + request.content_type() + "/" + request.content_id());
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::ALREADY_EXISTS, error_message),
+                                       boost::asio::use_awaitable);
+        co_return;
+    }
+
+    try {
+        utils::filesystem::createDirectoryIfNotExists(content_path);
+        logger::logInfo("content_service",
+                        "Created content " + request.content_type() + "/" + request.content_id(), 2);
+        co_await rpc.finish(google::protobuf::Empty{}, grpc::Status::OK, boost::asio::use_awaitable);
+        co_return;
+    } catch (const std::exception& e) {
+        error_message = e.what();
+        logger::logError("content_service", "Failed to create content: " + error_message);
+    }
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
+}
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-reference-coroutine-parameters)
+auto listContentHandler(ListContentRPC& rpc, ListContentRequest& request) -> awaitable<void> {
+    std::string error_message;
+    if (request.content_type().empty()) {
+        error_message = "Content type must be provided";
+        logger::logWarning("content_service", error_message);
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
+        co_return;
+    }
+
+    std::optional<fs::path> base_directory_opt = getContentDirectory(request.content_type());
+    if (!base_directory_opt) {
+        error_message = "Unknown content type";
+        logger::logWarning("content_service", error_message + ": " + request.content_type());
+        co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, error_message),
+                                       boost::asio::use_awaitable);
+        co_return;
+    }
+
+    try {
+        ListContentResponse response;
+        const fs::path& base_directory = *base_directory_opt;
+        if (fs::exists(base_directory)) {
+            for (const auto& entry : fs::directory_iterator(base_directory)) {
+                if (entry.is_directory()) {
+                    response.add_content_ids(entry.path().filename().string());
+                }
+            }
+        }
+        co_await rpc.finish(response, grpc::Status::OK, boost::asio::use_awaitable);
+        co_return;
+    } catch (const std::exception& e) {
+        error_message = e.what();
+        logger::logError("content_service", "Failed to list content: " + error_message);
+    }
+    co_await rpc.finish_with_error(grpc::Status(grpc::StatusCode::INTERNAL, error_message), boost::asio::use_awaitable);
+}
+
 } // namespace oink_judge::content_service

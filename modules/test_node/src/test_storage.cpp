@@ -22,7 +22,7 @@ auto TestStorage::ensureTestExists(std::string problem_id) -> awaitable<void> {
         co_return;
     }
 
-    co_await content_service::ContentStorage::instance().ensureContentExists("problem", problem_id);
+    co_await content_service::ContentStorage::instance().syncContent("problem", problem_id);
 
     std::string builder_name = problem_config::getProblemBuilderName(problem_id).value_or("");
     if (builder_name.empty()) {

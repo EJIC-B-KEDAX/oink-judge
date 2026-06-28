@@ -78,7 +78,7 @@ auto runClient(auto&& coro_factory) -> void {
     agrpc::GrpcContext client_context;
     std::exception_ptr error;
     boost::asio::co_spawn(client_context, std::forward<decltype(coro_factory)>(coro_factory),
-                          [&error](std::exception_ptr ep) { error = std::move(ep); });
+                          [&error](std::exception_ptr ep) -> auto { error = std::move(ep); });
     client_context.run();
     if (error) {
         std::rethrow_exception(error);
@@ -112,8 +112,8 @@ class ContentServiceClientIntegrationTest : public ::testing::Test {
         fs::create_directories(server_mut_dir_);
         oink_judge::utils::filesystem::storeFile(server_mut_dir_ / "existing.txt", "seed content");
 
-        const int PORT = freePort();
-        listen_address_ = "127.0.0.1:" + std::to_string(PORT);
+        const int port = freePort();
+        listen_address_ = "127.0.0.1:" + std::to_string(port);
 
         server_config_path_ = root_ / "server_config.json";
         writeJson(server_config_path_, json{{"directories", json{{"problems", server_problems_dir_.string()}}},
@@ -200,46 +200,46 @@ TEST_F(ContentServiceClientIntegrationTest, GetManifestViaConfiguredStub) {
 
 TEST_F(ContentServiceClientIntegrationTest, GetFileViaConfiguredStub) {
     auto stub = makeStub();
-    const std::string EXPECTED = oink_judge::utils::filesystem::loadFile(resources_ / "problems" / "1" / "input.txt");
+    const std::string expected = oink_judge::utils::filesystem::loadFile(resources_ / "problems" / "1" / "input.txt");
 
     tl::expected<std::string, grpc::Status> file;
     runClient([&]() -> awaitable<void> { file = co_await stub->getFile("problem", "1", "input.txt"); }); // NOLINT
 
     ASSERT_TRUE(file.has_value());
-    EXPECT_EQ(*file, EXPECTED);
+    EXPECT_EQ(*file, expected);
 }
 
-TEST_F(ContentServiceClientIntegrationTest, EnsureContentExistsDownloadsFromServer) {
+TEST_F(ContentServiceClientIntegrationTest, SyncContentDownloadsFromServer) {
     ContentStorage storage(makeStub());
 
-    runClient([&]() -> awaitable<void> { co_await storage.ensureContentExists("problem", "1"); }); // NOLINT
+    runClient([&]() -> awaitable<void> { co_await storage.syncContent("problem", "1"); }); // NOLINT
 
-    const fs::path LOCAL_PROBLEM_DIR = client_problems_dir_ / "1";
-    const std::string EXPECTED_INPUT = oink_judge::utils::filesystem::loadFile(resources_ / "problems" / "1" / "input.txt");
-    const std::string EXPECTED_NESTED =
+    const fs::path local_problem_dir = client_problems_dir_ / "1";
+    const std::string expected_input = oink_judge::utils::filesystem::loadFile(resources_ / "problems" / "1" / "input.txt");
+    const std::string expected_nested =
         oink_judge::utils::filesystem::loadFile(resources_ / "problems" / "1" / "subdir" / "nested.txt");
 
-    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(LOCAL_PROBLEM_DIR / "input.txt"), EXPECTED_INPUT);
-    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(LOCAL_PROBLEM_DIR / "subdir" / "nested.txt"), EXPECTED_NESTED);
-    EXPECT_TRUE(fs::exists(LOCAL_PROBLEM_DIR / "manifest.json"));
+    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(local_problem_dir / "input.txt"), expected_input);
+    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(local_problem_dir / "subdir" / "nested.txt"), expected_nested);
+    EXPECT_TRUE(fs::exists(local_problem_dir / "manifest.json"));
 }
 
 TEST_F(ContentServiceClientIntegrationTest, UpdateContentOnServerUploadsNewFile) {
-    const fs::path LOCAL_MUT_DIR = client_problems_dir_ / "mut";
-    fs::create_directories(LOCAL_MUT_DIR);
-    const std::string UPLOADED_CONTENT = "uploaded from c++ client";
-    oink_judge::utils::filesystem::storeFile(LOCAL_MUT_DIR / "uploaded.txt", UPLOADED_CONTENT);
+    const fs::path local_mut_dir = client_problems_dir_ / "mut";
+    fs::create_directories(local_mut_dir);
+    const std::string uploaded_content = "uploaded from c++ client";
+    oink_judge::utils::filesystem::storeFile(local_mut_dir / "uploaded.txt", uploaded_content);
 
     ContentStorage storage(makeStub());
     runClient([&]() -> awaitable<void> { co_await storage.updateContentOnServer("problem", "mut"); }); // NOLINT
 
-    const fs::path SERVER_FILE = server_mut_dir_ / "uploaded.txt";
-    EXPECT_TRUE(fs::exists(SERVER_FILE));
-    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(SERVER_FILE), UPLOADED_CONTENT);
+    const fs::path server_file = server_mut_dir_ / "uploaded.txt";
+    EXPECT_TRUE(fs::exists(server_file));
+    EXPECT_EQ(oink_judge::utils::filesystem::loadFile(server_file), uploaded_content);
 
     auto stub = makeStub();
     tl::expected<std::string, grpc::Status> file;
     runClient([&]() -> awaitable<void> { file = co_await stub->getFile("problem", "mut", "uploaded.txt"); }); // NOLINT
     ASSERT_TRUE(file.has_value());
-    EXPECT_EQ(*file, UPLOADED_CONTENT);
+    EXPECT_EQ(*file, uploaded_content);
 }

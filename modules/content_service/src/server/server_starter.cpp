@@ -21,10 +21,13 @@ using config::Config;
 using config::requireHasValue;
 
 using content_service::ContentService;
+using content_service::CreateContentRPC;
 using content_service::CreateFileRPC;
 using content_service::DeleteFileRPC;
 using content_service::GetFileRPC;
 using content_service::GetManifestRPC;
+using content_service::ListContentRPC;
+using content_service::SetPermissionsRPC;
 using content_service::UpdateFileRPC;
 
 auto main(int argc, char* argv[]) -> int {
@@ -67,6 +70,8 @@ auto main(int argc, char* argv[]) -> int {
 
     agrpc::register_awaitable_rpc_handler<GetManifestRPC>(grpc_ctx, service, &content_service::getManifestHandler,
                                                           boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<SetPermissionsRPC>(grpc_ctx, service, &content_service::setPermissionsHandler,
+                                                             boost::asio::detached);
     agrpc::register_awaitable_rpc_handler<GetFileRPC>(grpc_ctx, service, &content_service::getFileHandler, boost::asio::detached);
 
     agrpc::register_awaitable_rpc_handler<CreateFileRPC>(grpc_ctx, service, &content_service::createFileHandler,
@@ -75,6 +80,10 @@ auto main(int argc, char* argv[]) -> int {
                                                          boost::asio::detached);
     agrpc::register_awaitable_rpc_handler<DeleteFileRPC>(grpc_ctx, service, &content_service::deleteFileHandler,
                                                          boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<CreateContentRPC>(grpc_ctx, service, &content_service::createContentHandler,
+                                                            boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<ListContentRPC>(grpc_ctx, service, &content_service::listContentHandler,
+                                                          boost::asio::detached);
 
     grpc_ctx.run();
 

@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 using namespace oink_judge::content_service;
 using oink_judge::config::Config;
@@ -21,6 +22,11 @@ class TestStub : public ContentServiceStub {
     auto getManifest(std::string /*content_type*/, std::string /*content_id*/)
         -> awaitable<tl::expected<json, grpc::Status>> override {
         co_return json::object();
+    }
+
+    auto setPermissions(std::string /*content_type*/, std::string /*content_id*/, std::string /*file_path*/,
+                        uint32_t /*permissions*/) -> awaitable<tl::expected<void, grpc::Status>> override {
+        co_return tl::expected<void, grpc::Status>{};
     }
 
     auto getFile(std::string /*content_type*/, std::string /*content_id*/, std::string /*file_path*/)
@@ -41,6 +47,15 @@ class TestStub : public ContentServiceStub {
     auto deleteFile(std::string /*content_type*/, std::string /*content_id*/, std::string /*file_path*/)
         -> awaitable<tl::expected<void, grpc::Status>> override {
         co_return tl::expected<void, grpc::Status>{};
+    }
+
+    auto createContent(std::string /*content_type*/, std::string /*content_id*/)
+        -> awaitable<tl::expected<void, grpc::Status>> override {
+        co_return tl::expected<void, grpc::Status>{};
+    }
+
+    auto listContent(std::string /*content_type*/) -> awaitable<tl::expected<std::vector<std::string>, grpc::Status>> override {
+        co_return std::vector<std::string>{};
     }
 };
 

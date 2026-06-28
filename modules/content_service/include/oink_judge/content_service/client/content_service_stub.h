@@ -8,6 +8,7 @@
 #include <tl/expected.hpp>
 
 #include <memory>
+#include <vector>
 
 namespace oink_judge::content_service {
 
@@ -24,6 +25,8 @@ class ContentServiceStub {
     virtual ~ContentServiceStub() = default;
 
     virtual auto getManifest(std::string content_type, std::string content_id) -> awaitable<tl::expected<json, grpc::Status>> = 0;
+    virtual auto setPermissions(std::string content_type, std::string content_id, std::string file_path, uint32_t permissions)
+        -> awaitable<tl::expected<void, grpc::Status>> = 0;
     virtual auto getFile(std::string content_type, std::string content_id, std::string file_path)
         -> awaitable<tl::expected<std::string, grpc::Status>> = 0;
     virtual auto createFile(std::string content_type, std::string content_id, std::string file_path, std::string file_content)
@@ -32,6 +35,9 @@ class ContentServiceStub {
         -> awaitable<tl::expected<void, grpc::Status>> = 0;
     virtual auto deleteFile(std::string content_type, std::string content_id, std::string file_path)
         -> awaitable<tl::expected<void, grpc::Status>> = 0;
+    virtual auto createContent(std::string content_type, std::string content_id)
+        -> awaitable<tl::expected<void, grpc::Status>> = 0;
+    virtual auto listContent(std::string content_type) -> awaitable<tl::expected<std::vector<std::string>, grpc::Status>> = 0;
 };
 
 class ContentServiceChannelStub : public ContentServiceStub {
@@ -39,6 +45,8 @@ class ContentServiceChannelStub : public ContentServiceStub {
     ContentServiceChannelStub(std::shared_ptr<grpc::Channel> channel);
 
     auto getManifest(std::string content_type, std::string content_id) -> awaitable<tl::expected<json, grpc::Status>> override;
+    auto setPermissions(std::string content_type, std::string content_id, std::string file_path, uint32_t permissions)
+        -> awaitable<tl::expected<void, grpc::Status>> override;
     auto getFile(std::string content_type, std::string content_id, std::string file_path)
         -> awaitable<tl::expected<std::string, grpc::Status>> override;
     auto createFile(std::string content_type, std::string content_id, std::string file_path, std::string file_content)
@@ -47,6 +55,8 @@ class ContentServiceChannelStub : public ContentServiceStub {
         -> awaitable<tl::expected<void, grpc::Status>> override;
     auto deleteFile(std::string content_type, std::string content_id, std::string file_path)
         -> awaitable<tl::expected<void, grpc::Status>> override;
+    auto createContent(std::string content_type, std::string content_id) -> awaitable<tl::expected<void, grpc::Status>> override;
+    auto listContent(std::string content_type) -> awaitable<tl::expected<std::vector<std::string>, grpc::Status>> override;
 
     constexpr static auto REGISTERED_NAME = "content_service_stub";
 

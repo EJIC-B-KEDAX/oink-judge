@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include <string>
+#include <vector>
 
 namespace oink_judge::content_service {
 
@@ -23,8 +24,11 @@ class ContentStorage {
     auto operator=(ContentStorage&&) -> ContentStorage& = delete;
     ~ContentStorage() = default;
 
-    auto ensureContentExists(std::string content_type, std::string content_id) -> awaitable<void>;
+    auto syncContent(std::string content_type, std::string content_id) -> awaitable<void>;
+    auto syncFile(std::string content_type, std::string content_id, std::string file_path) -> awaitable<void>;
     auto updateContentOnServer(std::string content_type, std::string content_id) -> awaitable<void>;
+    auto createContent(std::string content_type, std::string content_id) -> awaitable<void>;
+    auto listContent(std::string content_type) -> awaitable<std::vector<std::string>>;
 
   private:
     ContentStorage();
@@ -40,6 +44,13 @@ class ContentStorage {
         -> awaitable<void>;
 
     auto removeFileOnServer(std::string content_type, std::string content_id, std::string file_path) -> awaitable<void>;
+
+    auto setPermissionsOnServer(std::string content_type, std::string content_id, std::string file_path, uint32_t permissions)
+        -> awaitable<void>;
+
+    auto createContentOnServer(std::string content_type, std::string content_id) -> awaitable<void>;
+
+    auto listContentOnServer(std::string content_type) -> awaitable<std::vector<std::string>>;
 
     std::unique_ptr<ContentServiceStub> stub_;
 };

@@ -119,6 +119,33 @@ class ContentServiceStub:
         )
         await self._stub.DeleteFile(request)
 
+    async def set_permissions(
+        self,
+        content_type: str,
+        content_id: str,
+        file_path: str,
+        permissions: int,
+    ) -> None:
+        request = pb2.SetPermissionsRequest(
+            content_type=content_type,
+            content_id=content_id,
+            file_path=file_path,
+            permissions=permissions,
+        )
+        await self._stub.SetPermissions(request)
+
+    async def create_content(self, content_type: str, content_id: str) -> None:
+        request = pb2.CreateContentRequest(
+            content_type=content_type,
+            content_id=content_id,
+        )
+        await self._stub.CreateContent(request)
+
+    async def list_content(self, content_type: str) -> list[str]:
+        request = pb2.ListContentRequest(content_type=content_type)
+        response = await self._stub.ListContent(request)
+        return list[str](response.content_ids)
+
     @staticmethod
     async def _file_upload_requests(
         request_cls,  # CreateFileRequest | UpdateFileRequest

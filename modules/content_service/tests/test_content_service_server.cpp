@@ -64,6 +64,8 @@ class ContentServiceServerTest : public ::testing::Test {
 
         agrpc::register_awaitable_rpc_handler<GetManifestRPC>(*server_context_, service_, &getManifestHandler,
                                                               boost::asio::detached);
+        agrpc::register_awaitable_rpc_handler<SetPermissionsRPC>(*server_context_, service_, &setPermissionsHandler,
+                                                                 boost::asio::detached);
         agrpc::register_awaitable_rpc_handler<GetFileRPC>(*server_context_, service_, &getFileHandler, boost::asio::detached);
         agrpc::register_awaitable_rpc_handler<CreateFileRPC>(*server_context_, service_, &createFileHandler,
                                                              boost::asio::detached);
@@ -71,6 +73,10 @@ class ContentServiceServerTest : public ::testing::Test {
                                                              boost::asio::detached);
         agrpc::register_awaitable_rpc_handler<DeleteFileRPC>(*server_context_, service_, &deleteFileHandler,
                                                              boost::asio::detached);
+        agrpc::register_awaitable_rpc_handler<CreateContentRPC>(*server_context_, service_, &createContentHandler,
+                                                                boost::asio::detached);
+        agrpc::register_awaitable_rpc_handler<ListContentRPC>(*server_context_, service_, &listContentHandler,
+                                                              boost::asio::detached);
 
         server_thread_ = std::thread([this] { server_context_->run(); });
 

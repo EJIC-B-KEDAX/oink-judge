@@ -26,7 +26,7 @@ auto handleSubmissionHandler(HandleSubmissionRPC& rpc, HandleSubmissionRequest& 
 
         logger::logInfo("dispatcher_service", "Received handle_submission for submission " + submission_id);
 
-        co_await content_service::ContentStorage::instance().ensureContentExists("problem", *problem_id);
+        co_await content_service::ContentStorage::instance().syncContent("problem", *problem_id);
 
         auto submission_manager = SubmissionManagersStorage::instance().getSubmissionManager(*problem_id);
 

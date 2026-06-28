@@ -40,6 +40,8 @@ auto main(int argc, char* argv[]) -> int {
 
     agrpc::register_awaitable_rpc_handler<GetManifestRPC>(grpc_context, service, &getManifestHandler,
                                                           boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<SetPermissionsRPC>(grpc_context, service, &setPermissionsHandler,
+                                                             boost::asio::detached);
     agrpc::register_awaitable_rpc_handler<GetFileRPC>(grpc_context, service, &getFileHandler, boost::asio::detached);
     agrpc::register_awaitable_rpc_handler<CreateFileRPC>(grpc_context, service, &createFileHandler,
                                                          boost::asio::detached);
@@ -47,6 +49,10 @@ auto main(int argc, char* argv[]) -> int {
                                                          boost::asio::detached);
     agrpc::register_awaitable_rpc_handler<DeleteFileRPC>(grpc_context, service, &deleteFileHandler,
                                                          boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<CreateContentRPC>(grpc_context, service, &createContentHandler,
+                                                              boost::asio::detached);
+    agrpc::register_awaitable_rpc_handler<ListContentRPC>(grpc_context, service, &listContentHandler,
+                                                           boost::asio::detached);
 
     grpc_context.run();
     server->Shutdown();

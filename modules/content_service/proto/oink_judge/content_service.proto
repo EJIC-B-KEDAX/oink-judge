@@ -16,10 +16,15 @@ message FileInfo {
 
 service ContentService {
     rpc GetManifest(GetManifestRequest) returns (stream GetManifestResponse);
+    rpc SetPermissions(SetPermissionsRequest) returns (google.protobuf.Empty);
     rpc GetFile(GetFileRequest) returns (stream GetFileResponse);
     rpc CreateFile(stream CreateFileRequest) returns (google.protobuf.Empty);
     rpc UpdateFile(stream UpdateFileRequest) returns (google.protobuf.Empty);
     rpc DeleteFile(DeleteFileRequest) returns (google.protobuf.Empty);
+
+    rpc CreateContent(CreateContentRequest) returns (google.protobuf.Empty);
+    rpc ListContent(ListContentRequest) returns (ListContentResponse);
+    
 }
 
 message GetManifestRequest {
@@ -59,4 +64,24 @@ message DeleteFileRequest {
     string content_type = 1;
     string content_id = 2;
     string file_path = 3;
+}
+
+message SetPermissionsRequest {
+    string content_type = 1;
+    string content_id = 2;
+    string file_path = 3;
+    uint32 permissions = 4;
+}
+
+message CreateContentRequest {
+    string content_type = 1;
+    string content_id = 2;
+}
+
+message ListContentRequest {
+    string content_type = 1;
+}
+
+message ListContentResponse {
+    repeated string content_ids = 1;
 }

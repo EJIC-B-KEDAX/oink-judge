@@ -169,7 +169,7 @@ class TestPythonStubAgainstCppServer:
 
 
 class TestPythonContentStorageAgainstCppServer:
-    def test_ensure_content_exists_downloads_from_server(
+    def test_sync_content_downloads_from_server(
         self, integration_env: IntegrationEnv
     ) -> None:
         from app.services.content_service import (
@@ -179,7 +179,7 @@ class TestPythonContentStorageAgainstCppServer:
 
         async def run() -> None:
             storage = ContentStorage(stub=get_content_storage_stub())
-            await storage.ensure_content_exists("problem", "1")
+            await storage.sync_content("problem", "1")
 
         asyncio.run(run())
 

@@ -97,7 +97,7 @@ auto QueueManagerServiceStub::connect(std::string test_node_id, std::string test
         for (int i = 0; i < boxes_required; ++i) {
             boxes.push_back(std::to_string(i));
         }
-        co_await content_service::ContentStorage::instance().ensureContentExists("submission", submission_id);
+        co_await content_service::ContentStorage::instance().syncContent("submission", submission_id);
         co_await test->run(submission_id, boxes, json::object());
         co_await content_service::ContentStorage::instance().updateContentOnServer("submission", submission_id);
         logger::logInfo("test_node", "Finished testing submission " + submission_id);
