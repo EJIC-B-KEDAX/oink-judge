@@ -15,10 +15,13 @@ namespace oink_judge::database {
 
 using boost::asio::awaitable;
 
+class LibpqConnection;
+
 namespace detail {
-auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only)
-    -> awaitable<QueryResult>;
-auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only) -> awaitable<QueryResult>;
+auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only,
+                     LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only,
+                LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
 } // namespace detail
 
 auto execute(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;

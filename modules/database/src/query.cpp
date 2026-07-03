@@ -14,15 +14,23 @@ using logger::logDebug;
 
 namespace detail {
 
-auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only) // NOLINT
+auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only,
+                     LibpqConnection* connection) // NOLINT
     -> awaitable<QueryResult> {
+    if (connection != nullptr) {
+        co_return co_await connection->executePrepared(std::move(stmt), params, read_only);
+    }
     logDebug(K_LOG_MODULE, "Acquiring connection for prepared statement: " + stmt, 2);
     auto lease = co_await pool.acquire();
     co_return co_await lease.connection().executePrepared(std::move(stmt), params, read_only);
 }
 
-auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only) // NOLINT
+auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only,
+                LibpqConnection* connection) // NOLINT
     -> awaitable<QueryResult> {
+    if (connection != nullptr) {
+        co_return co_await connection->executeSQL(std::move(sql), params, read_only);
+    }
     logDebug(K_LOG_MODULE, "Acquiring connection for SQL query", 2);
     auto lease = co_await pool.acquire();
     co_return co_await lease.connection().executeSQL(std::move(sql), params, read_only);
