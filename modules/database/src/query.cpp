@@ -1,5 +1,7 @@
 #include "oink_judge/database/query.h"
 
+#include "oink_judge/database/libpq_connection.h"
+
 #include <oink_judge/logger/logger.h>
 
 namespace oink_judge::database {
@@ -14,9 +16,8 @@ using logger::logDebug;
 
 namespace detail {
 
-auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only,
-                     LibpqConnection* connection) // NOLINT
-    -> awaitable<QueryResult> {
+auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only, // NOLINT
+                     LibpqConnection* connection) -> awaitable<QueryResult> {
     if (connection != nullptr) {
         co_return co_await connection->executePrepared(std::move(stmt), params, read_only);
     }
@@ -25,9 +26,8 @@ auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryPa
     co_return co_await lease.connection().executePrepared(std::move(stmt), params, read_only);
 }
 
-auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only,
-                LibpqConnection* connection) // NOLINT
-    -> awaitable<QueryResult> {
+auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> params, bool read_only, // NOLINT
+                LibpqConnection* connection) -> awaitable<QueryResult> {
     if (connection != nullptr) {
         co_return co_await connection->executeSQL(std::move(sql), params, read_only);
     }
@@ -38,24 +38,28 @@ auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> p
 
 } // namespace detail
 
-auto execute(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
+auto execute(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
     co_return co_await detail::executePrepared(pool, std::move(stmt), std::vector<QueryParam>(params.begin(), params.end()),
-                                               false);
+                                               false, connection);
 }
 
-auto executeReadOnly(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params) // NOLINT
-    -> awaitable<QueryResult> {
+auto executeReadOnly(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
     co_return co_await detail::executePrepared(pool, std::move(stmt), std::vector<QueryParam>(params.begin(), params.end()),
-                                               true);
+                                               true, connection);
 }
 
-auto executeSQL(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
-    co_return co_await detail::executeSQL(pool, std::move(sql), std::vector<QueryParam>(params.begin(), params.end()), false);
+auto executeSQL(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
+    co_return co_await detail::executeSQL(pool, std::move(sql), std::vector<QueryParam>(params.begin(), params.end()), false,
+                                          connection);
 }
 
-auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) // NOLINT
-    -> awaitable<QueryResult> {
-    co_return co_await detail::executeSQL(pool, std::move(sql), std::vector<QueryParam>(params.begin(), params.end()), true);
+auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
+    co_return co_await detail::executeSQL(pool, std::move(sql), std::vector<QueryParam>(params.begin(), params.end()), true,
+                                        connection);
 }
 
 auto quote(ConnectionPool& pool, std::string value) -> awaitable<std::string> { // NOLINT
@@ -64,17 +68,18 @@ auto quote(ConnectionPool& pool, std::string value) -> awaitable<std::string> { 
     co_return co_await lease.connection().quoteLiteral(std::move(value));
 }
 
-auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult> { // NOLINT
-    co_return co_await execute(pool, std::move(stmt), std::span<const QueryParam>(params));
+auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
+    co_return co_await execute(pool, std::move(stmt), std::span<const QueryParam>(params), connection);
 }
 
-auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) // NOLINT
-    -> awaitable<QueryResult> {
-    co_return co_await executeReadOnly(pool, std::move(stmt), std::span<const QueryParam>(params));
+auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params, LibpqConnection* connection)
+    -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeReadOnly(pool, std::move(stmt), std::span<const QueryParam>(params), connection);
 }
 
-auto executeSQL(ConnectionPool& pool, std::string sql) -> awaitable<QueryResult> { // NOLINT
-    co_return co_await executeSQL(pool, std::move(sql), std::span<const QueryParam>{});
+auto executeSQL(ConnectionPool& pool, std::string sql, LibpqConnection* connection) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeSQL(pool, std::move(sql), std::span<const QueryParam>{}, connection);
 }
 
 } // namespace oink_judge::database

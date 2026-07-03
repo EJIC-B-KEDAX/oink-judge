@@ -17,6 +17,11 @@ using boost::asio::awaitable;
 
 class LibpqConnection;
 
+// A single LibpqConnection supports one in-flight query at a time. Concurrent
+// execute/executeSQL calls on the same connection interleave on the shared PGconn
+// and corrupt the libpq protocol (mixed results, errors). Serialize queries on one
+// connection with co_await, or use separate connections from the pool.
+
 namespace detail {
 auto executePrepared(ConnectionPool& pool, std::string stmt, std::vector<QueryParam> params, bool read_only,
                      LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
@@ -24,15 +29,21 @@ auto executeSQL(ConnectionPool& pool, std::string sql, std::vector<QueryParam> p
                 LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
 } // namespace detail
 
-auto execute(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
-auto executeReadOnly(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
-auto executeSQL(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
-auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
+auto execute(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params,
+             LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeReadOnly(ConnectionPool& pool, std::string stmt, std::span<const QueryParam> params,
+                     LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeSQL(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params,
+                LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params,
+                        LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
 auto quote(ConnectionPool& pool, std::string value) -> awaitable<std::string>;
 
-auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
-auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
-auto executeSQL(ConnectionPool& pool, std::string sql) -> awaitable<QueryResult>;
+auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params,
+             LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params,
+                     LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
+auto executeSQL(ConnectionPool& pool, std::string sql, LibpqConnection* connection = nullptr) -> awaitable<QueryResult>;
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
@@ -46,6 +57,19 @@ auto executeSQL(ConnectionPool& pool, std::string sql, Args&&... args) -> awaita
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, Args&&... args) -> awaitable<QueryResult>;
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto execute(ConnectionPool& pool, std::string stmt, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeReadOnly(ConnectionPool& pool, std::string stmt, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQL(ConnectionPool& pool, std::string sql, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult>;
 
 } // namespace oink_judge::database
 
