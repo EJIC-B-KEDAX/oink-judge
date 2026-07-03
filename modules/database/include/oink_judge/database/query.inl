@@ -1,6 +1,8 @@
 #pragma once
 #include "oink_judge/database/query.h"
 
+#include "oink_judge/database/libpq_connection.h"
+
 #include <concepts>
 #include <type_traits>
 
@@ -9,49 +11,49 @@ namespace oink_judge::database {
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto execute(ConnectionPool& pool, std::string stmt, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executePrepared(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), false);
+    return detail::executePreparedPooled(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), false);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto executeReadOnly(ConnectionPool& pool, std::string stmt, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executePrepared(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), true);
+    return detail::executePreparedPooled(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), true);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto executeSQL(ConnectionPool& pool, std::string sql, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executeSQL(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), false);
+    return detail::executeSQLPooled(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), false);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executeSQL(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), true);
+    return detail::executeSQLPooled(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), true);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
-auto execute(ConnectionPool& pool, std::string stmt, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executePrepared(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), false, connection);
+auto execute(LibpqConnection& connection, std::string stmt, Args&&... args) -> awaitable<QueryResult> {
+    return connection.executePrepared(std::move(stmt), makeQueryParams(std::forward<Args>(args)...), false);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
-auto executeReadOnly(ConnectionPool& pool, std::string stmt, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executePrepared(pool, std::move(stmt), makeQueryParams(std::forward<Args>(args)...), true, connection);
+auto executeReadOnly(LibpqConnection& connection, std::string stmt, Args&&... args) -> awaitable<QueryResult> {
+    return connection.executePrepared(std::move(stmt), makeQueryParams(std::forward<Args>(args)...), true);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
-auto executeSQL(ConnectionPool& pool, std::string sql, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executeSQL(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), false, connection);
+auto executeSQL(LibpqConnection& connection, std::string sql, Args&&... args) -> awaitable<QueryResult> {
+    return connection.executeSQL(std::move(sql), makeQueryParams(std::forward<Args>(args)...), false);
 }
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
-auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, LibpqConnection* connection, Args&&... args) -> awaitable<QueryResult> {
-    return detail::executeSQL(pool, std::move(sql), makeQueryParams(std::forward<Args>(args)...), true, connection);
+auto executeSQLReadOnly(LibpqConnection& connection, std::string sql, Args&&... args) -> awaitable<QueryResult> {
+    return connection.executeSQL(std::move(sql), makeQueryParams(std::forward<Args>(args)...), true);
 }
 
 } // namespace oink_judge::database
