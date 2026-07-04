@@ -1,5 +1,6 @@
 from oink_judge.pybind11_database import (
     ConnectionPool,
+    DbConnection,
     QueryField,
     QueryResult,
     QueryRow,
@@ -15,6 +16,7 @@ from oink_judge.pybind11_database import (
 
 __all__ = [
     "ConnectionPool",
+    "DbConnection",
     "QueryField",
     "QueryResult",
     "QueryRow",

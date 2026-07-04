@@ -43,11 +43,32 @@ auto paramsFromPython(const py::list& py_params) -> std::vector<db::QueryParam> 
     return params;
 }
 
-auto connectionFromPython(const py::object& connection) -> db::PooledConnection* {
-    if (connection.is_none()) {
-        return nullptr;
+enum class DbTargetKind { DefaultPool, ConnectionPool, DbConnection };
+
+struct DbTarget {
+    DbTargetKind kind;
+    db::ConnectionPool* pool;
+    db::PooledConnection* connection;
+};
+
+auto dbTargetFromPython(const py::object& db) -> DbTarget {
+    if (db.is_none()) {
+        return {DbTargetKind::DefaultPool, nullptr, nullptr};
     }
-    return &connection.cast<db::PooledConnection&>();
+    if (py::isinstance<db::PooledConnection>(db)) {
+        return {DbTargetKind::DbConnection, nullptr, &db.cast<db::PooledConnection&>()};
+    }
+    if (py::isinstance<db::ConnectionPool>(db)) {
+        return {DbTargetKind::ConnectionPool, &db.cast<db::ConnectionPool&>(), nullptr};
+    }
+    throw std::runtime_error("db must be None, ConnectionPool, or DbConnection");
+}
+
+auto poolForTarget(const DbTarget& target) -> db::ConnectionPool& {
+    if (target.kind == DbTargetKind::DefaultPool) {
+        return db::ConnectionPool::instance();
+    }
+    return *target.pool;
 }
 
 auto awaitQueryResultAndResolve(PyObject* raw_future, awaitable<db::QueryResult> task) -> awaitable<void> {
@@ -91,88 +112,62 @@ template <typename T> auto spawnAwaitable(awaitable<T> task) -> py::object {
     return future;
 }
 
-auto pooledExecuteBound(std::string stmt, std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> { // NOLINT
-    co_return co_await db::execute(db::ConnectionPool::instance(), std::move(stmt), params);
-}
-
-auto pooledExecuteReadOnlyBound(std::string stmt, std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> { // NOLINT
-    co_return co_await db::executeReadOnly(db::ConnectionPool::instance(), std::move(stmt), params);
-}
-
-auto pooledExecuteSQLBound(std::string sql, std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> { // NOLINT
-    co_return co_await db::executeSQL(db::ConnectionPool::instance(), std::move(sql), std::span<const db::QueryParam>(params));
-}
-
-auto pooledExecuteSQLReadOnlyBound(std::string sql, std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> { // NOLINT
-    co_return co_await db::executeSQLReadOnly(db::ConnectionPool::instance(), std::move(sql),
-                                              std::span<const db::QueryParam>(params));
-}
-
-auto pooledQuoteBound(std::string value) -> awaitable<std::string> { // NOLINT
-    co_return co_await db::quote(db::ConnectionPool::instance(), std::move(value));
-}
-
-auto connectionExecuteBound(db::PooledConnection& connection, std::string stmt, std::vector<db::QueryParam> params) // NOLINT
+auto executeTaskForTarget(const DbTarget& target, std::string stmt, std::vector<db::QueryParam> params, bool read_only) // NOLINT
     -> awaitable<db::QueryResult> {
-    co_return co_await db::execute(connection.connection(), std::move(stmt), params);
+    if (target.kind == DbTargetKind::DbConnection) {
+        if (read_only) {
+            co_return co_await db::executeReadOnly(target.connection->connection(), std::move(stmt), params);
+        }
+        co_return co_await db::execute(target.connection->connection(), std::move(stmt), params);
+    }
+    auto& pool = poolForTarget(target);
+    if (read_only) {
+        co_return co_await db::executeReadOnly(pool, std::move(stmt), params);
+    }
+    co_return co_await db::execute(pool, std::move(stmt), params);
 }
 
-auto connectionExecuteReadOnlyBound(db::PooledConnection& connection, std::string stmt, // NOLINT
-                                    std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> {
-    co_return co_await db::executeReadOnly(connection.connection(), std::move(stmt), params);
-}
-
-auto connectionExecuteSQLBound(db::PooledConnection& connection, std::string sql, std::vector<db::QueryParam> params) // NOLINT
+auto executeSQLTaskForTarget(const DbTarget& target, std::string sql, std::vector<db::QueryParam> params, bool read_only) // NOLINT
     -> awaitable<db::QueryResult> {
-    co_return co_await db::executeSQL(connection.connection(), std::move(sql), std::span<const db::QueryParam>(params));
-}
-
-auto connectionExecuteSQLReadOnlyBound(db::PooledConnection& connection, std::string sql, // NOLINT
-                                       std::vector<db::QueryParam> params) -> awaitable<db::QueryResult> {
-    co_return co_await db::executeSQLReadOnly(connection.connection(), std::move(sql), std::span<const db::QueryParam>(params));
-}
-
-auto connectionQuoteBound(db::PooledConnection& connection, std::string value) -> awaitable<std::string> { // NOLINT
-    co_return co_await db::quote(connection.connection(), std::move(value));
-}
-
-auto spawnExecute(std::string stmt, py::list params, py::object connection = py::none()) -> py::object { // NOLINT
-    auto parsed = paramsFromPython(params);
-    if (auto* pooled_connection = connectionFromPython(connection)) {
-        return spawnQueryResult(connectionExecuteBound(*pooled_connection, std::move(stmt), std::move(parsed)));
+    const auto param_span = std::span<const db::QueryParam>(params);
+    if (target.kind == DbTargetKind::DbConnection) {
+        if (read_only) {
+            co_return co_await db::executeSQLReadOnly(target.connection->connection(), std::move(sql), param_span);
+        }
+        co_return co_await db::executeSQL(target.connection->connection(), std::move(sql), param_span);
     }
-    return spawnQueryResult(pooledExecuteBound(std::move(stmt), std::move(parsed)));
+    auto& pool = poolForTarget(target);
+    if (read_only) {
+        co_return co_await db::executeSQLReadOnly(pool, std::move(sql), param_span);
+    }
+    co_return co_await db::executeSQL(pool, std::move(sql), param_span);
 }
 
-auto spawnExecuteReadOnly(std::string stmt, py::list params, py::object connection = py::none()) -> py::object { // NOLINT
-    auto parsed = paramsFromPython(params);
-    if (auto* pooled_connection = connectionFromPython(connection)) {
-        return spawnQueryResult(connectionExecuteReadOnlyBound(*pooled_connection, std::move(stmt), std::move(parsed)));
+auto quoteTaskForTarget(const DbTarget& target, std::string value) -> awaitable<std::string> { // NOLINT
+    if (target.kind == DbTargetKind::DbConnection) {
+        co_return co_await db::quote(target.connection->connection(), std::move(value));
     }
-    return spawnQueryResult(pooledExecuteReadOnlyBound(std::move(stmt), std::move(parsed)));
+    co_return co_await db::quote(poolForTarget(target), std::move(value));
 }
 
-auto spawnExecuteSQL(std::string sql, py::list params, py::object connection = py::none()) -> py::object { // NOLINT
-    auto parsed = paramsFromPython(params);
-    if (auto* pooled_connection = connectionFromPython(connection)) {
-        return spawnQueryResult(connectionExecuteSQLBound(*pooled_connection, std::move(sql), std::move(parsed)));
-    }
-    return spawnQueryResult(pooledExecuteSQLBound(std::move(sql), std::move(parsed)));
+auto spawnExecute(std::string stmt, py::list params, py::object db = py::none()) -> py::object { // NOLINT
+    return spawnQueryResult(executeTaskForTarget(dbTargetFromPython(db), std::move(stmt), paramsFromPython(params), false));
 }
 
-auto spawnExecuteSQLReadOnly(std::string sql, py::list params, py::object connection = py::none()) -> py::object { // NOLINT
-    auto parsed = paramsFromPython(params);
-    if (auto* pooled_connection = connectionFromPython(connection)) {
-        return spawnQueryResult(connectionExecuteSQLReadOnlyBound(*pooled_connection, std::move(sql), std::move(parsed)));
-    }
-    return spawnQueryResult(pooledExecuteSQLReadOnlyBound(std::move(sql), std::move(parsed)));
+auto spawnExecuteReadOnly(std::string stmt, py::list params, py::object db = py::none()) -> py::object { // NOLINT
+    return spawnQueryResult(executeTaskForTarget(dbTargetFromPython(db), std::move(stmt), paramsFromPython(params), true));
 }
 
-auto spawnQuote(std::string value, py::object connection = py::none()) -> py::object { // NOLINT
-    if (auto* pooled_connection = connectionFromPython(connection)) {
-        return spawnAwaitable(connectionQuoteBound(*pooled_connection, std::move(value)));
-    }
-    return spawnAwaitable(pooledQuoteBound(std::move(value)));
+auto spawnExecuteSQL(std::string sql, py::list params, py::object db = py::none()) -> py::object { // NOLINT
+    return spawnQueryResult(executeSQLTaskForTarget(dbTargetFromPython(db), std::move(sql), paramsFromPython(params), false));
+}
+
+auto spawnExecuteSQLReadOnly(std::string sql, py::list params, py::object db = py::none()) -> py::object { // NOLINT
+    return spawnQueryResult(executeSQLTaskForTarget(dbTargetFromPython(db), std::move(sql), paramsFromPython(params), true));
+}
+
+auto spawnQuote(std::string value, py::object db = py::none()) -> py::object { // NOLINT
+    return spawnAwaitable(quoteTaskForTarget(dbTargetFromPython(db), std::move(value)));
 }
 
 auto spawnAcquireConnection() -> py::object { return spawnAwaitable(db::ConnectionPool::instance().acquire()); }
@@ -233,11 +228,11 @@ PYBIND11_MODULE(pybind11_database, m) {
         .def("__repr__", [](const db::PooledConnection&) -> const char* { return "<DbConnection>"; });
 
     m.def("acquire_connection", &spawnAcquireConnection);
-    m.def("execute", &spawnExecute, py::arg("stmt"), py::arg("params"), py::arg("connection") = py::none());
-    m.def("execute_read_only", &spawnExecuteReadOnly, py::arg("stmt"), py::arg("params"), py::arg("connection") = py::none());
-    m.def("execute_sql", &spawnExecuteSQL, py::arg("sql"), py::arg("params"), py::arg("connection") = py::none());
-    m.def("execute_sql_read_only", &spawnExecuteSQLReadOnly, py::arg("sql"), py::arg("params"), py::arg("connection") = py::none());
-    m.def("quote", &spawnQuote, py::arg("value"), py::arg("connection") = py::none());
+    m.def("execute", &spawnExecute, py::arg("stmt"), py::arg("params"), py::arg("db") = py::none());
+    m.def("execute_read_only", &spawnExecuteReadOnly, py::arg("stmt"), py::arg("params"), py::arg("db") = py::none());
+    m.def("execute_sql", &spawnExecuteSQL, py::arg("sql"), py::arg("params"), py::arg("db") = py::none());
+    m.def("execute_sql_read_only", &spawnExecuteSQLReadOnly, py::arg("sql"), py::arg("params"), py::arg("db") = py::none());
+    m.def("quote", &spawnQuote, py::arg("value"), py::arg("db") = py::none());
 
     py::class_<db::TableSubmissions>(m, "TableSubmissions")
         .def_static("instance", &db::TableSubmissions::instance, py::return_value_policy::reference)
