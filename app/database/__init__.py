@@ -5,10 +5,12 @@ from oink_judge.pybind11_database import (
     QueryRow,
     SubmissionRow,
     TableSubmissions,
-    async_execute,
-    async_execute_read_only,
-    async_execute_sql,
-    async_execute_sql_read_only,
+    acquire_connection,
+    execute,
+    execute_read_only,
+    execute_sql,
+    execute_sql_read_only,
+    quote,
 )
 
 __all__ = [
@@ -18,8 +20,10 @@ __all__ = [
     "QueryRow",
     "SubmissionRow",
     "TableSubmissions",
-    "async_execute",
-    "async_execute_read_only",
-    "async_execute_sql",
-    "async_execute_sql_read_only",
+    "acquire_connection",
+    "execute",
+    "execute_read_only",
+    "execute_sql",
+    "execute_sql_read_only",
+    "quote",
 ]

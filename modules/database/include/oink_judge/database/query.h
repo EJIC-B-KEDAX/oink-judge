@@ -35,6 +35,7 @@ auto executeReadOnly(ConnectionPool& pool, std::string stmt, std::span<const Que
 auto executeSQL(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
 auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
 auto quote(ConnectionPool& pool, std::string value) -> awaitable<std::string>;
+auto quote(LibpqConnection& connection, std::string value) -> awaitable<std::string>;
 
 auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
 auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
@@ -42,8 +43,7 @@ auto executeSQL(ConnectionPool& pool, std::string sql) -> awaitable<QueryResult>
 
 // Runs on an already-acquired connection (caller keeps the lease alive).
 auto execute(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
-auto executeReadOnly(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params)
-    -> awaitable<QueryResult>;
+auto executeReadOnly(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
 auto executeSQL(LibpqConnection& connection, std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
 auto executeSQLReadOnly(LibpqConnection& connection, std::string sql, std::span<const QueryParam> params)
     -> awaitable<QueryResult>;

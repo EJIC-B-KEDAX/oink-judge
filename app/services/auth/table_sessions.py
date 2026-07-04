@@ -2,8 +2,8 @@ import time
 
 from oink_judge.pybind11_database import (
     ConnectionPool,
-    async_execute,
-    async_execute_sql,
+    execute,
+    execute_sql,
 )
 
 from app.services.auth.session import Session
@@ -29,7 +29,7 @@ class TableSessions:
         if self._initialized:
             return
 
-        await async_execute_sql(
+        await execute_sql(
             "CREATE TABLE IF NOT EXISTS sessions ("
             "id TEXT PRIMARY KEY, "
             "username TEXT, "
@@ -58,7 +58,7 @@ class TableSessions:
 
     async def add_session(self, session: Session) -> bool:
         await self._require_initialized()
-        await async_execute(
+        await execute(
             "sessions__add_session",
             [session.session_id, session.username, session.expire_at],
         )
@@ -66,12 +66,12 @@ class TableSessions:
 
     async def remove_session(self, session_id: str) -> bool:
         await self._require_initialized()
-        await async_execute("sessions__remove_session", [session_id])
+        await execute("sessions__remove_session", [session_id])
         return True
 
     async def whose_session(self, session_id: str) -> str:
         await self._require_initialized()
-        result = await async_execute("sessions__select_session", [session_id])
+        result = await execute("sessions__select_session", [session_id])
 
         if result.empty():
             return ""
@@ -83,7 +83,7 @@ class TableSessions:
         stored_expire_at = row["expire_at"].as_int64()
 
         if self._is_expired(stored_expire_at):
-            await async_execute("sessions__remove_session", [session_id])
+            await execute("sessions__remove_session", [session_id])
             return ""
 
         return stored_username

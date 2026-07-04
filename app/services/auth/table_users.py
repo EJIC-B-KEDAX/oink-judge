@@ -2,9 +2,9 @@ import hashlib
 
 from oink_judge.pybind11_database import (
     ConnectionPool,
-    async_execute,
-    async_execute_read_only,
-    async_execute_sql,
+    execute,
+    execute_read_only,
+    execute_sql,
 )
 
 
@@ -28,7 +28,7 @@ class TableUsers:
         if self._initialized:
             return
 
-        await async_execute_sql(
+        await execute_sql(
             "CREATE TABLE IF NOT EXISTS users ("
             "username TEXT PRIMARY KEY,"
             "password TEXT);",
@@ -57,7 +57,7 @@ class TableUsers:
     async def authenticate(self, username: str, password: str) -> bool:
         await self._require_initialized()
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-        result = await async_execute_read_only("users__select_password", [username])
+        result = await execute_read_only("users__select_password", [username])
 
         if result.empty():
             return False
@@ -73,12 +73,12 @@ class TableUsers:
             return False
 
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-        await async_execute("users__insert_user", [username, password_hash])
+        await execute("users__insert_user", [username, password_hash])
         return True
 
     async def user_exists(self, username: str) -> bool:
         await self._require_initialized()
-        result = await async_execute_read_only("users__select_password", [username])
+        result = await execute_read_only("users__select_password", [username])
         return not result.empty()
 
     async def delete_user(self, username: str) -> bool:
@@ -86,7 +86,7 @@ class TableUsers:
         if not await self.user_exists(username):
             return False
 
-        await async_execute("users__delete_user", [username])
+        await execute("users__delete_user", [username])
         return True
 
     async def update_password(self, username: str, new_password: str) -> bool:
@@ -95,5 +95,5 @@ class TableUsers:
             return False
 
         password_hash = hashlib.sha256(new_password.encode()).hexdigest()
-        await async_execute("users__update_user_password", [username, password_hash])
+        await execute("users__update_user_password", [username, password_hash])
         return True

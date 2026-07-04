@@ -60,6 +60,10 @@ auto quote(ConnectionPool& pool, std::string value) -> awaitable<std::string> { 
     co_return co_await lease.connection().quoteLiteral(std::move(value));
 }
 
+auto quote(LibpqConnection& connection, std::string value) -> awaitable<std::string> { // NOLINT
+    co_return co_await connection.quoteLiteral(std::move(value));
+}
+
 auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult> { // NOLINT
     co_return co_await execute(pool, std::move(stmt), std::span<const QueryParam>(params));
 }
