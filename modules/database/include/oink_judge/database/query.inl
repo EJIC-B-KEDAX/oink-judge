@@ -34,6 +34,34 @@ auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, Args&&... args) -
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto execute(std::string stmt, Args&&... args) -> awaitable<QueryResult> {
+    return detail::executePreparedPooled(ConnectionPool::instance(), std::move(stmt),
+                                           makeQueryParams(std::forward<Args>(args)...), false);
+}
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeReadOnly(std::string stmt, Args&&... args) -> awaitable<QueryResult> {
+    return detail::executePreparedPooled(ConnectionPool::instance(), std::move(stmt),
+                                           makeQueryParams(std::forward<Args>(args)...), true);
+}
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQL(std::string sql, Args&&... args) -> awaitable<QueryResult> {
+    return detail::executeSQLPooled(ConnectionPool::instance(), std::move(sql), makeQueryParams(std::forward<Args>(args)...),
+                                    false);
+}
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQLReadOnly(std::string sql, Args&&... args) -> awaitable<QueryResult> {
+    return detail::executeSQLPooled(ConnectionPool::instance(), std::move(sql), makeQueryParams(std::forward<Args>(args)...),
+                                    true);
+}
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto execute(LibpqConnection& connection, std::string stmt, Args&&... args) -> awaitable<QueryResult> {
     return connection.executePrepared(std::move(stmt), makeQueryParams(std::forward<Args>(args)...), false);
 }

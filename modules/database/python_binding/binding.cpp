@@ -43,7 +43,7 @@ auto paramsFromPython(const py::list& py_params) -> std::vector<db::QueryParam> 
     return params;
 }
 
-enum class DbTargetKind { DefaultPool, ConnectionPool, DbConnection };
+enum class DbTargetKind : std::uint8_t { DefaultPool, ConnectionPool, DbConnection };
 
 struct DbTarget {
     DbTargetKind kind;
@@ -53,23 +53,18 @@ struct DbTarget {
 
 auto dbTargetFromPython(const py::object& db) -> DbTarget {
     if (db.is_none()) {
-        return {DbTargetKind::DefaultPool, nullptr, nullptr};
+        return {.kind = DbTargetKind::DefaultPool, .pool = nullptr, .connection = nullptr};
     }
     if (py::isinstance<db::PooledConnection>(db)) {
-        return {DbTargetKind::DbConnection, nullptr, &db.cast<db::PooledConnection&>()};
+        return {.kind = DbTargetKind::DbConnection, .pool = nullptr, .connection = &db.cast<db::PooledConnection&>()};
     }
     if (py::isinstance<db::ConnectionPool>(db)) {
-        return {DbTargetKind::ConnectionPool, &db.cast<db::ConnectionPool&>(), nullptr};
+        return {.kind = DbTargetKind::ConnectionPool, .pool = &db.cast<db::ConnectionPool&>(), .connection = nullptr};
     }
     throw std::runtime_error("db must be None, ConnectionPool, or DbConnection");
 }
 
-auto poolForTarget(const DbTarget& target) -> db::ConnectionPool& {
-    if (target.kind == DbTargetKind::DefaultPool) {
-        return db::ConnectionPool::instance();
-    }
-    return *target.pool;
-}
+auto poolForTarget(const DbTarget& target) -> db::ConnectionPool& { return *target.pool; }
 
 auto awaitQueryResultAndResolve(PyObject* raw_future, awaitable<db::QueryResult> task) -> awaitable<void> {
     try {
@@ -120,6 +115,12 @@ auto executeTaskForTarget(const DbTarget& target, std::string stmt, std::vector<
         }
         co_return co_await db::execute(target.connection->connection(), std::move(stmt), params);
     }
+    if (target.kind == DbTargetKind::DefaultPool) {
+        if (read_only) {
+            co_return co_await db::executeReadOnly(std::move(stmt), params);
+        }
+        co_return co_await db::execute(std::move(stmt), params);
+    }
     auto& pool = poolForTarget(target);
     if (read_only) {
         co_return co_await db::executeReadOnly(pool, std::move(stmt), params);
@@ -127,14 +128,20 @@ auto executeTaskForTarget(const DbTarget& target, std::string stmt, std::vector<
     co_return co_await db::execute(pool, std::move(stmt), params);
 }
 
-auto executeSQLTaskForTarget(const DbTarget& target, std::string sql, std::vector<db::QueryParam> params, bool read_only) // NOLINT
-    -> awaitable<db::QueryResult> {
+auto executeSQLTaskForTarget(const DbTarget& target, std::string sql, std::vector<db::QueryParam> params, // NOLINT
+                             bool read_only) -> awaitable<db::QueryResult> {
     const auto param_span = std::span<const db::QueryParam>(params);
     if (target.kind == DbTargetKind::DbConnection) {
         if (read_only) {
             co_return co_await db::executeSQLReadOnly(target.connection->connection(), std::move(sql), param_span);
         }
         co_return co_await db::executeSQL(target.connection->connection(), std::move(sql), param_span);
+    }
+    if (target.kind == DbTargetKind::DefaultPool) {
+        if (read_only) {
+            co_return co_await db::executeSQLReadOnly(std::move(sql), param_span);
+        }
+        co_return co_await db::executeSQL(std::move(sql), param_span);
     }
     auto& pool = poolForTarget(target);
     if (read_only) {
@@ -146,6 +153,9 @@ auto executeSQLTaskForTarget(const DbTarget& target, std::string sql, std::vecto
 auto quoteTaskForTarget(const DbTarget& target, std::string value) -> awaitable<std::string> { // NOLINT
     if (target.kind == DbTargetKind::DbConnection) {
         co_return co_await db::quote(target.connection->connection(), std::move(value));
+    }
+    if (target.kind == DbTargetKind::DefaultPool) {
+        co_return co_await db::quote(std::move(value));
     }
     co_return co_await db::quote(poolForTarget(target), std::move(value));
 }
@@ -220,12 +230,13 @@ PYBIND11_MODULE(pybind11_database, m) {
 
     py::class_<db::ConnectionPool>(m, "ConnectionPool")
         .def_static("instance", &db::ConnectionPool::instance, py::return_value_policy::reference)
-        .def("async_initialize", as::bindAwaitable(&db::ConnectionPool::initialize))
+        .def("initialize", as::bindAwaitable(&db::ConnectionPool::initialize))
         .def("prepare_statement", &db::ConnectionPool::prepareStatement, py::arg("name"), py::arg("sql"))
         .def("unprepare_statement", &db::ConnectionPool::unprepareStatement, py::arg("name"));
 
-    py::class_<db::PooledConnection>(m, "DbConnection")
-        .def("__repr__", [](const db::PooledConnection&) -> const char* { return "<DbConnection>"; });
+    py::class_<db::PooledConnection>(m, "DbConnection").def("__repr__", [](const db::PooledConnection&) -> const char* {
+        return "<DbConnection>";
+    });
 
     m.def("acquire_connection", &spawnAcquireConnection);
     m.def("execute", &spawnExecute, py::arg("stmt"), py::arg("params"), py::arg("db") = py::none());

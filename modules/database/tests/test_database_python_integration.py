@@ -25,6 +25,6 @@ def test_connection_pool_initialize():
 
     async def run() -> None:
         async with AwaitableBridge():
-            await asyncio.wait_for(ConnectionPool.instance().async_initialize(), timeout=15.0)
+            await asyncio.wait_for(ConnectionPool.instance().initialize(), timeout=15.0)
 
     asyncio.run(run())

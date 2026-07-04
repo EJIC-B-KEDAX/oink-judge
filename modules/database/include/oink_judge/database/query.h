@@ -41,6 +41,17 @@ auto execute(ConnectionPool& pool, std::string stmt, const std::vector<QueryPara
 auto executeReadOnly(ConnectionPool& pool, std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
 auto executeSQL(ConnectionPool& pool, std::string sql) -> awaitable<QueryResult>;
 
+// Uses ConnectionPool::instance(); acquires a connection from the default pool for each call.
+auto execute(std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
+auto executeReadOnly(std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
+auto executeSQL(std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
+auto executeSQLReadOnly(std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult>;
+auto quote(std::string value) -> awaitable<std::string>;
+
+auto execute(std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
+auto executeReadOnly(std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult>;
+auto executeSQL(std::string sql) -> awaitable<QueryResult>;
+
 // Runs on an already-acquired connection (caller keeps the lease alive).
 auto execute(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
 auto executeReadOnly(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult>;
@@ -65,6 +76,19 @@ auto executeSQL(ConnectionPool& pool, std::string sql, Args&&... args) -> awaita
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
 auto executeSQLReadOnly(ConnectionPool& pool, std::string sql, Args&&... args) -> awaitable<QueryResult>;
+
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto execute(std::string stmt, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeReadOnly(std::string stmt, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQL(std::string sql, Args&&... args) -> awaitable<QueryResult>;
+template <typename... Args>
+    requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))
+auto executeSQLReadOnly(std::string sql, Args&&... args) -> awaitable<QueryResult>;
 
 template <typename... Args>
     requires((!std::same_as<std::decay_t<Args>, std::vector<QueryParam>> && ...))

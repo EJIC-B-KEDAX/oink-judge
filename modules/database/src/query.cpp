@@ -77,6 +77,38 @@ auto executeSQL(ConnectionPool& pool, std::string sql) -> awaitable<QueryResult>
     co_return co_await executeSQL(pool, std::move(sql), std::span<const QueryParam>{});
 }
 
+auto execute(std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await execute(ConnectionPool::instance(), std::move(stmt), params);
+}
+
+auto executeReadOnly(std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeReadOnly(ConnectionPool::instance(), std::move(stmt), params);
+}
+
+auto executeSQL(std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeSQL(ConnectionPool::instance(), std::move(sql), params);
+}
+
+auto executeSQLReadOnly(std::string sql, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeSQLReadOnly(ConnectionPool::instance(), std::move(sql), params);
+}
+
+auto quote(std::string value) -> awaitable<std::string> { // NOLINT
+    co_return co_await quote(ConnectionPool::instance(), std::move(value));
+}
+
+auto execute(std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await execute(std::move(stmt), std::span<const QueryParam>(params));
+}
+
+auto executeReadOnly(std::string stmt, const std::vector<QueryParam>& params) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeReadOnly(std::move(stmt), std::span<const QueryParam>(params));
+}
+
+auto executeSQL(std::string sql) -> awaitable<QueryResult> { // NOLINT
+    co_return co_await executeSQL(std::move(sql), std::span<const QueryParam>{});
+}
+
 auto execute(LibpqConnection& connection, std::string stmt, std::span<const QueryParam> params) -> awaitable<QueryResult> { // NOLINT
     co_return co_await connection.executePrepared(std::move(stmt), params, false);
 }
