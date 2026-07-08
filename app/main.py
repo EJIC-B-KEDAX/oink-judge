@@ -13,6 +13,7 @@ from app.config import (
     set_config_file_path,
     set_credentials_file_path,
 )
+from app.auth.api.router import router as auth_api_router
 from app.routes.web import auth, main, submissions
 from app.routes.web.problems import open_problem
 
@@ -29,6 +30,7 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.include_router(auth_api_router)
 app.include_router(submissions.router)
 app.include_router(auth.router)
 app.include_router(main.router)

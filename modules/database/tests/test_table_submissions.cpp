@@ -1,19 +1,21 @@
+#include <oink_judge/config/config.h>
 #include <oink_judge/database/table_submissions.h>
 
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/io_context.hpp>
 #include <gtest/gtest.h>
 
-#include <optional>
+#include <filesystem>
 #include <utility>
 
 using boost::asio::awaitable;
-using oink_judge::database::SubmissionRow;
+using oink_judge::config::Config;
 using oink_judge::database::TableSubmissions;
 
 namespace {
 
-template <typename Result> auto runAwaitable(awaitable<Result> task) -> Result {
+template <typename Result>
+auto runAwaitable(awaitable<Result> task) -> Result {
     boost::asio::io_context io_context(1);
     Result value{};
 
@@ -31,7 +33,20 @@ template <typename Result> auto runAwaitable(awaitable<Result> task) -> Result {
 
 } // namespace
 
-TEST(TableSubmissionsTest, LoadAutoInitializesWithoutConfig) {
+class TableSubmissionsTest : public ::testing::Test {
+  protected:
+    void SetUp() override {
+        resources_ = std::filesystem::path("resources");
+        Config::setConfigFilePath(resources_ / "good_config.json");
+        Config::setCredentialsFilePath(resources_ / "good_credentials.json");
+        Config::reloadData();
+    }
+
+  private:
+    std::filesystem::path resources_;
+};
+
+TEST_F(TableSubmissionsTest, LoadReturnsNulloptWhenDatabaseIsUnavailable) {
     const auto submissions = runAwaitable(TableSubmissions::instance().loadSubmissionsByUserAndProblem("user", "problem"));
     EXPECT_FALSE(submissions.has_value());
 }

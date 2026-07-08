@@ -3,13 +3,14 @@
 #include <oink_judge/logger/logger.h>
 
 #include <boost/asio/post.hpp>
+#include <boost/asio/redirect_error.hpp>
 #include <boost/asio/this_coro.hpp>
 #include <boost/asio/use_awaitable.hpp>
+#include <unistd.h>
 
 #include <optional>
 #include <sstream>
 #include <stdexcept>
-#include <unistd.h>
 #include <variant>
 
 namespace oink_judge::database {
@@ -80,6 +81,29 @@ auto closeDupFd(int fd) -> void {
 
 LibpqConnection::LibpqConnection() = default;
 
+LibpqConnection::ExecutionQueueLease::ExecutionQueueLease(LibpqConnection* owner) noexcept : owner_(owner) {}
+
+LibpqConnection::ExecutionQueueLease::~ExecutionQueueLease() {
+    if (owner_ != nullptr) {
+        owner_->releaseExecutionQueue();
+    }
+}
+
+LibpqConnection::ExecutionQueueLease::ExecutionQueueLease(ExecutionQueueLease&& other) noexcept : owner_(other.owner_) {
+    other.owner_ = nullptr;
+}
+
+auto LibpqConnection::ExecutionQueueLease::operator=(ExecutionQueueLease&& other) noexcept -> ExecutionQueueLease& {
+    if (this != &other) {
+        if (owner_ != nullptr) {
+            owner_->releaseExecutionQueue();
+        }
+        owner_ = other.owner_;
+        other.owner_ = nullptr;
+    }
+    return *this;
+}
+
 LibpqConnection::~LibpqConnection() {
     clearSocket();
     if (conn_ != nullptr) {
@@ -90,6 +114,47 @@ LibpqConnection::~LibpqConnection() {
 auto LibpqConnection::clearSocket() -> void {
     socket_.reset();
     bound_libpq_fd_ = -1;
+}
+
+auto LibpqConnection::acquireExecutionQueue() -> awaitable<ExecutionQueueLease> {
+    const auto executor = co_await boost::asio::this_coro::executor;
+
+    std::shared_ptr<boost::asio::steady_timer> waiter;
+    {
+        std::lock_guard lock(execution_queue_mutex_);
+        if (!execution_in_progress_) {
+            execution_in_progress_ = true;
+            co_return ExecutionQueueLease(this);
+        }
+
+        waiter = std::make_shared<boost::asio::steady_timer>(executor);
+        waiter->expires_at((std::chrono::steady_clock::time_point::max)());
+        execution_waiters_.push_back(waiter);
+    }
+
+    boost::system::error_code ec;
+    co_await waiter->async_wait(boost::asio::redirect_error(use_awaitable, ec));
+    if (ec && ec != boost::asio::error::operation_aborted) {
+        throw std::runtime_error("failed to wait for libpq execution queue: " + ec.message());
+    }
+
+    co_return ExecutionQueueLease(this);
+}
+
+auto LibpqConnection::releaseExecutionQueue() -> void {
+    std::shared_ptr<boost::asio::steady_timer> next_waiter;
+    {
+        std::lock_guard lock(execution_queue_mutex_);
+        if (execution_waiters_.empty()) {
+            execution_in_progress_ = false;
+            return;
+        }
+
+        next_waiter = execution_waiters_.front();
+        execution_waiters_.pop_front();
+    }
+
+    [[maybe_unused]] const std::size_t cancelled = next_waiter->cancel();
 }
 
 auto LibpqConnection::rebindSocketIfNeeded(const boost::asio::any_io_executor& executor) -> void {
@@ -250,6 +315,7 @@ auto LibpqConnection::unprepareAsync(std::string name) -> awaitable<void> {
 }
 
 auto LibpqConnection::syncStatements(std::span<const StatementAction> actions) -> awaitable<void> {
+    auto execution_lease = co_await acquireExecutionQueue();
     if (statement_cursor_ < actions.size()) {
         logDebug(K_LOG_MODULE,
                  "Syncing " + std::to_string(actions.size() - statement_cursor_) + " statement action(s) on connection", 2);
@@ -257,9 +323,15 @@ auto LibpqConnection::syncStatements(std::span<const StatementAction> actions) -
     while (statement_cursor_ < actions.size()) {
         const auto& action = actions[statement_cursor_];
         if (action.type == StatementActionType::PREPARE) {
-            co_await prepareAsync(action.name, action.sql);
+            for (const auto& [name, statement] : action.block.statements()) {
+                co_await prepareAsync(name, statement.sql());
+            }
+            prepared_blocks_.insert(action.block.name());
         } else {
-            co_await unprepareAsync(action.name);
+            for (const auto& [name, statement] : action.block.statements()) {
+                co_await unprepareAsync(name);
+            }
+            prepared_blocks_.erase(action.block.name());
         }
         ++statement_cursor_;
     }
@@ -268,6 +340,7 @@ auto LibpqConnection::syncStatements(std::span<const StatementAction> actions) -
 auto LibpqConnection::executePrepared(std::string stmt_name, std::span<const QueryParam> params, bool read_only)
     -> awaitable<QueryResult> {
     (void)read_only;
+    auto execution_lease = co_await acquireExecutionQueue();
 
     logDebug(K_LOG_MODULE, "Executing prepared statement: " + stmt_name + " (params=" + std::to_string(params.size()) + ")", 2);
 
@@ -283,8 +356,10 @@ auto LibpqConnection::executePrepared(std::string stmt_name, std::span<const Que
     co_return co_await consumeResults();
 }
 
-auto LibpqConnection::executeSQL(std::string sql, std::span<const QueryParam> params, bool read_only) -> awaitable<QueryResult> {
+auto LibpqConnection::executeRawSQL(std::string sql, std::span<const QueryParam> params, bool read_only)
+    -> awaitable<QueryResult> {
     (void)read_only;
+    auto execution_lease = co_await acquireExecutionQueue();
 
     logDebug(K_LOG_MODULE, "Executing SQL query (params=" + std::to_string(params.size()) + ")", 2);
     logDebug(K_LOG_MODULE, "SQL: " + sql, 3);
@@ -303,6 +378,7 @@ auto LibpqConnection::executeSQL(std::string sql, std::span<const QueryParam> pa
 }
 
 auto LibpqConnection::quoteLiteral(std::string value) -> awaitable<std::string> {
+    auto execution_lease = co_await acquireExecutionQueue();
     char* escaped = PQescapeLiteral(conn_, value.c_str(), value.size());
     if (escaped == nullptr) {
         throw std::runtime_error(PQerrorMessage(conn_));
@@ -311,6 +387,32 @@ auto LibpqConnection::quoteLiteral(std::string value) -> awaitable<std::string> 
     PQfreemem(escaped);
     co_return result;
 }
+
+auto LibpqConnection::execute(ExecuteOptions options, std::string stmt, std::vector<QueryParam> params)
+    -> awaitable<QueryResult> {
+    options.fillWithDefaults();
+    co_return co_await executePrepared(stmt, params, options.read_only.value());
+}
+
+auto LibpqConnection::executeSQL(ExecuteOptions options, std::string sql, std::vector<QueryParam> params)
+    -> awaitable<QueryResult> {
+    options.fillWithDefaults();
+    co_return co_await executeRawSQL(std::move(sql), params, options.read_only.value());
+}
+
+auto LibpqConnection::getConnection() -> awaitable<std::shared_ptr<DatabaseExecutorInterface>> { co_return shared_from_this(); }
+
+auto LibpqConnection::quote(std::string value) -> awaitable<std::string> { co_return co_await quoteLiteral(std::move(value)); }
+
+auto LibpqConnection::prepareStatements(StatementsBlock statements_block) -> awaitable<void> {
+    throw std::runtime_error("please prepare statements in connection pool");
+}
+
+auto LibpqConnection::unprepareStatements(std::string block_name) -> awaitable<void> {
+    throw std::runtime_error("please unprepare statements in connection pool");
+}
+
+auto LibpqConnection::isPrepared(const std::string& block_name) const -> bool { return prepared_blocks_.contains(block_name); }
 
 auto LibpqConnection::isHealthy() const -> bool { return conn_ != nullptr && PQstatus(conn_) == CONNECTION_OK; }
 

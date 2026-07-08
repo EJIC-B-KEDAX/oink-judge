@@ -33,8 +33,7 @@ class TableSessions:
             "CREATE TABLE IF NOT EXISTS sessions ("
             "id TEXT PRIMARY KEY, "
             "username TEXT, "
-            "expire_at INTEGER);",
-            [],
+            "expire_at INTEGER);"
         )
 
         pool = ConnectionPool.instance()
@@ -60,18 +59,20 @@ class TableSessions:
         await self._require_initialized()
         await execute(
             "sessions__add_session",
-            [session.session_id, session.username, session.expire_at],
+            session.session_id,
+            session.username,
+            session.expire_at,
         )
         return True
 
     async def remove_session(self, session_id: str) -> bool:
         await self._require_initialized()
-        await execute("sessions__remove_session", [session_id])
+        await execute("sessions__remove_session", session_id)
         return True
 
     async def whose_session(self, session_id: str) -> str:
         await self._require_initialized()
-        result = await execute("sessions__select_session", [session_id])
+        result = await execute("sessions__select_session", session_id)
 
         if result.empty():
             return ""
@@ -83,7 +84,7 @@ class TableSessions:
         stored_expire_at = row["expire_at"].as_int64()
 
         if self._is_expired(stored_expire_at):
-            await execute("sessions__remove_session", [session_id])
+            await execute("sessions__remove_session", session_id)
             return ""
 
         return stored_username

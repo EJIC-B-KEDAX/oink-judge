@@ -19,12 +19,14 @@ def _configure_test_database() -> None:
 
 def test_connection_pool_initialize():
     from oink_judge.pybind11_awaitable_support import AwaitableBridge
-    from oink_judge.pybind11_database import ConnectionPool
+    from oink_judge.pybind11_database import ConnectionPool, get_default_executor
 
     _configure_test_database()
 
     async def run() -> None:
         async with AwaitableBridge():
-            await asyncio.wait_for(ConnectionPool.instance().initialize(), timeout=15.0)
+            executor = get_default_executor()
+            assert isinstance(executor, ConnectionPool)
+            await asyncio.wait_for(executor.initialize(), timeout=15.0)
 
     asyncio.run(run())

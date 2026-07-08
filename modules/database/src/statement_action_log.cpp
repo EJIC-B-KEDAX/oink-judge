@@ -4,21 +4,24 @@
 
 namespace oink_judge::database {
 
-auto StatementActionLog::appendPrepare(std::string name, std::string sql) -> std::size_t {
-    if (prepared_names_.contains(name)) {
-        throw std::runtime_error("statement already prepared: " + name);
+auto StatementActionLog::appendPrepare(StatementsBlock block) -> std::size_t {
+    const auto block_name = block.name();
+    if (prepared_blocks_.contains(block_name)) {
+        throw std::runtime_error("statements block already prepared: " + block_name);
     }
-    prepared_names_.insert(name);
-    actions_.push_back(StatementAction{.type = StatementActionType::PREPARE, .name = std::move(name), .sql = std::move(sql)});
+    prepared_blocks_.insert({block_name, std::move(block)});
+    const auto& prepared_block = prepared_blocks_.at(block_name);
+    actions_.push_back(StatementAction{.type = StatementActionType::PREPARE, .block = prepared_block});
     return actions_.size();
 }
 
-auto StatementActionLog::appendUnprepare(std::string name) -> std::size_t {
-    if (!prepared_names_.contains(name)) {
-        throw std::runtime_error("statement not prepared: " + name);
+auto StatementActionLog::appendUnprepare(const std::string& block_name) -> std::size_t {
+    if (!prepared_blocks_.contains(block_name)) {
+        throw std::runtime_error("statements block not prepared: " + block_name);
     }
-    prepared_names_.erase(name);
-    actions_.push_back(StatementAction{.type = StatementActionType::UNPREPARE, .name = std::move(name), .sql = {}});
+    auto block = prepared_blocks_.at(block_name);
+    prepared_blocks_.erase(block_name);
+    actions_.push_back(StatementAction{.type = StatementActionType::UNPREPARE, .block = std::move(block)});
     return actions_.size();
 }
 

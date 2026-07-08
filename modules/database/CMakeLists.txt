@@ -2,6 +2,11 @@
 
 set(DATABASE_PUBLIC_HEADERS
     include/oink_judge/database/config_utils.h
+    include/oink_judge/database/execute_options.h
+    include/oink_judge/database/statements.h
+    include/oink_judge/database/table_execute_options.h
+    include/oink_judge/database/database_executor_interface.h
+    include/oink_judge/database/database_executor_interface.inl
     include/oink_judge/database/query_result.h
     include/oink_judge/database/query_result.inl
     include/oink_judge/database/query_param.h
@@ -16,6 +21,10 @@ set(DATABASE_PUBLIC_HEADERS
 
 set(DATABASE_SOURCES
     src/config_utils.cpp
+    src/execute_options.cpp
+    src/statements.cpp
+    src/database_executor_interface.cpp
+    src/table_execute_options.cpp
     src/query_result.cpp
     src/query_param.cpp
     src/statement_action_log.cpp
@@ -39,7 +48,7 @@ target_include_directories(
 target_link_libraries(
   oink_judge_database_headers
   INTERFACE oink_judge_logger_headers oink_judge_config_headers
-            oink_judge::boost_asio)
+            oink_judge::factory oink_judge::boost_asio)
 
 # ------------------------------------------------------------------------------
 # Database

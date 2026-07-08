@@ -22,7 +22,11 @@
         "username": "my_username",
         "dbname": "my_dbname",
         "pool_min": 2,
-        "pool_max": 10
+        "pool_max": 10,
+        "query_read_only_default": false,
+        "query_timeout_sec": 0,
+        "query_retries": 0,
+        "default_executor": "connection_pool"
     },
     "directories": {
         "submissions": "submissions",
@@ -37,5 +41,14 @@
     },
     "dispatcher": {
         "stub_type": "dispatcher_service_stub(custom_channel(127.0.0.1:9101, cdefault, ssl_client(certs/ca.pem), auth(auth_token)))"
+    },
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6379
+    },
+    "auth": {
+        "username_regex": "^[a-zA-Z0-9.\\-_?!()]{3,100}$",
+        "session_ttl_seconds": 900,
+        "refresh_token_ttl_seconds": 604800
     }
 }

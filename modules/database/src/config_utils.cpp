@@ -1,5 +1,6 @@
 #include "oink_judge/database/config_utils.h"
 
+#include <oink_judge/config/common_utils.h>
 #include <oink_judge/config/config.h>
 
 namespace oink_judge::database {
@@ -41,12 +42,32 @@ auto getDatabaseConfig() -> std::optional<DatabaseConfig> {
     if (config::checkObjectIsNumberInteger(db_config, {"connect_timeout_sec"})) {
         result.connect_timeout_sec = db_config["connect_timeout_sec"].get<int>();
     }
+    if (config::checkObjectIsBoolean(db_config, {"query_read_only_default"})) {
+        result.query_read_only_default = db_config["query_read_only_default"].get<bool>();
+    }
+    if (config::checkObjectIsNumberInteger(db_config, {"query_timeout_sec"})) {
+        result.query_timeout_sec = db_config["query_timeout_sec"].get<int>();
+    }
+    if (config::checkObjectIsNumberInteger(db_config, {"query_retries"})) {
+        result.query_retries = db_config["query_retries"].get<int>();
+    }
+    if (config::checkObjectIsString(db_config, {"default_executor"})) {
+        result.default_executor = db_config["default_executor"].get<std::string>();
+    }
 
     if (result.pool_min < 0 || result.pool_max < 1 || result.pool_min > result.pool_max) {
         return std::nullopt;
     }
 
     return result;
+}
+
+auto getDefaultExecutorName() -> std::string {
+    const auto config = config::requireHasValue(getDatabaseConfig());
+    if (!config.default_executor.has_value()) {
+        return "connection_pool";
+    }
+    return config.default_executor.value();
 }
 
 auto buildConnectionString(const DatabaseConfig& config) -> std::string {

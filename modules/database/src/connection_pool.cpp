@@ -1,5 +1,7 @@
 #include "oink_judge/database/connection_pool.h"
 
+#include "oink_judge/database/pooled_connection.h"
+
 #include <oink_judge/config/common_utils.h>
 #include <oink_judge/logger/logger.h>
 
@@ -23,11 +25,16 @@ using boost::asio::use_awaitable;
 using config::requireHasValue;
 using logger::logDebug;
 
-ConnectionPool::ConnectionPool() : initialized_(false) {}
-
-auto ConnectionPool::instance() -> ConnectionPool& {
-    static ConnectionPool pool;
-    return pool;
+ConnectionPool::ConnectionPool(std::optional<DatabaseConfig> config) {
+    if (config) {
+        config_ = std::move(*config);
+    } else {
+        config_ = requireHasValue(getDatabaseConfig());
+    }
+    conninfo_ = buildConnectionString(config_);
+    initialized_ = false;
+    statement_log_ = StatementActionLog();
+    slots_ = std::vector<Slot>();
 }
 
 auto ConnectionPool::copyStatementActions() const -> std::vector<StatementAction> {
@@ -44,11 +51,10 @@ auto ConnectionPool::requireInitialized() -> awaitable<void> {
 
 auto ConnectionPool::initialize() -> awaitable<void> {
     if (initialized_) {
-        logDebug(K_LOG_MODULE, "Connection pool already initialized");
+        logDebug(K_LOG_MODULE, "Connection pool already initialized", 2);
         co_return;
     }
 
-    config_ = requireHasValue(getDatabaseConfig());
     conninfo_ = buildConnectionString(config_);
     executor_ = co_await boost::asio::this_coro::executor;
 
@@ -63,20 +69,33 @@ auto ConnectionPool::initialize() -> awaitable<void> {
     logDebug(K_LOG_MODULE, "Connection pool initialized with " + std::to_string(slots_.size()) + " slot(s)");
 }
 
-auto ConnectionPool::prepareStatement(std::string name, std::string sql) -> void {
-    logDebug(K_LOG_MODULE, "Registering prepared statement: " + name, 2);
+auto ConnectionPool::prepareStatements(StatementsBlock statements_block) -> awaitable<void> {
+    logDebug(K_LOG_MODULE, "Registering prepared statements block: " + statements_block.name(), 2);
     std::lock_guard lock(statement_log_mutex_);
-    statement_log_.appendPrepare(std::move(name), std::move(sql));
+
+    prepared_blocks_.insert(statements_block.name());
+
+    statement_log_.appendPrepare(std::move(statements_block));
+    co_return;
 }
 
-auto ConnectionPool::unprepareStatement(std::string name) -> void {
-    logDebug(K_LOG_MODULE, "Unregistering prepared statement: " + name, 2);
+auto ConnectionPool::unprepareStatements(std::string block_name) -> awaitable<void> {
+    logDebug(K_LOG_MODULE, "Unregistering prepared statements block: " + block_name, 2);
     std::lock_guard lock(statement_log_mutex_);
-    statement_log_.appendUnprepare(std::move(name));
+
+    prepared_blocks_.erase(block_name);
+
+    statement_log_.appendUnprepare(block_name);
+    co_return;
+}
+
+auto ConnectionPool::isPrepared(const std::string& block_name) const -> bool {
+    std::lock_guard lock(statement_log_mutex_);
+    return prepared_blocks_.contains(block_name);
 }
 
 auto ConnectionPool::createSlot() -> awaitable<std::size_t> {
-    auto connection = std::make_unique<LibpqConnection>();
+    auto connection = std::make_shared<LibpqConnection>();
     co_await connection->connectAsync(conninfo_);
 
     const auto actions = copyStatementActions();
@@ -84,7 +103,7 @@ auto ConnectionPool::createSlot() -> awaitable<std::size_t> {
 
     std::lock_guard lock(pool_mutex_);
     const std::size_t index = slots_.size();
-    slots_.push_back(Slot{.connection = std::move(connection), .in_use = false});
+    slots_.push_back(Slot{.connection = connection, .in_use = false});
     logDebug(K_LOG_MODULE, "Created pool slot " + std::to_string(index));
     co_return index;
 }
@@ -114,7 +133,7 @@ auto ConnectionPool::waitForAvailableSlot() -> awaitable<std::size_t> {
     }
 }
 
-auto ConnectionPool::acquire() -> awaitable<PooledConnection> {
+auto ConnectionPool::acquire() -> awaitable<std::shared_ptr<PooledConnection>> {
     co_await requireInitialized();
 
     logDebug(K_LOG_MODULE, "Acquiring connection from pool", 2);
@@ -150,16 +169,16 @@ auto ConnectionPool::acquire() -> awaitable<PooledConnection> {
     }
 
     const auto actions = copyStatementActions();
-    co_await connectionAt(slot_index).syncStatements(actions);
-    co_return PooledConnection(*this, slot_index);
+    co_await connectionAt(slot_index)->syncStatements(actions);
+    co_return std::make_shared<PooledConnection>(std::static_pointer_cast<ConnectionPool>(shared_from_this()), slot_index);
 }
 
-auto ConnectionPool::connectionAt(std::size_t slot_index) -> LibpqConnection& {
+auto ConnectionPool::connectionAt(std::size_t slot_index) -> std::shared_ptr<LibpqConnection> {
     std::lock_guard lock(pool_mutex_);
     if (slot_index >= slots_.size()) {
         throw std::runtime_error("invalid pool slot index");
     }
-    return *slots_[slot_index].connection;
+    return slots_[slot_index].connection;
 }
 
 auto ConnectionPool::releaseSlot(std::size_t slot_index) -> void {
@@ -169,6 +188,30 @@ auto ConnectionPool::releaseSlot(std::size_t slot_index) -> void {
     }
     slots_[slot_index].in_use = false;
     logDebug(K_LOG_MODULE, "Released pool slot " + std::to_string(slot_index), 2);
+}
+
+auto ConnectionPool::execute(ExecuteOptions options, std::string stmt, std::vector<QueryParam> params) -> awaitable<QueryResult> {
+    logDebug(K_LOG_MODULE, "Acquiring connection for prepared statement: " + stmt, 2);
+    auto lease = co_await acquire();
+    co_return co_await lease->execute(options, std::move(stmt), std::move(params));
+}
+
+auto ConnectionPool::executeSQL(ExecuteOptions options, std::string sql, std::vector<QueryParam> params)
+    -> awaitable<QueryResult> {
+    logDebug(K_LOG_MODULE, "Acquiring connection for SQL query", 2);
+    auto lease = co_await acquire();
+    co_return co_await lease->executeSQL(options, std::move(sql), std::move(params));
+}
+
+auto ConnectionPool::getConnection() -> awaitable<std::shared_ptr<DatabaseExecutorInterface>> {
+    auto lease = co_await acquire();
+    co_return lease;
+}
+
+auto ConnectionPool::quote(std::string value) -> awaitable<std::string> {
+    logDebug(K_LOG_MODULE, "Acquiring connection to quote literal value", 2);
+    auto lease = co_await acquire();
+    co_return co_await lease->quote(std::move(value));
 }
 
 } // namespace oink_judge::database

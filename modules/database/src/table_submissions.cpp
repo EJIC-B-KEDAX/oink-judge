@@ -1,7 +1,8 @@
 #include "oink_judge/database/table_submissions.h"
 
-#include "oink_judge/database/connection_pool.h"
+#include "oink_judge/database/database_executor_interface.h"
 #include "oink_judge/database/query.h"
+#include "oink_judge/database/statements.h"
 
 #include <oink_judge/logger/logger.h>
 
@@ -40,23 +41,25 @@ auto TableSubmissions::instance() -> TableSubmissions& {
     return table;
 }
 
-auto TableSubmissions::requireInitialized() -> awaitable<bool> {
-    if (!initialized_) {
-        co_return co_await initialize();
+auto TableSubmissions::requireInitialized(TableExecuteOptions options) -> awaitable<bool> {
+    options.fillWithDefaults();
+    if (!options.executor->isPrepared(STATEMENTS_BLOCK_NAME)) {
+        co_return co_await initialize(options);
     }
     co_return true;
 }
 
-auto TableSubmissions::initialize() -> awaitable<bool> {
-    if (initialized_) {
-        logDebug(K_LOG_MODULE, "Submissions table already initialized");
+auto TableSubmissions::initialize(TableExecuteOptions options) -> awaitable<bool> { // NOLINT
+    options.fillWithDefaults();
+    auto executor = options.executor;
+
+    if (executor->isPrepared(STATEMENTS_BLOCK_NAME)) {
+        logDebug(K_LOG_MODULE, "Submissions table already initialized", 2);
         co_return true;
     }
 
     try {
         logDebug(K_LOG_MODULE, "Initializing submissions table");
-        auto& pool = ConnectionPool::instance();
-        co_await pool.initialize();
 
         const std::string create_sql = "CREATE TABLE IF NOT EXISTS submissions ("
                                        "id TEXT PRIMARY KEY,"
@@ -67,25 +70,29 @@ auto TableSubmissions::initialize() -> awaitable<bool> {
                                        "score REAL,"
                                        "send_time TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP);";
 
-        co_await executeSQL(pool, create_sql);
+        co_await executor->executeSQL(options.execute_options, create_sql);
 
-        pool.prepareStatement("submissions__select_whose", "SELECT username FROM submissions WHERE id = $1");
-        pool.prepareStatement("submissions__select_problem", "SELECT problem_id FROM submissions WHERE id = $1");
-        pool.prepareStatement("submissions__select_language", "SELECT language FROM submissions WHERE id = $1");
-        pool.prepareStatement("submissions__select_verdict_type", "SELECT verdict_type FROM submissions WHERE id = $1");
-        pool.prepareStatement("submissions__select_score", "SELECT score FROM submissions WHERE id = $1");
-        pool.prepareStatement("submissions__select_by_user_problem",
-                              "SELECT id, username, problem_id, language, verdict_type, score, send_time "
-                              "FROM submissions WHERE username = $1 AND problem_id = $2 ORDER BY send_time DESC");
-        pool.prepareStatement("submissions__insert",
-                              "INSERT INTO submissions (id, username, problem_id, language, verdict_type, score, send_time) "
-                              "VALUES ($1, $2, $3, $4, $5, $6, to_timestamp($7))");
-        pool.prepareStatement("submissions__update_verdict_type", "UPDATE submissions SET verdict_type = $2 WHERE id = $1");
-        pool.prepareStatement("submissions__update_score", "UPDATE submissions SET score = $2 WHERE id = $1");
-        pool.prepareStatement("submissions__update_verdict_and_score",
-                              "UPDATE submissions SET verdict_type = $2, score = $3 WHERE id = $1");
+        StatementsBlock statements_block(STATEMENTS_BLOCK_NAME);
 
-        initialized_ = true;
+        statements_block.addStatement({"submissions__select_whose", "SELECT username FROM submissions WHERE id = $1"});
+        statements_block.addStatement({"submissions__select_problem", "SELECT problem_id FROM submissions WHERE id = $1"});
+        statements_block.addStatement({"submissions__select_language", "SELECT language FROM submissions WHERE id = $1"});
+        statements_block.addStatement({"submissions__select_verdict_type", "SELECT verdict_type FROM submissions WHERE id = $1"});
+        statements_block.addStatement({"submissions__select_score", "SELECT score FROM submissions WHERE id = $1"});
+        statements_block.addStatement({"submissions__select_by_user_problem",
+                                       "SELECT id, username, problem_id, language, verdict_type, score, send_time "
+                                       "FROM submissions WHERE username = $1 AND problem_id = $2 ORDER BY send_time DESC"});
+        statements_block.addStatement(
+            {"submissions__insert",
+             "INSERT INTO submissions (id, username, problem_id, language, verdict_type, score, send_time) "
+             "VALUES ($1, $2, $3, $4, $5, $6, to_timestamp($7))"});
+        statements_block.addStatement(
+            {"submissions__update_verdict_type", "UPDATE submissions SET verdict_type = $2 WHERE id = $1"});
+        statements_block.addStatement({"submissions__update_score", "UPDATE submissions SET score = $2 WHERE id = $1"});
+        statements_block.addStatement(
+            {"submissions__update_verdict_and_score", "UPDATE submissions SET verdict_type = $2, score = $3 WHERE id = $1"});
+
+        co_await executor->prepareStatements(std::move(statements_block));
         logDebug(K_LOG_MODULE, "Submissions table initialized");
         co_return true;
     } catch (...) {
@@ -93,32 +100,43 @@ auto TableSubmissions::initialize() -> awaitable<bool> {
     }
 }
 
-auto TableSubmissions::addSubmission(const SubmissionRow& row) -> awaitable<bool> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::addSubmission(TableExecuteOptions options, const SubmissionRow& row) -> awaitable<bool> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return false;
     }
+    auto executor = options.executor;
 
     try {
         logDebug(K_LOG_MODULE, "Adding submission: id=" + row.id + ", user=" + row.username + ", problem=" + row.problem_id, 2);
         const auto timestamp = std::chrono::system_clock::to_time_t(row.send_time);
-        co_await execute(ConnectionPool::instance(), "submissions__insert", row.id, row.username, row.problem_id, row.language,
-                         row.verdict_type, row.score, static_cast<std::int64_t>(timestamp));
+        co_await executor->execute(options.execute_options, "submissions__insert", row.id, row.username, row.problem_id,
+                                   row.language, row.verdict_type, row.score, static_cast<std::int64_t>(timestamp));
         co_return true;
     } catch (...) {
         co_return false;
     }
 }
 
-auto TableSubmissions::loadSubmissionsByUserAndProblem(std::string username, std::string problem_id) // NOLINT
+auto TableSubmissions::addSubmission(const SubmissionRow& row) -> awaitable<bool> { // NOLINT
+    return addSubmission(TableExecuteOptions{}, row);
+}
+
+auto TableSubmissions::loadSubmissionsByUserAndProblem(TableExecuteOptions options, std::string username,
+                                                       std::string problem_id) // NOLINT
     -> awaitable<std::optional<std::vector<SubmissionRow>>> {
-    if (!co_await requireInitialized()) {
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
+    auto executor = options.executor;
 
     try {
         logDebug(K_LOG_MODULE, "Loading submissions for user=" + username + ", problem=" + problem_id, 2);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
         const auto result =
-            co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_by_user_problem", username, problem_id);
+            co_await executor->execute(execute_options, "submissions__select_by_user_problem", username, problem_id);
 
         std::vector<SubmissionRow> rows;
         rows.reserve(result.size());
@@ -141,29 +159,46 @@ auto TableSubmissions::loadSubmissionsByUserAndProblem(std::string username, std
     }
 }
 
-auto TableSubmissions::updateSubmissionVerdict(std::string submission_id, std::string verdict_type, double score) // NOLINT
+auto TableSubmissions::loadSubmissionsByUserAndProblem(std::string username, std::string problem_id)
+    -> awaitable<std::optional<std::vector<SubmissionRow>>> {
+    return loadSubmissionsByUserAndProblem(TableExecuteOptions{}, std::move(username), std::move(problem_id));
+}
+auto TableSubmissions::updateSubmissionVerdict(TableExecuteOptions options, std::string submission_id, std::string verdict_type,
+                                               double score) // NOLINT
     -> awaitable<bool> {
-    if (!co_await requireInitialized()) {
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return false;
     }
+    auto executor = options.executor;
 
     try {
         logDebug(K_LOG_MODULE, "Updating submission verdict: id=" + submission_id + ", verdict=" + verdict_type, 2);
-        co_await execute(ConnectionPool::instance(), "submissions__update_verdict_and_score", submission_id, verdict_type,
-                         score);
+        co_await executor->execute(options.execute_options, "submissions__update_verdict_and_score", submission_id, verdict_type,
+                                   score);
         co_return true;
     } catch (...) {
         co_return false;
     }
 }
 
-auto TableSubmissions::whoseSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::updateSubmissionVerdict(std::string submission_id, std::string verdict_type, double score)
+    -> awaitable<bool> {
+    return updateSubmissionVerdict(TableExecuteOptions{}, std::move(submission_id), std::move(verdict_type), score);
+}
+
+auto TableSubmissions::whoseSubmission(TableExecuteOptions options, std::string submission_id)
+    -> awaitable<std::optional<std::string>> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
+    auto executor = options.executor;
 
     try {
-        const auto result = co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_whose", submission_id);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
+        const auto result = co_await executor->execute(execute_options, "submissions__select_whose", submission_id);
         const auto row = firstRow(result);
         if (!row) {
             co_return std::nullopt;
@@ -174,13 +209,22 @@ auto TableSubmissions::whoseSubmission(std::string submission_id) -> awaitable<s
     }
 }
 
-auto TableSubmissions::problemOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::whoseSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> {
+    return whoseSubmission(TableExecuteOptions{}, std::move(submission_id));
+}
+
+auto TableSubmissions::problemOfSubmission(TableExecuteOptions options, std::string submission_id)
+    -> awaitable<std::optional<std::string>> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
+    auto executor = options.executor;
 
     try {
-        const auto result = co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_problem", submission_id);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
+        const auto result = co_await executor->execute(execute_options, "submissions__select_problem", submission_id);
         const auto row = firstRow(result);
         if (!row) {
             co_return std::nullopt;
@@ -191,13 +235,22 @@ auto TableSubmissions::problemOfSubmission(std::string submission_id) -> awaitab
     }
 }
 
-auto TableSubmissions::languageOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::problemOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> {
+    return problemOfSubmission(TableExecuteOptions{}, std::move(submission_id));
+}
+
+auto TableSubmissions::languageOfSubmission(TableExecuteOptions options, std::string submission_id)
+    -> awaitable<std::optional<std::string>> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
+    auto executor = options.executor;
 
     try {
-        const auto result = co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_language", submission_id);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
+        const auto result = co_await executor->execute(execute_options, "submissions__select_language", submission_id);
         const auto row = firstRow(result);
         if (!row) {
             co_return std::nullopt;
@@ -208,14 +261,21 @@ auto TableSubmissions::languageOfSubmission(std::string submission_id) -> awaita
     }
 }
 
-auto TableSubmissions::verdictTypeOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::languageOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> {
+    return languageOfSubmission(TableExecuteOptions{}, std::move(submission_id));
+}
+
+auto TableSubmissions::verdictTypeOfSubmission(TableExecuteOptions options, std::string submission_id)
+    -> awaitable<std::optional<std::string>> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
-
+    auto executor = options.executor;
     try {
-        const auto result =
-            co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_verdict_type", submission_id);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
+        const auto result = co_await executor->execute(execute_options, "submissions__select_verdict_type", submission_id);
         const auto row = firstRow(result);
         if (!row) {
             co_return std::nullopt;
@@ -226,13 +286,22 @@ auto TableSubmissions::verdictTypeOfSubmission(std::string submission_id) -> awa
     }
 }
 
-auto TableSubmissions::scoreOfSubmission(std::string submission_id) -> awaitable<std::optional<double>> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::verdictTypeOfSubmission(std::string submission_id) -> awaitable<std::optional<std::string>> {
+    return verdictTypeOfSubmission(TableExecuteOptions{}, std::move(submission_id));
+}
+
+auto TableSubmissions::scoreOfSubmission(TableExecuteOptions options, std::string submission_id)
+    -> awaitable<std::optional<double>> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return std::nullopt;
     }
+    auto executor = options.executor;
 
     try {
-        const auto result = co_await executeReadOnly(ConnectionPool::instance(), "submissions__select_score", submission_id);
+        auto execute_options = options.execute_options;
+        execute_options.read_only = true;
+        const auto result = co_await executor->execute(execute_options, "submissions__select_score", submission_id);
         const auto row = firstRow(result);
         if (!row) {
             co_return std::nullopt;
@@ -243,30 +312,48 @@ auto TableSubmissions::scoreOfSubmission(std::string submission_id) -> awaitable
     }
 }
 
-auto TableSubmissions::setVerdictType(std::string submission_id, std::string verdict_type) -> awaitable<bool> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::scoreOfSubmission(std::string submission_id) -> awaitable<std::optional<double>> {
+    return scoreOfSubmission(TableExecuteOptions{}, std::move(submission_id));
+}
+
+auto TableSubmissions::setVerdictType(TableExecuteOptions options, std::string submission_id, std::string verdict_type)
+    -> awaitable<bool> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return false;
     }
+    auto executor = options.executor;
 
     try {
-        co_await execute(ConnectionPool::instance(), "submissions__update_verdict_type", submission_id, verdict_type);
+        co_await executor->execute(options.execute_options, "submissions__update_verdict_type", submission_id, verdict_type);
         co_return true;
     } catch (...) {
         co_return false;
     }
 }
 
-auto TableSubmissions::setScore(std::string submission_id, double score) -> awaitable<bool> { // NOLINT
-    if (!co_await requireInitialized()) {
+auto TableSubmissions::setVerdictType(std::string submission_id, std::string verdict_type) -> awaitable<bool> {
+    return setVerdictType(TableExecuteOptions{}, std::move(submission_id), std::move(verdict_type));
+}
+
+auto TableSubmissions::setScore(TableExecuteOptions options, std::string submission_id, double score)
+    -> awaitable<bool> { // NOLINT
+    options.fillWithDefaults();
+    if (!co_await requireInitialized(options)) {
         co_return false;
     }
+    auto executor = options.executor;
 
     try {
-        co_await execute(ConnectionPool::instance(), "submissions__update_score", submission_id, score);
+        co_await executor->execute(options.execute_options, "submissions__update_score", submission_id, score);
         co_return true;
     } catch (...) {
         co_return false;
     }
+}
+
+auto TableSubmissions::setScore(std::string submission_id, double score) -> awaitable<bool> {
+    return setScore(TableExecuteOptions{}, std::move(submission_id), score);
 }
 
 } // namespace oink_judge::database

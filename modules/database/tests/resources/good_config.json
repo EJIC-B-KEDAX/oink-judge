@@ -6,6 +6,10 @@
         "dbname": "my_dbname",
         "pool_min": 1,
         "pool_max": 3,
-        "connect_timeout_sec": 3
+        "connect_timeout_sec": 3,
+        "query_read_only_default": false,
+        "query_timeout_sec": 5,
+        "query_retries": 2,
+        "default_executor": "connection_pool"
     }
 }

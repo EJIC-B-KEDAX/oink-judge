@@ -9,6 +9,7 @@ using oink_judge::config::Config;
 using oink_judge::database::buildConnectionString;
 using oink_judge::database::DatabaseConfig;
 using oink_judge::database::getDatabaseConfig;
+using oink_judge::database::getDefaultExecutorName;
 
 class DatabaseConfigUtilsTest : public ::testing::Test {
   protected:
@@ -32,6 +33,10 @@ TEST_F(DatabaseConfigUtilsTest, ParsesDatabaseConfigWithPoolSettings) {
     EXPECT_EQ(config->database_name, "my_dbname");
     EXPECT_EQ(config->pool_min, 1);
     EXPECT_EQ(config->pool_max, 3);
+    EXPECT_EQ(config->query_timeout_sec, 5);
+    EXPECT_EQ(config->query_retries, 2);
+    EXPECT_EQ(config->default_executor, "connection_pool");
+    EXPECT_EQ(getDefaultExecutorName(), "connection_pool");
 }
 
 TEST_F(DatabaseConfigUtilsTest, BuildsConnectionString) {
@@ -49,4 +54,10 @@ TEST_F(DatabaseConfigUtilsTest, BuildsConnectionString) {
     const auto conninfo = buildConnectionString(config);
     EXPECT_NE(conninfo.find("host=localhost"), std::string::npos);
     EXPECT_NE(conninfo.find("connect_timeout=15"), std::string::npos);
+}
+
+TEST(ConfigReloadTest, FailsForMissingConfigFiles) {
+    Config::setConfigFilePath("resources/missing_config.json");
+    Config::setCredentialsFilePath("resources/missing_credentials.json");
+    EXPECT_THROW(Config::reloadData(), std::runtime_error);
 }
