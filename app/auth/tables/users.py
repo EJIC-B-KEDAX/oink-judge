@@ -1,7 +1,7 @@
 from oink_judge.pybind11_database import (
-    ConnectionPool,
     execute,
     execute_sql,
+    get_default_executor,
 )
 
 from app.auth.models import AuthUser
@@ -37,16 +37,16 @@ class AuthUsersTable:
             "created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());"
         )
 
-        pool = ConnectionPool.instance()
-        pool.prepare_statement(
+        executor = get_default_executor()
+        executor.prepare_statement(
             "auth_users__select_by_username",
             "SELECT username, password_hash, role FROM auth_users WHERE username = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "auth_users__insert_user",
             "INSERT INTO auth_users (username, password_hash, role) VALUES ($1, $2, $3)",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "auth_users__update_role",
             "UPDATE auth_users SET role = $2 WHERE username = $1",
         )
@@ -54,10 +54,14 @@ class AuthUsersTable:
 
     async def user_exists(self, username: str) -> bool:
         await self._require_initialized()
-        result = await execute("auth_users__select_by_username", username, read_only=True)
+        result = await execute(
+            "auth_users__select_by_username", username, read_only=True
+        )
         return not result.empty()
 
-    async def register_user(self, username: str, password_hash: str, role: Role) -> bool:
+    async def register_user(
+        self, username: str, password_hash: str, role: Role
+    ) -> bool:
         await self._require_initialized()
         if await self.user_exists(username):
             return False
@@ -67,7 +71,9 @@ class AuthUsersTable:
 
     async def get_user(self, username: str) -> AuthUser | None:
         await self._require_initialized()
-        result = await execute("auth_users__select_by_username", username, read_only=True)
+        result = await execute(
+            "auth_users__select_by_username", username, read_only=True
+        )
         if result.empty():
             return None
 
@@ -79,7 +85,9 @@ class AuthUsersTable:
 
     async def authenticate(self, username: str, password: str) -> AuthUser | None:
         await self._require_initialized()
-        result = await execute("auth_users__select_by_username", username, read_only=True)
+        result = await execute(
+            "auth_users__select_by_username", username, read_only=True
+        )
         if result.empty():
             return None
 

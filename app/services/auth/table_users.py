@@ -1,9 +1,9 @@
 import hashlib
 
 from oink_judge.pybind11_database import (
-    ConnectionPool,
     execute,
     execute_sql,
+    get_default_executor,
 )
 
 
@@ -33,20 +33,20 @@ class TableUsers:
             "password TEXT);"
         )
 
-        pool = ConnectionPool.instance()
-        pool.prepare_statement(
+        executor = get_default_executor()
+        executor.prepare_statement(
             "users__select_password",
             "SELECT password FROM users WHERE username = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "users__insert_user",
             "INSERT INTO users (username, password) VALUES ($1, $2)",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "users__delete_user",
             "DELETE FROM users WHERE username = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "users__update_user_password",
             "UPDATE users SET password = $2 WHERE username = $1",
         )

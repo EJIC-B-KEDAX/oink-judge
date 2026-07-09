@@ -32,7 +32,9 @@ def get_session_ttl_seconds() -> int:
 
 def get_refresh_token_ttl_seconds() -> int:
     auth_config = _load_config().get("auth", {})
-    return int(auth_config.get("refresh_token_ttl_seconds", DEFAULT_REFRESH_TOKEN_TTL_SECONDS))
+    return int(
+        auth_config.get("refresh_token_ttl_seconds", DEFAULT_REFRESH_TOKEN_TTL_SECONDS)
+    )
 
 
 def get_redis_host() -> str:

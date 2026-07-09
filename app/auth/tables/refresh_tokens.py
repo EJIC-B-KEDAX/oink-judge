@@ -1,9 +1,9 @@
 from datetime import UTC, datetime
 
-from oink_judge.pybind11_database import (
-    ConnectionPool,
+from app.database import (
     execute,
     execute_sql,
+    get_default_executor,
 )
 
 
@@ -35,27 +35,29 @@ class AuthRefreshTokensTable:
             "revoked_at TIMESTAMPTZ);"
         )
 
-        pool = ConnectionPool.instance()
-        pool.prepare_statement(
+        executor = get_default_executor()
+        executor.prepare_statement(
             "auth_refresh_tokens__insert",
             "INSERT INTO auth_refresh_tokens (token_hash, username, expires_at) VALUES ($1, $2, $3)",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "auth_refresh_tokens__select",
             "SELECT username, expires_at, revoked_at FROM auth_refresh_tokens WHERE token_hash = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "auth_refresh_tokens__revoke",
             "UPDATE auth_refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "auth_refresh_tokens__revoke_all_for_user",
             "UPDATE auth_refresh_tokens SET revoked_at = NOW() "
             "WHERE username = $1 AND revoked_at IS NULL",
         )
         self._initialized = True
 
-    async def create(self, token_hash: str, username: str, expires_at: datetime) -> None:
+    async def create(
+        self, token_hash: str, username: str, expires_at: datetime
+    ) -> None:
         await self._require_initialized()
         await execute(
             "auth_refresh_tokens__insert",
@@ -66,7 +68,9 @@ class AuthRefreshTokensTable:
 
     async def validate(self, token_hash: str) -> str | None:
         await self._require_initialized()
-        result = await execute("auth_refresh_tokens__select", token_hash, read_only=True)
+        result = await execute(
+            "auth_refresh_tokens__select", token_hash, read_only=True
+        )
         if result.empty():
             return None
 

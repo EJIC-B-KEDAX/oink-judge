@@ -20,8 +20,12 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 def _set_auth_cookies(response: Response, session_id: str, refresh_token: str) -> None:
-    response.set_cookie(key="session_id", value=session_id, httponly=True, samesite="lax")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, samesite="lax")
+    response.set_cookie(
+        key="session_id", value=session_id, httponly=True, samesite="lax"
+    )
+    response.set_cookie(
+        key="refresh_token", value=refresh_token, httponly=True, samesite="lax"
+    )
 
 
 def _clear_auth_cookies(response: Response) -> None:
@@ -43,7 +47,9 @@ async def register(body: RegisterRequest):
     try:
         user = await AuthService.instance().register(body.username, body.password)
     except AuthError as error:
-        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+        raise HTTPException(
+            status_code=error.status_code, detail=error.detail
+        ) from error
 
     return UserResponse(username=user.username, role=user.role)
 
@@ -53,7 +59,9 @@ async def login(body: LoginRequest, response: Response):
     try:
         tokens = await AuthService.instance().login(body.username, body.password)
     except AuthError as error:
-        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+        raise HTTPException(
+            status_code=error.status_code, detail=error.detail
+        ) from error
 
     _set_auth_cookies(response, tokens.session_id, tokens.refresh_token)
     return _auth_response(tokens)
@@ -68,7 +76,9 @@ async def refresh(body: RefreshRequest, request: Request, response: Response):
     try:
         tokens = await AuthService.instance().refresh(refresh_token)
     except AuthError as error:
-        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+        raise HTTPException(
+            status_code=error.status_code, detail=error.detail
+        ) from error
 
     _set_auth_cookies(response, tokens.session_id, tokens.refresh_token)
     return _auth_response(tokens)
@@ -93,7 +103,9 @@ async def delete_me(user: CurrentUser, response: Response):
     try:
         await AuthService.instance().delete_account(user)
     except AuthError as error:
-        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
+        raise HTTPException(
+            status_code=error.status_code, detail=error.detail
+        ) from error
 
     _clear_auth_cookies(response)
     return Response(status_code=204)

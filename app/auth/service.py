@@ -38,7 +38,9 @@ class AuthService:
         if await users.user_exists(username):
             raise AuthError(409, "Username already taken")
 
-        created = await users.register_user(username, hash_password(password), Role.USER)
+        created = await users.register_user(
+            username, hash_password(password), Role.USER
+        )
         if not created:
             raise AuthError(409, "Username already taken")
 
@@ -86,7 +88,9 @@ class AuthService:
     async def _issue_tokens(self, user: AuthUser) -> AuthTokens:
         session_id = generate_session_id()
         refresh_token = generate_refresh_token()
-        expires_at = datetime.now(tz=UTC) + timedelta(seconds=get_refresh_token_ttl_seconds())
+        expires_at = datetime.now(tz=UTC) + timedelta(
+            seconds=get_refresh_token_ttl_seconds()
+        )
 
         await SessionStore.instance().create(session_id, user)
         await AuthRefreshTokensTable.instance().create(

@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, cast
 
 import redis.asyncio as redis
 
@@ -70,7 +70,11 @@ class SessionStore:
 
     async def delete_all_for_user(self, username: str) -> None:
         client = self._get_client()
-        session_ids = await client.smembers(self._user_sessions_key(username))
+        session_ids = cast(
+            set[str], await client.smembers(self._user_sessions_key(username))
+        )
         if session_ids:
-            await client.delete(*(self._session_key(session_id) for session_id in session_ids))
+            await client.delete(
+                *(self._session_key(session_id) for session_id in session_ids)
+            )
         await client.delete(self._user_sessions_key(username))

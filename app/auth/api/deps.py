@@ -22,7 +22,9 @@ def _extract_session_id(request: Request) -> str | None:
     return None
 
 
-def _extract_refresh_token(request: Request, body_token: str | None = None) -> str | None:
+def _extract_refresh_token(
+    request: Request, body_token: str | None = None
+) -> str | None:
     if body_token:
         return body_token
 
@@ -46,7 +48,9 @@ async def require_api_user(request: Request) -> AuthUser:
     if db_user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired session")
     if not can_login(db_user.role):
-        raise HTTPException(status_code=403, detail="Account is not allowed to access the API")
+        raise HTTPException(
+            status_code=403, detail="Account is not allowed to access the API"
+        )
 
     return db_user
 
@@ -65,12 +69,16 @@ async def get_current_user(request: Request) -> AuthUser:
     return await require_api_user(request)
 
 
-async def get_admin_user(user: Annotated[AuthUser, Depends(get_current_user)]) -> AuthUser:
+async def get_admin_user(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+) -> AuthUser:
     require_admin(user)
     return user
 
 
-async def get_superadmin_user(user: Annotated[AuthUser, Depends(get_current_user)]) -> AuthUser:
+async def get_superadmin_user(
+    user: Annotated[AuthUser, Depends(get_current_user)],
+) -> AuthUser:
     require_superadmin(user)
     return user
 

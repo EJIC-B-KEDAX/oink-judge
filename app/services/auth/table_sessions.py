@@ -1,11 +1,10 @@
 import time
 
-from oink_judge.pybind11_database import (
-    ConnectionPool,
+from app.database import (
     execute,
     execute_sql,
+    get_default_executor,
 )
-
 from app.services.auth.session import Session
 
 
@@ -36,20 +35,20 @@ class TableSessions:
             "expire_at INTEGER);"
         )
 
-        pool = ConnectionPool.instance()
-        pool.prepare_statement(
+        executor = get_default_executor()
+        executor.prepare_statement(
             "sessions__add_session",
             "INSERT INTO sessions (id, username, expire_at) VALUES ($1, $2, $3)",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "sessions__remove_session",
             "DELETE FROM sessions WHERE id = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "sessions__remove_by_username",
             "DELETE FROM sessions WHERE username = $1",
         )
-        pool.prepare_statement(
+        executor.prepare_statement(
             "sessions__select_session",
             "SELECT username, expire_at FROM sessions WHERE id = $1",
         )
