@@ -1,9 +1,9 @@
-import json
 import re
-from functools import lru_cache
 from pathlib import Path
 
 from oink_judge.pybind11_config import get_token_from_credentials
+
+from app.config import check_object_is_number_integer, check_object_is_string, config
 
 DEFAULT_CONFIG_PATH = Path("configs/app/config.json")
 DEFAULT_USERNAME_REGEX = r"^[a-zA-Z0-9.\-_?!()]{3,100}$"
@@ -11,40 +11,36 @@ DEFAULT_SESSION_TTL_SECONDS = 900
 DEFAULT_REFRESH_TOKEN_TTL_SECONDS = 604800
 
 
-@lru_cache(maxsize=1)
-def _load_config() -> dict:
-    if not DEFAULT_CONFIG_PATH.exists():
-        return {}
-    with DEFAULT_CONFIG_PATH.open(encoding="utf-8") as config_file:
-        return json.load(config_file)
-
-
 def get_username_regex() -> re.Pattern[str]:
-    auth_config = _load_config().get("auth", {})
-    pattern = auth_config.get("username_regex", DEFAULT_USERNAME_REGEX)
-    return re.compile(pattern)
+    if not check_object_is_string(config(), ["auth", "username_regex"]):
+        return re.compile(DEFAULT_USERNAME_REGEX)
+    return re.compile(config()["auth"]["username_regex"])
 
 
 def get_session_ttl_seconds() -> int:
-    auth_config = _load_config().get("auth", {})
-    return int(auth_config.get("session_ttl_seconds", DEFAULT_SESSION_TTL_SECONDS))
+    if not check_object_is_number_integer(config(), ["auth", "session_ttl_seconds"]):
+        return DEFAULT_SESSION_TTL_SECONDS
+    return config()["auth"]["session_ttl_seconds"]
 
 
 def get_refresh_token_ttl_seconds() -> int:
-    auth_config = _load_config().get("auth", {})
-    return int(
-        auth_config.get("refresh_token_ttl_seconds", DEFAULT_REFRESH_TOKEN_TTL_SECONDS)
-    )
+    if not check_object_is_number_integer(
+        config(), ["auth", "refresh_token_ttl_seconds"]
+    ):
+        return DEFAULT_REFRESH_TOKEN_TTL_SECONDS
+    return config()["auth"]["refresh_token_ttl_seconds"]
 
 
 def get_redis_host() -> str:
-    redis_config = _load_config().get("redis", {})
-    return str(redis_config.get("host", "127.0.0.1"))
+    if not check_object_is_string(config(), ["redis", "host"]):
+        return "127.0.0.1"
+    return config()["redis"]["host"]
 
 
 def get_redis_port() -> int:
-    redis_config = _load_config().get("redis", {})
-    return int(redis_config.get("port", 6379))
+    if not check_object_is_number_integer(config(), ["redis", "port"]):
+        return 6379
+    return config()["redis"]["port"]
 
 
 def get_redis_password() -> str | None:

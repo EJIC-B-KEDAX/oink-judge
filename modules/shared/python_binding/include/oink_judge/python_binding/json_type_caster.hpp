@@ -8,7 +8,7 @@ namespace py = pybind11;
 namespace pybind11::detail {
 
 template <> struct type_caster<nlohmann::json> {
-    PYBIND11_TYPE_CASTER(nlohmann::json, const_name("json"));
+    PYBIND11_TYPE_CASTER(nlohmann::json, const_name("dict"));
 
     auto load(handle src, bool convert) -> bool {
         try {

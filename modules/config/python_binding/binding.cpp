@@ -2,9 +2,11 @@
 #include <oink_judge/config/config.h>
 #include <oink_judge/config/logger_utils.h>
 #include <oink_judge/config/problem_config_utils.h>
+#include <oink_judge/python_binding/json_type_caster.hpp>
 
 #include <pybind11/chrono.h>
 #include <pybind11/detail/common.h>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
@@ -17,8 +19,28 @@ PYBIND11_MODULE(pybind11_config, m) {
     m.def("get_directory_path", &config::getDirectoryPath);
     m.def("get_timing", &config::getTiming);
     m.def("get_token_from_credentials", &config::getTokenFromCredentials);
+
+    // config
+    m.def("config", &config::Config::config);
+    m.def("credentials", &config::Config::credentials);
     m.def("set_config_file_path", &config::Config::setConfigFilePath);
     m.def("set_credentials_file_path", &config::Config::setCredentialsFilePath);
+    m.def("reload_data", &config::Config::reloadData);
+
+    // check_path_with
+    m.def("check_path_with", &config::checkPathWith, py::arg("j"), py::arg("path"), py::arg("predicate"));
+    m.def("check_object_is_array", &config::checkObjectIsArray, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_binary", &config::checkObjectIsBinary, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_boolean", &config::checkObjectIsBoolean, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_discarded", &config::checkObjectIsDiscarded, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_null", &config::checkObjectIsNull, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_number", &config::checkObjectIsNumber, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_number_float", &config::checkObjectIsNumberFloat);
+    m.def("check_object_is_number_integer", &config::checkObjectIsNumberInteger, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_number_unsigned", &config::checkObjectIsNumberUnsigned, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_object", &config::checkObjectIsObject, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_primitive", &config::checkObjectIsPrimitive, py::arg("j"), py::arg("path"));
+    m.def("check_object_is_string", &config::checkObjectIsString, py::arg("j"), py::arg("path"));
 
     // logger_utils
     py::class_<config::LoggerConfig>(m, "LoggerConfig")
